@@ -191,7 +191,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             return stats;
         };
         
-        renderDashboard();
+        // Show loading state initially
+        document.getElementById('kpiTotal').textContent = '-';
+        document.getElementById('kpiPaid').textContent = '-';
+        document.getElementById('kpiUnpaid').textContent = '-';
+        document.getElementById('kpiRevMonth').textContent = '-';
+        document.getElementById('kpiRevYear').textContent = '-';
+        document.getElementById('kpiNewReq').textContent = '-';
+        document.getElementById('kpiCancelReq').textContent = '-';
         
         // รอข้อมูลจริงจาก DB
         await fetchPromise;

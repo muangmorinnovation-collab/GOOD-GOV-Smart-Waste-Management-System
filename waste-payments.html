@@ -183,31 +183,36 @@
 const GAS_RECEIPT_URL = 'https://script.google.com/macros/s/AKfycby_bjxYrtQnhoEzPvIFqG11CjOhkwEFC_AC5OsxJKE-A08FZ6mBxY_0AHGy_R-ii1sOqQ/exec';
 
 document.addEventListener('DOMContentLoaded', async function() {
-    initWasteData();
-    
-    // 1. Initial Render using LocalStorage data (Stale-While-Revalidate)
-    onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
-    renderOnlinePayments();
-
-    // 2. Fetch fresh data from Supabase in background
-    const fetchTasks = [
-        fetchWasteFeeTypes(),
-        fetchWasteCustomers(),
-        fetchWastePayments(),
-        fetchMonthlyStatus(),
-        fetchWasteStaff(),
-        refreshOnlinePayments(true) // Pass true to avoid re-rendering immediately if we just want to sync
-    ];
-    
-    Promise.all(fetchTasks).then(() => {
-        // 3. Re-render once fresh data arrives
+    Swal.fire({title: 'กำลังโหลดข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    try {
+        initWasteData();
+        
+        // Fetch fresh data from Supabase in background
+        const fetchTasks = [
+            fetchWasteFeeTypes(),
+            fetchWasteCustomers(),
+            fetchWastePayments(),
+            fetchMonthlyStatus(),
+            fetchWasteStaff(),
+            refreshOnlinePayments(true) // Pass true to avoid re-rendering immediately if we just want to sync
+        ];
+        
+        await Promise.all(fetchTasks);
+        
+        // Re-render once fresh data arrives
+        onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
         renderOnlinePayments();
         
         // Update walk-in search results if already searching
         if (document.getElementById('walkInSearch').value) {
             searchWalkIn();
         }
-    });
+        
+        Swal.close();
+    } catch(e) {
+        console.error(e);
+        Swal.close();
+    }
 });
 
 function getStaffOptions() {

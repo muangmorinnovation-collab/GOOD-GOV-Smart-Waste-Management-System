@@ -210,17 +210,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (!yearSelect.value) {
                 yearSelect.value = currentYear;
             }
-
-            renderReports();
         };
 
+        // Initialize UI components but do NOT render data until fetched
         initReportUI();
 
         // Wait for fresh data
         await fetchPromise;
         
         // 2. Re-render once fresh data arrives
-        initReportUI();
+        renderReports();
         
         Swal.close();
     } catch (e) {

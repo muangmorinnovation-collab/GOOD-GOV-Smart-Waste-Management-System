@@ -168,16 +168,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         initWasteData(); 
         
-        // Start fetch immediately for speed
+        // 1. Fetch fresh data
         const fetchPromise = Promise.all([
             fetchWasteFeeTypes(),
             fetchWasteCustomers()
         ]);
         
-        // 1. Initial Render using LocalStorage data
-        populateDropdowns();
-        renderTable(); 
-
         // Wait for fresh data
         await fetchPromise;
         

@@ -234,6 +234,26 @@
                 }
             });
             try {
+                // Show loading state for summary cards
+                document.getElementById('kor3Summary').innerHTML = `
+                    <div class="col-6 col-lg-3"><div class="kor3-summary-card" style="background:#f0f5ff;">
+                        <div class="icon-box" style="background:#dbeafe;color:#1a56db;"><i class="fa-solid fa-users"></i></div>
+                        <div><div class="value">-</div><div class="label">ครัวเรือนทั้งหมด</div></div>
+                    </div></div>
+                    <div class="col-6 col-lg-3"><div class="kor3-summary-card" style="background:#f0fdf4;">
+                        <div class="icon-box" style="background:#dcfce7;color:#166534;"><i class="fa-solid fa-check-circle"></i></div>
+                        <div><div class="value text-success">-</div><div class="label">ชำระครบทุกเดือน (ครัวเรือน)</div></div>
+                    </div></div>
+                    <div class="col-6 col-lg-3"><div class="kor3-summary-card" style="background:#fef2f2;">
+                        <div class="icon-box" style="background:#fecaca;color:#991b1b;"><i class="fa-solid fa-times-circle"></i></div>
+                        <div><div class="value text-danger">-</div><div class="label">มีเดือนค้างชำระ (ครัวเรือน)</div></div>
+                    </div></div>
+                    <div class="col-6 col-lg-3"><div class="kor3-summary-card" style="background:#f0fdf4;">
+                        <div class="icon-box" style="background:#bbf7d0;color:#057a55;"><i class="fa-solid fa-coins"></i></div>
+                        <div><div class="value text-success">-</div><div class="label">รายรับปีนี้ (ประมาณ)</div></div>
+                    </div></div>
+                `;
+                
                 initWasteData();
                 await Promise.all([
                     fetchWasteFeeTypes(),
