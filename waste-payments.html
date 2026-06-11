@@ -183,11 +183,14 @@
 const GAS_RECEIPT_URL = 'https://script.google.com/macros/s/AKfycby_bjxYrtQnhoEzPvIFqG11CjOhkwEFC_AC5OsxJKE-A08FZ6mBxY_0AHGy_R-ii1sOqQ/exec';
 
 document.addEventListener('DOMContentLoaded', async function() {
-    Swal.fire({title: 'กำลังโหลดข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    initWasteData();
+    
+    // 1. Initial Render immediately using local storage data for speed
+    onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
+    renderOnlinePayments();
+    
+    // 2. Fetch fresh data from Supabase in background
     try {
-        initWasteData();
-        
-        // Fetch fresh data from Supabase in background
         const fetchTasks = [
             fetchWasteFeeTypes(),
             fetchWasteCustomers(),
@@ -199,7 +202,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         await Promise.all(fetchTasks);
         
-        // Re-render once fresh data arrives
+        // 3. Re-render once fresh data arrives silently
         onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
         renderOnlinePayments();
         
@@ -207,11 +210,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (document.getElementById('walkInSearch').value) {
             searchWalkIn();
         }
-        
-        Swal.close();
     } catch(e) {
         console.error(e);
-        Swal.close();
     }
 });
 
