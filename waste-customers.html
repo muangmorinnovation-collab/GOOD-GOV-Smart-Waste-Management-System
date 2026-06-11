@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทะเบียนลูกค้าขยะ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ทะเบียนฐานข้อมูลลูกค้าขยะ"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-address-book text-primary me-2"></i>ทะเบียนลูกค้า</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item"><a href="waste-dashboard.html" class="text-decoration-none">ค่าธรรมเนียมขยะ</a></li>
+                    <li class="breadcrumb-item active">ทะเบียนลูกค้า</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openFeeModal()"><i class="fa-solid fa-cog me-1"></i>ตั้งค่าค่าธรรมเนียม</button>
+                <button class="btn btn-sm btn-primary fw-semibold" onclick="openAddModal()"><i class="fa-solid fa-plus me-1"></i>เพิ่มลูกค้า</button>
+                <input type="file" id="importFile" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleImportFile(event)">
+                <button class="btn btn-sm btn-outline-success" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-file-import me-1"></i>Import</button>
+                <button class="btn btn-sm btn-outline-success" onclick="exportToExcel()"><i class="fa-solid fa-file-excel me-1"></i>Export</button>
+            </div>
+        </div>
+
+        <!-- Moo Summary -->
+        <h6 class="fw-bold mb-3"><i class="fa-solid fa-chart-pie text-success me-2"></i>สรุปจำนวนครัวเรือนรายหมู่</h6>
+        <div class="row g-2 mb-4" id="mooSummaryDashboard"></div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body py-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-3"><input type="text" class="form-control form-control-sm" id="searchInput" placeholder="ค้นหาชื่อ / บ้านเลขที่..." oninput="renderTable()"></div>
+                    <div class="col-md-2"><select class="form-select form-select-sm" id="filterMoo" onchange="renderTable()"></select></div>
+                    <div class="col-md-2"><select class="form-select form-select-sm" id="filterType" onchange="renderTable()"></select></div>
+                    <div class="col-md-2"><select class="form-select form-select-sm" id="filterStatus" onchange="renderTable()"><option value="">ทุกสถานะ</option><option value="active">ใช้งาน</option><option value="cancelled">ยกเลิก</option><option value="exempt">ยกเว้น/ไม่ได้เก็บ</option></select></div>
+                    <div class="col-md-2"><select class="form-select form-select-sm" id="filterFee" onchange="renderTable()"><option value="">ทุกยอดเก็บ</option><option value="zero">ยังไม่มีค่าธรรมเนียม</option><option value="hasfee">มีค่าธรรมเนียมแล้ว</option></select></div>
+                    <div class="col-md-1 text-end"><span class="text-xs text-muted" id="countLabel">0 รายการ</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr>
+                            <th class="ps-4">รหัส</th><th>บ้านเลขที่</th><th>หมู่</th><th>ชื่อเจ้าบ้าน</th><th>ประเภท</th><th>หมายเหตุ</th>
+                            <th class="text-end">ค่าธรรมเนียม</th><th>เบอร์โทร</th><th>สถานะ</th><th class="pe-4 text-center">จัดการ</th>
+                        </tr></thead>
+                        <tbody id="customerTableBody"><tr><td colspan="10" class="text-center py-4 text-muted">กำลังโหลด...</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="card-body border-top py-3 d-flex justify-content-between align-items-center">
+                    <span class="text-xs text-muted" id="pageInfo"></span>
+                    <nav><ul class="pagination pagination-sm mb-0" id="pagination"></ul></nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="customerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom"><h5 class="modal-title fw-bold" id="modalTitle"><i class="fa-solid fa-user-plus text-primary me-2"></i>เพิ่มลูกค้าใหม่</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body p-4">
+                <form id="customerForm" onsubmit="saveCustomer(event)">
+                    <input type="hidden" id="editId">
+                    <div class="row g-3">
+                        <div class="col-md-3"><label class="form-label fw-semibold text-sm">รหัสลูกค้า</label><input type="text" class="form-control" id="fId" readonly></div>
+                        <div class="col-md-3"><label class="form-label fw-semibold text-sm">บ้านเลขที่ <span class="text-danger">*</span></label><input type="text" class="form-control" id="fHouseNo" required></div>
+                        <div class="col-md-3"><label class="form-label fw-semibold text-sm">หมู่ <span class="text-danger">*</span></label><select class="form-select" id="fMoo" required></select></div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold text-sm">ตำบล <span class="text-danger">*</span></label>
+                            <select class="form-select" id="fSubdistrict" required>
+                                <option value="เหมืองหม้อ">เหมืองหม้อ</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6"><label class="form-label fw-semibold text-sm">ชื่อเจ้าบ้าน <span class="text-danger">*</span></label><input type="text" class="form-control" id="fName" required></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold text-sm">เลขบัตรประชาชน</label><input type="text" class="form-control" id="fIdCard" maxlength="13"></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">เบอร์โทร</label><input type="text" class="form-control" id="fPhone"></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">ประเภทบ้าน <span class="text-danger">*</span></label><select class="form-select" id="fType" required onchange="autoFee()"></select></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">ค่าธรรมเนียม/เดือน</label><input type="number" class="form-control" id="fFee" value="40"></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">วันที่เริ่มใช้งาน</label><input type="date" class="form-control" id="fStartDate"></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">Latitude</label><input type="text" class="form-control" id="fLat"></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">Longitude</label><input type="text" class="form-control" id="fLng"></div>
+                        <div class="col-12 mt-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-semibold text-sm mb-0">ระบุพิกัดบนแผนที่</label>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="getCurrentLocation()"><i class="fa-solid fa-location-crosshairs me-1"></i>ดึงตำแหน่งปัจจุบัน</button>
+                            </div>
+                            <div id="modalMap" style="height: 250px; border-radius: 8px; border: 1px solid #dee2e6; z-index: 1;"></div>
+                        </div>
+                        <div class="col-12"><label class="form-label fw-semibold text-sm">หมายเหตุ</label><textarea class="form-control" id="fNote" rows="2"></textarea></div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-save me-1"></i>บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fee Config Modal -->
+<div class="modal fade" id="feeConfigModal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom"><h5 class="modal-title fw-bold"><i class="fa-solid fa-cog text-primary me-2"></i>ตั้งค่าประเภทและราคา</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body p-4">
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light"><tr><th>ประเภท</th><th class="text-end">ราคา/เดือน</th><th class="text-center">จัดการ</th></tr></thead>
+                        <tbody id="feeTableBody"></tbody>
+                    </table>
+                </div>
+                <form id="addFeeForm" onsubmit="addFeeType(event)" class="row g-2 align-items-end">
+                    <input type="hidden" id="editFeeId">
+                    <div class="col-6"><label class="form-label text-xs" id="feeFormLabel">เพิ่มประเภทใหม่</label><input type="text" class="form-control form-control-sm" id="newFeeType" required></div>
+                    <div class="col-4"><label class="form-label text-xs">ราคา</label><input type="number" class="form-control form-control-sm" id="newFeePrice" required></div>
+                    <div class="col-2"><button type="submit" class="btn btn-sm btn-primary w-100" id="feeSubmitBtn"><i class="fa-solid fa-plus"></i></button></div>
+                </form>
+                <div class="mt-3 pt-3 border-top text-center">
+                    <button type="button" class="btn btn-sm btn-outline-warning w-100 fw-semibold" onclick="syncAllCustomersFees()">
+                        <i class="fa-solid fa-rotate me-1"></i> ปรับปรุงราคาลูกค้าทั้งหมดตามค่าปัจจุบัน
+                    </button>
+                    <small class="text-muted d-block mt-1" style="font-size:0.7rem;">* จะปรับราคาเฉพาะในตารางทะเบียนลูกค้าให้ตรงกับที่ตั้งค่าไว้ ไม่มีผลกับใบเสร็จย้อนหลัง</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/waste.js"></script>
+<script src="assets/js/responsive.js"></script>
+<script>
+let currentPage = 1;
+const pageSize = 15;
+let modalMap = null;
+let modalMarker = null;
+
+document.addEventListener('DOMContentLoaded', async function() { 
+    Swal.fire({title: 'กำลังโหลดข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    try {
+        initWasteData(); 
+        
+        // Start fetch immediately for speed
+        const fetchPromise = Promise.all([
+            fetchWasteFeeTypes(),
+            fetchWasteCustomers()
+        ]);
+        
+        // 1. Initial Render using LocalStorage data
+        populateDropdowns();
+        renderTable(); 
+
+        // Wait for fresh data
+        await fetchPromise;
+        
+        // 2. Re-render once fresh data arrives
+        populateDropdowns();
+        renderTable();
+        
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.close();
+    }
+});
+
+function populateDropdowns() {
+    const customers = getWasteCustomers();
+    const moos = [...new Set(customers.map(c => Number(c.moo)).filter(m => !isNaN(m) && m > 0))].sort((a,b) => a - b);
+    let mooOpts = '<option value="">ทุกหมู่</option>';
+    let fMooOpts = '';
+    moos.forEach(m => {
+        mooOpts += `<option value="${m}">หมู่ ${m}</option>`;
+        fMooOpts += `<option value="${m}">หมู่ ${m}</option>`;
+    });
+    mooOpts += '<option value="none">ไม่ระบุหมู่/อื่นๆ</option>';
+    document.getElementById('filterMoo').innerHTML = mooOpts;
+    document.getElementById('fMoo').innerHTML = fMooOpts;
+
+    const fees = getWasteFeeTypes();
+    let typeOpts = '<option value="">ทุกประเภท</option>';
+    let fTypeOpts = '';
+    fees.forEach(f => {
+        typeOpts += `<option value="${f.type}">${f.type}</option>`;
+        fTypeOpts += `<option value="${f.type}">${f.type}</option>`;
+    });
+    typeOpts += '<option value="none">ไม่มีประเภท (-)</option>';
+    
+    document.getElementById('filterType').innerHTML = typeOpts;
+    document.getElementById('fType').innerHTML = fTypeOpts;
+}
+
+function getFiltered() {
+    let data = getWasteCustomers();
+    const q = (document.getElementById('searchInput').value||'').toLowerCase();
+    const moo = document.getElementById('filterMoo').value;
+    const type = document.getElementById('filterType').value;
+    const status = document.getElementById('filterStatus').value;
+    const feeFilter = document.getElementById('filterFee').value;
+    
+    if (q) data = data.filter(c => c.name.toLowerCase().includes(q) || c.house_no.includes(q) || (c.id_card||'').includes(q));
+    if (moo) {
+        if (moo === 'none') {
+            data = data.filter(c => {
+                const m = Number(c.moo);
+                return isNaN(m) || m <= 0 || !c.moo || String(c.moo).trim() === '-';
+            });
+        } else {
+            data = data.filter(c => String(c.moo) === String(moo));
+        }
+    }
+    
+    if (type) {
+        if (type === 'none') {
+            data = data.filter(c => !c.type || c.type === '-' || c.type === '');
+        } else {
+            data = data.filter(c => c.type === type);
+        }
+    }
+    
+    if (status) data = data.filter(c => c.status === status);
+    
+    if (feeFilter) {
+        if (feeFilter === 'zero') {
+            data = data.filter(c => !c.fee || Number(c.fee) === 0);
+        } else if (feeFilter === 'hasfee') {
+            data = data.filter(c => Number(c.fee) > 0);
+        }
+    }
+    
+    return data;
+}
+
+function renderTable() {
+    const data = getFiltered();
+    const totalPages = Math.ceil(data.length / pageSize) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * pageSize;
+    const pageData = data.slice(start, start + pageSize);
+    document.getElementById('countLabel').textContent = data.length + ' รายการ';
+
+    const typeBadge = t => {
+        const colors = {'บ้านพัก':'background:#f0fdf4;color:#14532d','ร้านค้า':'background:#fef9c3;color:#713f12','อาคาร':'background:#dbeafe;color:#1e40af','โรงงาน':'background:#fef2f2;color:#991b1b'};
+        const defaultStyle = 'background:#e5e7eb;color:#1f2937';
+        return `<span class="badge border border-secondary border-opacity-25" style="${colors[t]||defaultStyle}">${t}</span>`;
+    };
+
+    const tbody = document.getElementById('customerTableBody');
+    tbody.innerHTML = pageData.length ? pageData.map(c => `<tr>
+        <td class="ps-4 fw-semibold text-xs text-primary">${c.id}</td>
+        <td class="fw-bold">${c.house_no}</td>
+        <td class="text-center">${c.moo}</td>
+        <td>${c.name}</td>
+        <td>${typeBadge(c.type)}</td>
+        <td class="text-muted text-xs" style="max-width: 150px;"><div class="text-truncate" title="${c.note||''}"><small>${c.note||'-'}</small></div></td>
+        <td class="text-end fw-semibold">฿${formatMoney(c.fee)}/เดือน</td>
+        <td class="text-xs">${c.phone||'-'}</td>
+        <td>
+            <select class="form-select form-select-sm text-xs ${c.status==='active'?'text-success fw-bold':c.status==='exempt'?'text-warning fw-bold':'text-danger'}" style="width: 130px;" onchange="updateCustomerStatus('${c.id}', this.value)">
+                <option value="active" ${c.status==='active'?'selected':''}>ใช้งาน</option>
+                <option value="cancelled" ${c.status==='cancelled'?'selected':''}>ยกเลิก</option>
+                <option value="exempt" ${c.status==='exempt'?'selected':''}>ยกเว้น/ไม่ได้เก็บ</option>
+            </select>
+        </td>
+        <td class="pe-4 text-center">
+            <button class="btn btn-xs btn-outline-primary me-1" onclick="editCustomer('${c.id}')" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-xs btn-outline-danger me-1" onclick="deleteCustomer('${c.id}')" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+            ${c.lat?`<a href="waste-map.html?id=${c.id}" class="btn btn-xs btn-outline-info" title="แผนที่"><i class="fa-solid fa-map-location-dot"></i></a>`:''}
+        </td>
+    </tr>`).join('') : '<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';
+
+    // Pagination
+    document.getElementById('pageInfo').textContent = data.length > 0 ? `แสดง ${start+1}-${Math.min(start+pageSize,data.length)} จาก ${data.length}` : 'แสดง 0-0 จาก 0';
+    const pag = document.getElementById('pagination');
+    pag.innerHTML = '';
+    
+    if (totalPages > 0) {
+        let startPage = Math.max(1, currentPage - 4);
+        let endPage = Math.min(totalPages, startPage + 9);
+        if (endPage - startPage < 9) {
+            startPage = Math.max(1, endPage - 9);
+        }
+        
+        pag.innerHTML += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="goPage(${currentPage-1})">«</a></li>`;
+        for (let i = startPage; i <= endPage; i++) {
+            pag.innerHTML += `<li class="page-item ${i===currentPage?'active':''}"><a class="page-link" href="#" onclick="goPage(${i})">${i}</a></li>`;
+        }
+        pag.innerHTML += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="goPage(${currentPage+1})">»</a></li>`;
+    }
+    renderMooSummary();
+}
+
+function renderMooSummary() {
+    const data = getFiltered();
+    const counts = {};
+    let noneCount = 0;
+    
+    data.forEach(c => {
+        const m = Number(c.moo);
+        if (!isNaN(m) && m > 0) {
+            counts[m] = (counts[m] || 0) + 1;
+        } else {
+            noneCount++;
+        }
+    });
+    
+    const sortedMoos = Object.keys(counts).map(Number).sort((a,b) => a - b);
+    
+    const dashDiv = document.getElementById('mooSummaryDashboard');
+    if (!dashDiv) return;
+    
+    let html = '';
+    const total = data.length;
+    
+    sortedMoos.forEach(m => {
+        html += `
+        <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+            <div class="card bg-white shadow-sm h-100" style="border: 1px solid #e2e8f0; border-top: 4px solid #3b82f6; border-radius: 6px;">
+                <div class="card-body py-2 px-3 text-center d-flex flex-column justify-content-center">
+                    <div class="fw-bold text-dark mb-1" style="font-size: 1.1rem; letter-spacing: 0.5px;">หมู่ที่ ${m}</div>
+                    <div class="fw-bold text-primary" style="font-size: 1.3rem;">${formatMoney(counts[m])} <span class="text-muted fw-normal" style="font-size: 0.8rem;">ครัวเรือน</span></div>
+                </div>
+            </div>
+        </div>`;
+    });
+    
+    if (noneCount > 0) {
+        html += `
+        <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+            <div class="card bg-white shadow-sm h-100" style="border: 1px solid #e2e8f0; border-top: 4px solid #f59e0b; border-radius: 6px;">
+                <div class="card-body py-2 px-3 text-center d-flex flex-column justify-content-center">
+                    <div class="fw-bold text-dark mb-1" style="font-size: 1.1rem; letter-spacing: 0.5px;">ไม่ระบุหมู่</div>
+                    <div class="fw-bold text-warning" style="font-size: 1.3rem;">${formatMoney(noneCount)} <span class="text-muted fw-normal" style="font-size: 0.8rem;">ครัวเรือน</span></div>
+                </div>
+            </div>
+        </div>`;
+    }
+    
+    html = `
+        <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+            <div class="card bg-primary text-white shadow-sm h-100" style="border: none; border-top: 4px solid #1e40af; border-radius: 6px;">
+                <div class="card-body py-2 px-3 text-center d-flex flex-column justify-content-center">
+                    <div class="fw-bold mb-1" style="font-size: 1.1rem; letter-spacing: 0.5px; opacity: 0.9;">รวมทั้งหมด</div>
+                    <div class="fw-bold" style="font-size: 1.4rem;">${formatMoney(total)} <span class="fw-normal" style="font-size: 0.8rem; opacity: 0.8;">ครัวเรือน</span></div>
+                </div>
+            </div>
+        </div>` + html;
+    dashDiv.innerHTML = html;
+}
+
+function goPage(p) { currentPage = p; renderTable(); }
+
+async function updateCustomerStatus(id, newStatus) {
+    const customers = getWasteCustomers();
+    const c = customers.find(x => x.id === id);
+    if (!c) return;
+    
+    Swal.fire({title: 'กำลังอัปเดต...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    c.status = newStatus;
+    
+    let statusLabel = 'ใช้งาน';
+    if (newStatus === 'cancelled') statusLabel = 'ยกเลิก';
+    if (newStatus === 'exempt') statusLabel = 'ยกเว้น/ไม่ได้เก็บ';
+    
+    await saveWasteCustomerDB(c);
+    showToast(`เปลี่ยนสถานะเป็น ${statusLabel} แล้ว`, 'success');
+    renderTable();
+    Swal.close();
+}
+
+function autoFee() {
+    const type = document.getElementById('fType').value;
+    const fees = getWasteFeeTypes();
+    const feeConfig = fees.find(f => f.type === type);
+    document.getElementById('fFee').value = feeConfig ? feeConfig.fee : 40;
+}
+
+function initModalMap(lat, lng) {
+    if (!modalMap) {
+        modalMap = L.map('modalMap').setView([14.890, 102.020], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(modalMap);
+        modalMarker = L.marker([14.890, 102.020], {draggable: true}).addTo(modalMap);
+        modalMarker.on('dragend', function(e) {
+            const pos = modalMarker.getLatLng();
+            document.getElementById('fLat').value = pos.lat.toFixed(6);
+            document.getElementById('fLng').value = pos.lng.toFixed(6);
+        });
+    }
+    
+    // Reset view
+    setTimeout(() => {
+        modalMap.invalidateSize();
+        if (lat && lng) {
+            const pos = new L.LatLng(lat, lng);
+            modalMap.setView(pos, 16);
+            modalMarker.setLatLng(pos);
+        }
+    }, 300);
+}
+
+function getCurrentLocation() {
+    if (navigator.geolocation) {
+        Swal.fire({title: 'กำลังดึงตำแหน่ง...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                Swal.close();
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                document.getElementById('fLat').value = lat.toFixed(6);
+                document.getElementById('fLng').value = lng.toFixed(6);
+                if (modalMap && modalMarker) {
+                    const newPos = new L.LatLng(lat, lng);
+                    modalMap.setView(newPos, 16);
+                    modalMarker.setLatLng(newPos);
+                }
+            },
+            (err) => {
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึงตำแหน่งได้ กรุณาตรวจสอบการตั้งค่าเบราว์เซอร์', 'error');
+            }
+        );
+    } else {
+        Swal.fire('ข้อผิดพลาด', 'เบราว์เซอร์ของคุณไม่รองรับการดึงตำแหน่ง', 'error');
+    }
+}
+
+function openAddModal() {
+    document.getElementById('editId').value = '';
+    document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-user-plus text-primary me-2"></i>เพิ่มลูกค้าใหม่';
+    document.getElementById('fId').value = generateCustomerId();
+    document.getElementById('customerForm').reset();
+    document.getElementById('fId').value = generateCustomerId();
+    document.getElementById('fStartDate').value = new Date().toISOString().split('T')[0];
+    autoFee();
+    new bootstrap.Modal(document.getElementById('customerModal')).show();
+    initModalMap();
+    getCurrentLocation(); // ดึงตำแหน่งอัตโนมัติ
+}
+
+function editCustomer(id) {
+    const c = getWasteCustomers().find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('editId').value = c.id;
+    document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen text-warning me-2"></i>แก้ไขข้อมูลลูกค้า';
+    document.getElementById('fId').value = c.id;
+    document.getElementById('fHouseNo').value = c.house_no;
+    document.getElementById('fMoo').value = c.moo;
+    document.getElementById('fSubdistrict').value = c.subdistrict || 'เหมืองหม้อ';
+    document.getElementById('fName').value = c.name;
+    document.getElementById('fIdCard').value = c.id_card||'';
+    document.getElementById('fPhone').value = c.phone||'';
+    document.getElementById('fType').value = c.type;
+    document.getElementById('fFee').value = c.fee;
+    document.getElementById('fStartDate').value = c.start_date||'';
+    document.getElementById('fLat').value = c.lat||'';
+    document.getElementById('fLng').value = c.lng||'';
+    document.getElementById('fNote').value = c.note||'';
+    new bootstrap.Modal(document.getElementById('customerModal')).show();
+    initModalMap(c.lat, c.lng);
+}
+
+async function saveCustomer(e) {
+    e.preventDefault();
+    const editId = document.getElementById('editId').value;
+    const data = {
+        id: document.getElementById('fId').value,
+        house_no: document.getElementById('fHouseNo').value,
+        moo: document.getElementById('fMoo').value,
+        subdistrict: document.getElementById('fSubdistrict').value,
+        name: document.getElementById('fName').value,
+        id_card: document.getElementById('fIdCard').value,
+        phone: document.getElementById('fPhone').value,
+        type: document.getElementById('fType').value,
+        fee: parseInt(document.getElementById('fFee').value)||40,
+        start_date: document.getElementById('fStartDate').value,
+        status: 'active',
+        lat: parseFloat(document.getElementById('fLat').value)||null,
+        lng: parseFloat(document.getElementById('fLng').value)||null,
+        note: document.getElementById('fNote').value
+    };
+    
+    if (editId) {
+        const c = getWasteCustomers().find(x => x.id === editId);
+        if (c) data.status = c.status;
+    }
+    
+    Swal.fire({title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    await saveWasteCustomerDB(data);
+    Swal.close();
+    
+    bootstrap.Modal.getInstance(document.getElementById('customerModal')).hide();
+    showToast(editId ? 'แก้ไขข้อมูลสำเร็จ' : 'เพิ่มลูกค้าสำเร็จ', 'success');
+    renderTable();
+}
+
+function deleteCustomer(id) {
+    Swal.fire({title:'ยืนยันลบ?',text:'ต้องการลบลูกค้ารายนี้?',icon:'warning',showCancelButton:true,confirmButtonColor:'#c81e1e',confirmButtonText:'ลบ',cancelButtonText:'ยกเลิก'}).then(async r => {
+        if (r.isConfirmed) {
+            Swal.fire({title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+            await deleteWasteCustomerDB(id);
+            Swal.close();
+            showToast('ลบข้อมูลสำเร็จ','success');
+            renderTable();
+        }
+    });
+}
+
+// Fee Management
+function openFeeModal() {
+    resetFeeForm();
+    renderFeeTable();
+    new bootstrap.Modal(document.getElementById('feeConfigModal')).show();
+}
+
+function renderFeeTable() {
+    const fees = getWasteFeeTypes();
+    document.getElementById('feeTableBody').innerHTML = fees.map(f => `<tr>
+        <td class="align-middle">${f.type}</td><td class="text-end align-middle">฿${formatMoney(f.fee)}</td>
+        <td class="text-center">
+            <button class="btn btn-xs btn-outline-primary me-1" onclick="editFeeType('${f.id}')" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-xs btn-outline-danger" onclick="deleteFeeType('${f.id}')" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+        </td>
+    </tr>`).join('');
+}
+
+async function addFeeType(e) {
+    e.preventDefault();
+    const fees = getWasteFeeTypes();
+    const editId = document.getElementById('editFeeId').value;
+    const type = document.getElementById('newFeeType').value.trim();
+    const price = parseInt(document.getElementById('newFeePrice').value);
+    
+    if (!type || isNaN(price)) return;
+    Swal.fire({title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    
+    if (editId) {
+        // Edit mode
+        if (fees.some(f => f.id !== editId && f.type === type)) { Swal.fire('ซ้ำซ้อน','มีประเภทนี้แล้ว','warning'); return; }
+        const idx = fees.findIndex(f => f.id === editId);
+        if (idx >= 0) {
+            fees[idx].type = type;
+            fees[idx].fee = price;
+        }
+        await saveWasteFeeTypesDB(fees);
+        showToast('แก้ไขประเภทสำเร็จ','success');
+    } else {
+        // Add mode
+        if (fees.some(f => f.type === type)) { Swal.fire('ซ้ำซ้อน','มีประเภทนี้แล้ว','warning'); return; }
+        fees.push({ id: 'FT' + Date.now().toString().slice(-4), type: type, fee: price });
+        await saveWasteFeeTypesDB(fees);
+        showToast('เพิ่มประเภทสำเร็จ','success');
+    }
+    
+    resetFeeForm();
+    renderFeeTable();
+    populateDropdowns();
+    renderTable(); // Update registry table if names changed
+    Swal.close();
+}
+
+function resetFeeForm() {
+    document.getElementById('addFeeForm').reset();
+    document.getElementById('editFeeId').value = '';
+    document.getElementById('feeFormLabel').textContent = 'เพิ่มประเภทใหม่';
+    document.getElementById('feeSubmitBtn').className = 'btn btn-sm btn-primary w-100';
+    document.getElementById('feeSubmitBtn').innerHTML = '<i class="fa-solid fa-plus"></i>';
+}
+
+async function deleteFeeType(id) {
+    let fees = getWasteFeeTypes();
+    if (fees.length <= 1) { Swal.fire('ข้อผิดพลาด','ต้องมีอย่างน้อย 1 ประเภท','error'); return; }
+    
+    Swal.fire({title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    await deleteWasteFeeTypeDB(id);
+    
+    renderFeeTable();
+    populateDropdowns();
+    showToast('ลบประเภทสำเร็จ','success');
+    Swal.close();
+}
+
+function editFeeType(id) {
+    const fees = getWasteFeeTypes();
+    const f = fees.find(x => x.id === id);
+    if (!f) return;
+    
+    // Populate inline form
+    document.getElementById('editFeeId').value = f.id;
+    document.getElementById('newFeeType').value = f.type;
+    document.getElementById('newFeePrice').value = f.fee;
+    
+    // Update UI for edit mode
+    document.getElementById('feeFormLabel').textContent = 'แก้ไขประเภท';
+    document.getElementById('feeSubmitBtn').className = 'btn btn-sm btn-warning w-100 text-dark fw-bold';
+    document.getElementById('feeSubmitBtn').innerHTML = '<i class="fa-solid fa-save"></i>';
+    document.getElementById('newFeePrice').focus();
+}
+
+function syncAllCustomersFees() {
+    Swal.fire({
+        title: 'ยืนยันการปรับปรุงราคา?',
+        text: 'ระบบจะอัปเดตราคาค่าธรรมเนียมของลูกค้าทั้งหมด (เฉพาะหน้าทะเบียนลูกค้า) ให้ตรงกับการตั้งค่าปัจจุบัน',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#057a55',
+        confirmButtonText: 'ยืนยันปรับปรุง',
+        cancelButtonText: 'ยกเลิก'
+    }).then(async r => {
+        if (r.isConfirmed) {
+            Swal.fire({title: 'กำลังปรับปรุงราคา...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+            const customers = getWasteCustomers();
+            const fees = getWasteFeeTypes();
+            let count = 0;
+            const promises = [];
+            
+            customers.forEach(c => {
+                const feeConfig = fees.find(f => f.type === c.type);
+                if (feeConfig && c.fee !== feeConfig.fee) {
+                    c.fee = feeConfig.fee;
+                    promises.push(saveWasteCustomerDB(c));
+                    count++;
+                }
+            });
+            
+            await Promise.all(promises);
+            await fetchWasteCustomers(); // re-sync
+            renderTable();
+            Swal.close();
+            showToast(`อัปเดตราคาสำเร็จ ${count} รายการ`, 'success');
+        }
+    });
+}
+
+function exportToExcel() {
+    const data = getWasteCustomers();
+    if (data.length === 0) { 
+        Swal.fire('ข้อผิดพลาด', 'ไม่มีข้อมูลสำหรับ Export', 'error'); 
+        return; 
+    }
+    
+    const exportData = data.map(c => ({
+        "รหัสลูกค้า": c.id,
+        "บ้านเลขที่": c.house_no,
+        "หมู่": c.moo,
+        "ตำบล": c.subdistrict || 'เหมืองหม้อ',
+        "ชื่อเจ้าบ้าน": c.name,
+        "เลขบัตรประชาชน": c.id_card || '',
+        "เบอร์โทร": c.phone || '',
+        "ประเภทบ้าน": c.type,
+        "ค่าธรรมเนียม": c.fee,
+        "วันที่เริ่มใช้งาน": c.start_date || '',
+        "สถานะ": c.status === 'active' ? 'ใช้งาน' : 'ยกเลิก',
+        "ละติจูด": c.lat || '',
+        "ลองจิจูด": c.lng || '',
+        "หมายเหตุ": c.note || ''
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "customers");
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    const blobUrl = URL.createObjectURL(blob);
+    
+    // ใช้ anchor element เพื่อให้ตั้งชื่อไฟล์ได้
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = 'ฐานข้อมูลลูกค้าขยะ.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    showToast('Export Excel สำเร็จ', 'success');
+}
+
+function handleImportFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet);
+            
+            if (json.length === 0) {
+                Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลในไฟล์ Excel', 'error');
+                return;
+            }
+            
+            const existing = getWasteCustomers();
+            const newData = [];
+            let duplicateCount = 0;
+            
+            // Generate max ID for new entries
+            let currentMaxId = existing.reduce((max, c) => {
+                const n = parseInt(c.id.replace('WC',''));
+                return (!isNaN(n) && n > max) ? n : max;
+            }, 0);
+            
+            json.forEach(row => {
+                let id = row["รหัสลูกค้า"] || row["รหัส"];
+                const hno = row["บ้านเลขที่"] ? String(row["บ้านเลขที่"]).trim() : '';
+                const moo = row["หมู่"] ? String(row["หมู่"]).trim() : '';
+                const subdistrict = row["ตำบล"] ? String(row["ตำบล"]).trim() : 'เหมืองหม้อ';
+                const name = row["ชื่อเจ้าบ้าน"] ? String(row["ชื่อเจ้าบ้าน"]).trim() : '-';
+                
+                if (!hno || !moo) return; // Skip rows without required data (house_no, moo)
+                
+                // Duplicate check: ID match OR (HouseNo + Moo + Name match)
+                const isDup = existing.some(c => 
+                    (id && c.id === id) || 
+                    (c.house_no === hno && c.moo === moo && c.name === name)
+                );
+                
+                if (isDup) {
+                    duplicateCount++;
+                } else {
+                    if (!id) {
+                        currentMaxId++;
+                        id = 'WC' + String(currentMaxId).padStart(3, '0');
+                    }
+                    newData.push({
+                        id: id,
+                        house_no: hno,
+                        moo: moo,
+                        subdistrict: subdistrict,
+                        name: name,
+                        id_card: row["เลขบัตรประชาชน"] ? String(row["เลขบัตรประชาชน"]) : null,
+                        phone: row["เบอร์โทร"] ? String(row["เบอร์โทร"]) : null,
+                        type: row["ประเภทบ้าน"] || row["ประเภท"] || '-',
+                        fee: parseInt(row["ค่าธรรมเนียม"]) || 0,
+                        start_date: row["วันที่เริ่มใช้งาน"] || new Date().toISOString().split('T')[0],
+                        status: (row["สถานะ"] === 'ยกเลิก' ? 'cancelled' : 'active'),
+                        lat: parseFloat(row["ละติจูด"]) || null,
+                        lng: parseFloat(row["ลองจิจูด"]) || null,
+                        note: row["หมายเหตุ"] || ''
+                    });
+                }
+            });
+            
+            document.getElementById('importFile').value = ''; // Reset file input
+            
+            if (newData.length === 0) {
+                Swal.fire('นำเข้าเสร็จสิ้น', `ข้อมูลในไฟล์ซ้ำกับที่มีอยู่แล้วทั้งหมด (${duplicateCount} รายการ)<br>ไม่มีข้อมูลใหม่เพิ่ม`, 'info');
+                return;
+            }
+            
+            Swal.fire({
+                title: 'ยืนยันการนำเข้า',
+                html: `พบข้อมูลใหม่ <b>${newData.length}</b> รายการ<br><small class="text-muted">(ข้ามข้อมูลซ้ำ ${duplicateCount} รายการ)</small>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#057a55',
+                confirmButtonText: 'นำเข้าข้อมูล',
+                cancelButtonText: 'ยกเลิก'
+            }).then(async (r) => {
+                if (r.isConfirmed) {
+                    Swal.fire({title: 'กำลังนำเข้าข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+                    // Limit parallel requests by processing in chunks if many, or just Promise.all
+                    // If it's a few hundred, Promise.all is fine.
+                    const promises = newData.map(c => saveWasteCustomerDB(c));
+                    await Promise.all(promises);
+                    await fetchWasteCustomers(); // Re-sync state
+                    renderTable();
+                    Swal.close();
+                    Swal.fire('สำเร็จ', `นำเข้าข้อมูลใหม่ ${newData.length} รายการเรียบร้อยแล้ว`, 'success');
+                }
+            });
+            
+        } catch (error) {
+            console.error(error);
+            Swal.fire('ข้อผิดพลาด', 'รูปแบบไฟล์ไม่ถูกต้อง หรือไม่สามารถอ่านไฟล์ได้', 'error');
+            document.getElementById('importFile').value = '';
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานรายรับค่าขยะ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="รายงานรายรับค่าธรรมเนียมขยะ"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-bar text-info me-2"></i>รายงานรายรับ</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item"><a href="waste-dashboard.html" class="text-decoration-none">ค่าธรรมเนียมขยะ</a></li>
+                    <li class="breadcrumb-item active">รายงานรายรับ</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-success" onclick="showToast('Export Excel สำเร็จ','success')"><i class="fa-solid fa-file-excel me-1"></i>Excel</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="exportCurrentTabPDF()"><i class="fa-solid fa-file-pdf me-1"></i>PDF</button>
+            </div>
+        </div>
+
+        <!-- Report Tabs -->
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item"><a class="nav-link active fw-semibold" data-bs-toggle="tab" href="#tabAll">รายรับทั้งหมด</a></li>
+            <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#tabDaily">รายวัน</a></li>
+            <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#tabMonthly">รายเดือน</a></li>
+            <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#tabYearly">รายปี</a></li>
+            <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#tabExempt">รายการยกเว้นค่าธรรมเนียม</a></li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- All Revenue -->
+            <div class="tab-pane fade show active" id="tabAll">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <h5 class="fw-bold mb-0">รายการรับชำระทั้งหมด</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Year filter buttons -->
+                        <div class="btn-group me-2" role="group" id="yearFilterGroup">
+                            <button type="button" class="btn btn-sm btn-outline-secondary active" onclick="setAllYearFilter('all', this)">รวมทั้งหมดทุกปี</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setAllYearFilter('2568', this)">2568</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setAllYearFilter('2569', this)">2569</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setAllYearFilter('2570', this)">2570</button>
+                        </div>
+                        <input type="text" id="searchReceipt" class="form-control form-control-sm" style="width: 130px;" placeholder="ค้นหาเลขใบเสร็จ" onkeyup="renderReports()">
+                        <input type="text" id="searchPayer" class="form-control form-control-sm" style="width: 130px;" placeholder="ค้นหาผู้ชำระ" onkeyup="renderReports()">
+                        <label class="form-label mb-0 text-muted" style="white-space: nowrap;">ตั้งแต่วันที่:</label>
+                        <input type="date" id="allStartDate" class="form-control form-control-sm" style="width: 140px;" onchange="renderReports()">
+                        <label class="form-label mb-0 text-muted" style="white-space: nowrap;">ถึง:</label>
+                        <input type="date" id="allEndDate" class="form-control form-control-sm" style="width: 140px;" onchange="renderReports()">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('allStartDate').value=''; document.getElementById('allEndDate').value=''; document.getElementById('searchReceipt').value=''; document.getElementById('searchPayer').value=''; setAllYearFilter('all', document.querySelector('#yearFilterGroup button'));">ดูทั้งหมด</button>
+                        <button class="btn btn-sm btn-danger ms-2" onclick="exportAllPDF()" title="พิมพ์ PDF ทั้งหมด"><i class="fa-solid fa-file-pdf me-1"></i>PDF</button>
+                    </div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">จำนวนผู้ชำระทั้งหมด</div><div class="kpi-value text-primary" id="allCount">-</div></div><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-users"></i></div></div></div></div>
+                    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ยอดรวมทั้งหมด</div><div class="kpi-value text-success" id="allTotal">-</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-coins"></i></div></div></div></div>
+                    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">เงินสด</div><div class="kpi-value" id="allCash">-</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-money-bill-wave"></i></div></div></div></div>
+                    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">โอน/QR</div><div class="kpi-value" id="allTransfer">-</div></div><div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-qrcode"></i></div></div></div></div>
+                </div>
+                <div class="card"><div class="card-body p-0"><div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th class="ps-4">วันที่/เวลา</th><th>ใบเสร็จ</th><th>ผู้ชำระ</th><th>เดือนที่รับชำระ</th><th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เจ้าหน้าที่ผู้รับชำระ</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+                        <tbody id="allTableBody"></tbody>
+                    </table>
+                </div></div></div>
+            </div>
+
+            <!-- Daily -->
+            <div class="tab-pane fade" id="tabDaily">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <h5 class="fw-bold mb-0">สรุปรายวัน</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0 text-muted" style="white-space: nowrap;">เลือกวันที่:</label>
+                        <input type="date" id="filterDate" class="form-control form-control-sm" style="width: 150px;" onchange="renderReports()">
+                        <button class="btn btn-sm btn-danger" onclick="exportDailyPDF()" title="พิมพ์ PDF รายวัน"><i class="fa-solid fa-file-pdf me-1"></i>PDF</button>
+                    </div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">จำนวนผู้ชำระวันนี้</div><div class="kpi-value text-primary" id="dailyCount">-</div></div><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-users"></i></div></div></div></div>
+                    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ยอดรวมวันนี้</div><div class="kpi-value text-success" id="dailyTotal">-</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-coins"></i></div></div></div></div>
+                    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">เงินสด</div><div class="kpi-value" id="dailyCash">-</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-money-bill-wave"></i></div></div></div></div>
+                    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">โอน/QR</div><div class="kpi-value" id="dailyTransfer">-</div></div><div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-qrcode"></i></div></div></div></div>
+                </div>
+                <div class="card"><div class="card-body p-0"><div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th class="ps-4">ใบเสร็จ</th><th>ผู้ชำระ</th><th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เวลา</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+                        <tbody id="dailyTableBody"></tbody>
+                    </table>
+                </div></div></div>
+            </div>
+
+            <!-- Monthly -->
+            <div class="tab-pane fade" id="tabMonthly">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <h5 class="fw-bold mb-0">สรุปรายเดือน</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0 text-muted" style="white-space: nowrap;">ปีงบประมาณ:</label>
+                        <select id="filterYear" class="form-select form-select-sm" style="width: 120px;" onchange="renderReports()">
+                            <option value="2567">2567</option>
+                            <option value="2568">2568</option>
+                            <option value="2569">2569</option>
+                        </select>
+                        <button class="btn btn-sm btn-danger" onclick="exportMonthlyPDF()" title="พิมพ์ PDF รายเดือน"><i class="fa-solid fa-file-pdf me-1"></i>PDF</button>
+                    </div>
+                </div>
+                <div class="card mb-4"><div class="card-body"><canvas id="monthlyChart" height="300"></canvas></div></div>
+                <div class="card"><div class="card-body p-0"><div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th class="ps-4">เดือน</th><th>จำนวนผู้ชำระ</th><th class="text-end pe-4">ยอดรวม</th></tr></thead>
+                        <tbody id="monthlyTableBody"></tbody>
+                    </table>
+                </div></div></div>
+            </div>
+
+            <!-- Yearly -->
+            <div class="tab-pane fade" id="tabYearly">
+                <div class="card mb-4"><div class="card-body"><canvas id="yearlyChart" height="300"></canvas></div></div>
+            </div>
+
+            <!-- Exemptions -->
+            <div class="tab-pane fade" id="tabExempt">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <h5 class="fw-bold mb-0">รายการยกเว้นค่าธรรมเนียม</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0 text-muted" style="white-space: nowrap;">ตั้งแต่วันที่:</label>
+                        <input type="date" id="exemptStartDate" class="form-control form-control-sm" style="width: 140px;" onchange="renderReports()">
+                        <label class="form-label mb-0 text-muted" style="white-space: nowrap;">ถึง:</label>
+                        <input type="date" id="exemptEndDate" class="form-control form-control-sm" style="width: 140px;" onchange="renderReports()">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('exemptStartDate').value=''; document.getElementById('exemptEndDate').value=''; renderReports();">ดูทั้งหมด</button>
+                    </div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-12"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">จำนวนรายการยกเว้นทั้งหมด</div><div class="kpi-value text-warning" id="exemptCount">-</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-ban"></i></div></div></div></div>
+                </div>
+                <div class="card"><div class="card-body p-0"><div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th class="ps-4">วันที่/เวลา</th><th>ข้อมูลลูกค้าขยะ</th><th>เดือนที่ยกเว้น</th><th>สาเหตุที่ยกเว้น</th><th>เจ้าหน้าที่ที่ยกเว้น</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+                        <tbody id="exemptTableBody"></tbody>
+                    </table>
+                </div></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/waste.js"></script>
+<script src="assets/js/waste-payment.js"></script>
+<script src="assets/js/responsive.js"></script>
+<script src="assets/js/waste-receipt.js"></script>
+<script src="assets/js/waste-reports-pdf.js"></script>
+<script>
+var monthlyChartInstance = null;
+var yearlyChartInstance = null;
+var currentAllYearFilter = 'all';
+
+function setAllYearFilter(year, btnEl) {
+    currentAllYearFilter = year;
+    const buttons = document.querySelectorAll('#yearFilterGroup button');
+    buttons.forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+    renderReports();
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    Swal.fire({title: 'กำลังโหลดข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    try {
+        initWasteData();
+        
+        // Start fetch immediately for speed
+        const fetchPromise = Promise.all([
+            fetchWasteFeeTypes(),
+            fetchWastePayments(),
+            fetchMonthlyStatus(),
+            fetchWasteCustomers()
+        ]);
+        
+        // 1. Initial Render with Local Storage Data
+        const initReportUI = () => {
+            // Set default values for filters
+            var today = new Date();
+            if (!document.getElementById('filterDate').value) {
+                document.getElementById('filterDate').value = today.toISOString().split('T')[0];
+            }
+            
+            var currentYear = today.getMonth() >= 9 ? today.getFullYear() + 543 + 1 : today.getFullYear() + 543;
+            var yearSelect = document.getElementById('filterYear');
+            var yearOptions = Array.from(yearSelect.options).map(function(o){ return o.value; });
+            if (!yearOptions.includes(String(currentYear))) {
+                var opt = document.createElement('option');
+                opt.value = currentYear; opt.text = currentYear;
+                yearSelect.appendChild(opt);
+            }
+            if (!yearSelect.value) {
+                yearSelect.value = currentYear;
+            }
+
+            renderReports();
+        };
+
+        initReportUI();
+
+        // Wait for fresh data
+        await fetchPromise;
+        
+        // 2. Re-render once fresh data arrives
+        initReportUI();
+        
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.close();
+    }
+});
+
+function renderReports() {
+    var payments = getWastePayments();
+    var exemptedPayments = typeof getWasteExemptions === 'function' ? getWasteExemptions() : [];
+
+    var msData = typeof getMonthlyStatus === 'function' ? getMonthlyStatus() : {};
+    var customers = typeof getWasteCustomers === 'function' ? getWasteCustomers() : [];
+    
+    // 0. All Revenue Report
+    var startDate = document.getElementById('allStartDate').value;
+    var endDate = document.getElementById('allEndDate').value;
+    var searchReceiptInput = document.getElementById('searchReceipt');
+    var searchPayerInput = document.getElementById('searchPayer');
+    var searchReceipt = searchReceiptInput ? searchReceiptInput.value.toLowerCase() : '';
+    var searchPayer = searchPayerInput ? searchPayerInput.value.toLowerCase() : '';
+    
+    var filteredAllPayments = payments;
+    var isSpecificSearch = (startDate || endDate || searchReceipt || searchPayer);
+    
+    if (isSpecificSearch || currentAllYearFilter !== 'all') {
+        filteredAllPayments = payments.filter(function(p) {
+            var pass = true;
+            if (startDate && p.date < startDate) pass = false;
+            if (endDate && p.date > endDate) pass = false;
+            if (searchReceipt && (!p.receipt_no || !p.receipt_no.toLowerCase().includes(searchReceipt))) pass = false;
+            if (searchPayer && (!p.customer_name || !p.customer_name.toLowerCase().includes(searchPayer))) pass = false;
+            if (currentAllYearFilter !== 'all' && p.fiscal_year !== currentAllYearFilter) pass = false;
+            return pass;
+        });
+    }
+
+    var activePayments = filteredAllPayments.filter(function(p){ return p.status !== 'cancelled'; });
+    
+    if (isSpecificSearch) {
+        var rangeTotal = activePayments.reduce(function(s,p){return s+p.amount;},0);
+        var uniquePayers = new Set(activePayments.map(function(p){return p.customer_id;})).size;
+        document.getElementById('allCount').textContent = uniquePayers;
+        document.getElementById('allTotal').textContent = '฿' + formatMoney(rangeTotal);
+    } else {
+        // ใช้ข้อมูลจาก กค.3 (สถานะติ๊กถูก) มาคำนวณยอดรวมและจำนวนผู้ชำระ
+        var msTotalRev = 0;
+        var msTotalPayers = new Set();
+        Object.keys(msData).forEach(function(cid) {
+            var cust = customers.find(function(c){ return c.id === cid; });
+            var fee = cust ? (Number(cust.fee) || 0) : 0;
+            Object.keys(msData[cid]).forEach(function(yr) {
+                if (currentAllYearFilter !== 'all' && yr !== currentAllYearFilter) return;
+                Object.keys(msData[cid][yr]).forEach(function(mk) {
+                    if (msData[cid][yr][mk] === 'paid') {
+                        msTotalRev += fee;
+                        msTotalPayers.add(cid);
+                    }
+                });
+            });
+        });
+        document.getElementById('allCount').textContent = msTotalPayers.size;
+        document.getElementById('allTotal').textContent = '฿' + formatMoney(msTotalRev);
+    }
+
+    document.getElementById('allCash').textContent = '฿' + formatMoney(activePayments.filter(function(p){return p.method==='เงินสด';}).reduce(function(s,p){return s+p.amount;},0));
+    document.getElementById('allTransfer').textContent = '฿' + formatMoney(activePayments.filter(function(p){return p.method!=='เงินสด';}).reduce(function(s,p){return s+p.amount;},0));
+
+    var allRows = '';
+    if (filteredAllPayments.length) {
+        filteredAllPayments.forEach(function(p) {
+            var isCancelled = p.status === 'cancelled';
+            var cancelBtn = isCancelled ? '' : '<button class="btn btn-xs btn-outline-warning me-1" onclick="promptCancelPayment(\'' + p.id + '\')" title="ยกเลิกใบเสร็จ"><i class="fa-solid fa-ban"></i></button>';
+            var rowClass = isCancelled ? ' class="text-decoration-line-through text-muted"' : '';
+            var statusBadge = isCancelled ? ' <span class="badge bg-danger ms-1">ยกเลิกแล้ว</span>' : '';
+
+            var monthsStr = Array.isArray(p.months_paid) ? p.months_paid.join(', ') : (p.months_paid || '-');
+            var staffName = p.staff || '-';
+
+            allRows += '<tr' + rowClass + '>' +
+                '<td class="ps-4 text-xs">' + p.date + ' ' + (p.time||'') + '</td>' +
+                '<td class="fw-semibold text-xs">' + p.receipt_no + statusBadge + '</td>' +
+                '<td>' + p.customer_name + '</td>' +
+                '<td class="text-xs">' + monthsStr + '</td>' +
+                '<td class="text-end fw-semibold ' + (isCancelled ? '' : 'text-success') + '">฿' + formatMoneyDecimal(p.amount) + '</td>' +
+                '<td class="text-xs">' + p.method + '</td>' +
+                '<td class="text-xs">' + staffName + '</td>' +
+                '<td class="pe-4 text-center">' +
+                    '<button class="btn btn-xs btn-outline-info me-1" onclick="viewReceipt(\'' + p.id + '\')" title="ดูใบเสร็จ"><i class="fa-solid fa-eye"></i></button>' +
+                    '<button class="btn btn-xs btn-outline-primary me-1" onclick="printReceiptA4(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์"><i class="fa-solid fa-print"></i></button>' +
+                    cancelBtn +
+                    '<button class="btn btn-xs btn-outline-danger" onclick="promptDeletePayment(\'' + p.id + '\')" title="ลบข้อมูล"><i class="fa-solid fa-trash"></i></button>' +
+                '</td></tr>';
+        });
+    } else {
+        allRows = '<tr><td colspan="6" class="text-center py-4 text-muted">ยังไม่มีรายการชำระเงินในระบบ</td></tr>';
+    }
+    document.getElementById('allTableBody').innerHTML = allRows;
+
+    // 1. Daily Report
+    var filterDate = document.getElementById('filterDate').value;
+    var todayPayments = payments.filter(function(p){ return p.date === filterDate; });
+
+    document.getElementById('dailyCount').textContent = todayPayments.length;
+    document.getElementById('dailyTotal').textContent = '฿' + formatMoney(todayPayments.reduce(function(s,p){return s+p.amount;},0));
+    document.getElementById('dailyCash').textContent = '฿' + formatMoney(todayPayments.filter(function(p){return p.method==='เงินสด';}).reduce(function(s,p){return s+p.amount;},0));
+    document.getElementById('dailyTransfer').textContent = '฿' + formatMoney(todayPayments.filter(function(p){return p.method!=='เงินสด';}).reduce(function(s,p){return s+p.amount;},0));
+
+    var rows = '';
+    if (todayPayments.length) {
+        todayPayments.forEach(function(p) {
+            var isCancelled = p.status === 'cancelled';
+            var cancelBtn = isCancelled ? '' : '<button class="btn btn-xs btn-outline-warning me-1" onclick="promptCancelPayment(\'' + p.id + '\')" title="ยกเลิกใบเสร็จ"><i class="fa-solid fa-ban"></i></button>';
+            var rowClass = isCancelled ? ' class="text-decoration-line-through text-muted"' : '';
+            var statusBadge = isCancelled ? ' <br><span class="badge bg-danger mt-1">ยกเลิกแล้ว</span>' : '';
+
+            rows += '<tr' + rowClass + '>' +
+                '<td class="ps-4 fw-semibold text-xs">' + p.receipt_no + statusBadge + '</td>' +
+                '<td>' + p.customer_name + '</td>' +
+                '<td class="text-end fw-semibold">฿' + formatMoneyDecimal(p.amount) + '</td>' +
+                '<td class="text-xs">' + p.method + '</td>' +
+                '<td class="text-xs text-muted">' + (p.time||'') + '</td>' +
+                '<td class="pe-4 text-center">' +
+                    '<button class="btn btn-xs btn-outline-info me-1" onclick="viewReceipt(\'' + p.id + '\')" title="ดูใบเสร็จ"><i class="fa-solid fa-eye"></i></button>' +
+                    '<button class="btn btn-xs btn-outline-primary me-1" onclick="printReceiptA4(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์"><i class="fa-solid fa-print"></i></button>' +
+                    cancelBtn +
+                    '<button class="btn btn-xs btn-outline-danger" onclick="promptDeletePayment(\'' + p.id + '\')" title="ลบข้อมูล"><i class="fa-solid fa-trash"></i></button>' +
+                '</td></tr>';
+        });
+    } else {
+        rows = '<tr><td colspan="6" class="text-center py-4 text-muted">ยังไม่มีรายการสำหรับวันที่เลือก</td></tr>';
+    }
+    document.getElementById('dailyTableBody').innerHTML = rows;
+
+    // 2. Monthly Report (Calculated from waste_monthly_status)
+    var filterYear = document.getElementById('filterYear').value;
+
+    var mRows = '';
+    var revData = [];
+    WASTE_MONTHS.forEach(function(m, i) {
+        var mk = WASTE_MONTH_KEYS[i];
+        var monthTotal = 0;
+        var monthPayers = 0;
+        
+        Object.keys(msData).forEach(function(cid) {
+            if (msData[cid][filterYear] && msData[cid][filterYear][mk] === 'paid') {
+                var cust = customers.find(function(c){ return c.id === cid; });
+                monthTotal += cust ? (Number(cust.fee) || 0) : 0;
+                monthPayers++;
+            }
+        });
+        
+        revData.push(monthTotal);
+        
+        mRows += '<tr><td class="ps-4 fw-semibold">' + m + '</td><td>' + monthPayers + '</td>' +
+            '<td class="text-end pe-4 fw-semibold text-success">฿' + formatMoney(monthTotal) + '</td></tr>';
+    });
+    document.getElementById('monthlyTableBody').innerHTML = mRows;
+
+    if (monthlyChartInstance) monthlyChartInstance.destroy();
+    monthlyChartInstance = new Chart(document.getElementById('monthlyChart'), {
+        type:'bar', data:{labels:WASTE_MONTHS, datasets:[{label:'รายรับปี ' + filterYear + ' (บาท)',data:revData,backgroundColor:'rgba(6,148,162,0.7)',borderRadius:6}]},
+        options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:function(v){return '฿'+formatMoney(v);}}}}}
+    });
+
+    // 3. Yearly Report (Calculated from waste_monthly_status)
+    var yearlyTotals = {};
+    Object.keys(msData).forEach(function(cid) {
+        var cust = customers.find(function(c){ return c.id === cid; });
+        var fee = cust ? (Number(cust.fee) || 0) : 0;
+        Object.keys(msData[cid]).forEach(function(yr) {
+            var yearHasPaid = false;
+            var yearTotal = 0;
+            Object.keys(msData[cid][yr]).forEach(function(mk) {
+                if (msData[cid][yr][mk] === 'paid') {
+                    yearTotal += fee;
+                    yearHasPaid = true;
+                }
+            });
+            if (yearHasPaid) {
+                if (!yearlyTotals[yr]) yearlyTotals[yr] = 0;
+                yearlyTotals[yr] += yearTotal;
+            }
+        });
+    });
+    
+    // Create an array of years sorted
+    var allYears = Object.keys(yearlyTotals).sort();
+    if (allYears.length === 0) {
+        allYears = [currentYear];
+        yearlyTotals[currentYear] = 0;
+    }
+    var yearlyData = allYears.map(function(y) { return yearlyTotals[y]; });
+
+    if (yearlyChartInstance) yearlyChartInstance.destroy();
+    yearlyChartInstance = new Chart(document.getElementById('yearlyChart'), {
+        type:'bar', data:{labels:allYears, datasets:[{label:'รายรับ (บาท)',data:yearlyData,backgroundColor:'rgba(26,86,219,0.6)',borderRadius:8}]},
+        options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:function(v){return '฿'+formatMoney(v);}}}}}
+    });
+
+    // 4. Exemptions Report
+    var exStartDate = document.getElementById('exemptStartDate').value;
+    var exEndDate = document.getElementById('exemptEndDate').value;
+    var filteredExempt = exemptedPayments;
+
+    if (exStartDate || exEndDate) {
+        filteredExempt = exemptedPayments.filter(function(p) {
+            var pass = true;
+            if (exStartDate && p.date < exStartDate) pass = false;
+            if (exEndDate && p.date > exEndDate) pass = false;
+            return pass;
+        });
+    }
+
+    document.getElementById('exemptCount').textContent = filteredExempt.length;
+
+    var exRows = '';
+    if (filteredExempt.length) {
+        filteredExempt.forEach(function(p) {
+            var monthsArray = p.months_exempted || p.months_paid || [];
+            var monthsStr = Array.isArray(monthsArray) ? monthsArray.join(', ') : monthsArray;
+            exRows += '<tr>' +
+                '<td class="ps-4 text-xs">' + p.date + ' ' + (p.time||'') + '</td>' +
+                '<td><div class="fw-semibold">' + p.customer_name + '</div><div class="text-xs text-muted">' + p.house_no + '</div></td>' +
+                '<td>' + monthsStr + '</td>' +
+                '<td class="text-danger">' + (p.reject_reason || '-') + '</td>' +
+                '<td>' + (p.staff || '-') + '</td>' +
+                '<td class="pe-4 text-center">' +
+                    '<button class="btn btn-xs btn-outline-danger" onclick="promptCancelExemption(\'' + p.id + '\')" title="ยกเลิกการยกเว้น"><i class="fa-solid fa-times"></i> ยกเลิก</button>' +
+                '</td>' +
+                '</tr>';
+        });
+    } else {
+        exRows = '<tr><td colspan="6" class="text-center py-4 text-muted">ยังไม่มีรายการยกเว้นค่าธรรมเนียม</td></tr>';
+    }
+    document.getElementById('exemptTableBody').innerHTML = exRows;
+}
+
+// ============================================
+// CANCEL AND DELETE LOGIC
+// ============================================
+
+async function promptCancelPayment(paymentId) {
+    const { value: reason } = await Swal.fire({
+        title: 'ยกเลิกใบเสร็จ?',
+        text: "กรุณาระบุหมายเหตุการยกเลิก",
+        input: 'text',
+        inputPlaceholder: 'ใส่หมายเหตุ เช่น ชำระผิดบ้าน, ยอดไม่ถูกต้อง...',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ยืนยันการยกเลิก',
+        cancelButtonText: 'ปิด'
+    });
+
+    if (reason) {
+        Swal.fire({title: 'กำลังยกเลิก...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+        try {
+            await cancelWastePayment(paymentId, reason);
+            // Refresh data
+            await fetchWastePayments();
+            await fetchMonthlyStatus();
+            renderReports();
+            Swal.fire('สำเร็จ', 'ยกเลิกใบเสร็จเรียบร้อยแล้ว สถานะถูกปรับเป็นค้างชำระ', 'success');
+        } catch (e) {
+            console.error(e);
+            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถยกเลิกได้ กรุณาลองใหม่', 'error');
+        }
+    } else if (reason === '') {
+        Swal.fire('เกิดข้อผิดพลาด', 'กรุณาระบุหมายเหตุ', 'warning');
+    }
+}
+
+async function promptDeletePayment(paymentId) {
+    const res = await Swal.fire({
+        title: 'ยืนยันการลบข้อมูล?',
+        text: "ข้อมูลจะถูกลบออกจากฐานข้อมูลอย่างถาวร และสถานะการชำระจะถูกปรับกลับเป็น 'ค้างชำระ'",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ใช่, ลบเลย!',
+        cancelButtonText: 'ยกเลิก'
+    });
+
+    if (res.isConfirmed) {
+        Swal.fire({title: 'กำลังลบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+        try {
+            await deleteWastePayment(paymentId);
+            // Refresh data
+            await fetchWastePayments();
+            await fetchMonthlyStatus();
+            renderReports();
+            Swal.fire('ลบสำเร็จ', 'ข้อมูลถูกลบออกจากระบบแล้ว', 'success');
+        } catch (e) {
+            console.error(e);
+            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถลบข้อมูลได้', 'error');
+        }
+    }
+}
+
+async function promptCancelExemption(exemptionId) {
+    const res = await Swal.fire({
+        title: 'ยกเลิกการยกเว้น?',
+        text: "เมื่อยกเลิกแล้ว เดือนดังกล่าวจะกลับไปเป็นสถานะที่สามารถชำระได้ปกติ (ค้างชำระ)",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ยืนยันการยกเลิก',
+        cancelButtonText: 'ปิด'
+    });
+
+    if (res.isConfirmed) {
+        Swal.fire({title: 'กำลังดำเนินการ...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+        try {
+            await cancelWasteExemptionDB(exemptionId);
+            // Refresh data
+            if (typeof fetchWasteExemptions !== 'undefined') await fetchWasteExemptions();
+            if (typeof fetchMonthlyStatus !== 'undefined') await fetchMonthlyStatus();
+            renderReports();
+            Swal.fire('สำเร็จ', 'ยกเลิกการยกเว้นเรียบร้อยแล้ว สถานะกลับสู่ปกติ', 'success');
+        } catch (e) {
+            console.error(e);
+            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถยกเลิกได้ กรุณาลองใหม่', 'error');
+        }
+    }
+}
+
+</script>
+</body>
+</html>

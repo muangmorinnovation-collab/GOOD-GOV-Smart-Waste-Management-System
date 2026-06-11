@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กค.3 รายเดือน - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .month-cell {
+            width: 55px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 6px 4px !important;
+            transition: all 0.15s;
+        }
+
+        .month-paid {
+            background: #dcfce7 !important;
+            color: #166534;
+        }
+
+        .month-unpaid {
+            background: #fef2f2 !important;
+            color: #991b1b;
+        }
+
+        .month-pending {
+            background: #fef9c3 !important;
+            color: #854d0e;
+        }
+
+        .month-exempted {
+            background: #f3f4f6 !important;
+            color: #4b5563;
+        }
+
+        .month-cell:hover {
+            filter: brightness(0.88);
+            transform: scale(1.05);
+        }
+
+        .kor3-summary-card {
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .kor3-summary-card .icon-box {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .kor3-summary-card .value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .kor3-summary-card .label {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .year-btn {
+            border-radius: 20px !important;
+            font-weight: 600;
+            font-size: 0.82rem;
+            padding: 4px 16px;
+        }
+
+        .year-btn.active {
+            background: linear-gradient(135deg, #1a56db, #3b82f6) !important;
+            border-color: #1a56db !important;
+            color: #fff !important;
+        }
+    </style>
+</head>
+
+<body>
+    <nav id="sidebar"></nav>
+    <div id="content">
+        <div id="top-navbar" class="top-navbar" data-title="กค.3 รายเดือน - สถานะการชำระค่าธรรมเนียมขยะ"></div>
+        <div class="page-content">
+            <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="fa-solid fa-table-cells text-warning me-2"></i>กค.3 รายเดือน</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                            <li class="breadcrumb-item"><a href="dashboard.html"
+                                    class="text-decoration-none">แดชบอร์ด</a></li>
+                            <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a>
+                            </li>
+                            <li class="breadcrumb-item"><a href="waste-dashboard.html"
+                                    class="text-decoration-none">ค่าธรรมเนียมขยะ</a></li>
+                            <li class="breadcrumb-item active">กค.3 รายเดือน</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-success"
+                        onclick="showToast('Export Excel สำเร็จ','success')"><i
+                            class="fa-solid fa-file-excel me-1"></i>Export</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i
+                            class="fa-solid fa-print me-1"></i>พิมพ์</button>
+                </div>
+            </div>
+
+            <!-- Year Selector -->
+            <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                <span class="fw-semibold text-muted" style="font-size:0.85rem;"><i
+                        class="fa-solid fa-calendar-days me-1"></i>ปีงบประมาณ:</span>
+                <div class="btn-group" id="yearBtnGroup" role="group"></div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row g-3 mb-4" id="kor3Summary"></div>
+
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body py-3">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-3"><input type="text" class="form-control form-control-sm" id="kor3Search"
+                                placeholder="ค้นหาชื่อ / บ้านเลขที่..." oninput="renderKor3()"></div>
+                        <div class="col-md-2"><select class="form-select form-select-sm" id="kor3Moo"
+                                onchange="renderKor3()">
+                                <option value="">ทุกหมู่</option>
+                                <option value="1">หมู่ 1</option>
+                                <option value="2">หมู่ 2</option>
+                                <option value="3">หมู่ 3</option>
+                                <option value="4">หมู่ 4</option>
+                                <option value="5">หมู่ 5</option>
+                                <option value="6">หมู่ 6</option>
+                                <option value="7">หมู่ 7</option>
+                                <option value="8">หมู่ 8</option>
+                                <option value="9">หมู่ 9</option>
+                                <option value="10">หมู่ 10</option>
+                                <option value="11">หมู่ 11</option>
+                                <option value="12">หมู่ 12</option>
+                                <option value="13">หมู่ 13</option>
+                                <option value="14">หมู่ 14</option>
+                                <option value="15">หมู่ 15</option>
+                                <option value="16">หมู่ 16</option>
+                                <option value="17">หมู่ 17</option>
+                                <option value="18">หมู่ 18</option>
+                                <option value="19">หมู่ 19</option>
+                                <option value="20">หมู่ 20</option>
+                                <option value="21">หมู่ 21</option>
+                                <option value="22">หมู่ 22</option>
+                                <option value="23">หมู่ 23</option>
+                            </select></div>
+                        <div class="col-md-2"><select class="form-select form-select-sm" id="kor3Status"
+                                onchange="renderKor3()">
+                                <option value="">ทุกสถานะ</option>
+                                <option value="has_unpaid">มีค้างชำระ</option>
+                                <option value="all_paid">ชำระครบ</option>
+                            </select></div>
+                        <div class="col-md-5 text-end">
+                            <span class="badge me-1" style="background:#dcfce7;color:#166534;">● ชำระแล้ว</span>
+                            <span class="badge me-1" style="background:#fef2f2;color:#991b1b;">● ค้างชำระ</span>
+                            <span class="badge me-1" style="background:#fef9c3;color:#854d0e;">● รออนุมัติ</span>
+                            <span class="badge" style="background:#f3f4f6;color:#4b5563;">● ยกเว้นชำระ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kor3 Table -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered mb-0" style="font-size:0.82rem;">
+                            <thead>
+                                <tr>
+                                    <th class="ps-3" style="min-width:60px;">ลำดับ</th>
+                                    <th style="min-width:140px;">ชื่อ</th>
+                                    <th style="min-width:90px;">บ้านเลขที่</th>
+                                    <th style="min-width:65px;">ค่าธรรมเนียม</th>
+                                    <th class="month-cell">ต.ค.</th>
+                                    <th class="month-cell">พ.ย.</th>
+                                    <th class="month-cell">ธ.ค.</th>
+                                    <th class="month-cell">ม.ค.</th>
+                                    <th class="month-cell">ก.พ.</th>
+                                    <th class="month-cell">มี.ค.</th>
+                                    <th class="month-cell">เม.ย.</th>
+                                    <th class="month-cell">พ.ค.</th>
+                                    <th class="month-cell">มิ.ย.</th>
+                                    <th class="month-cell">ก.ค.</th>
+                                    <th class="month-cell">ส.ค.</th>
+                                    <th class="month-cell">ก.ย.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kor3Body">
+                                <tr>
+                                    <td colspan="16" class="text-center py-4 text-muted">กำลังโหลด...</td>
+                                </tr>
+                            </tbody>
+                            <tfoot id="kor3Foot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="assets/js/app.js?v=1781176864661"></script>
+    <script src="assets/js/waste.js?v=1781176864661"></script>
+    <script src="assets/js/responsive.js"></script>
+    <script>
+        let kor3SelectedYear = '';
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            Swal.fire({
+                title: 'กำลังโหลดข้อมูล...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            try {
+                initWasteData();
+                await Promise.all([
+                    fetchWasteFeeTypes(),
+                    fetchWasteCustomers(),
+                    fetchMonthlyStatus()
+                ]);
+                initYearSelector();
+                renderKor3();
+                Swal.close();
+            } catch (error) {
+                console.error("Error during initialization:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถโหลดข้อมูลได้'
+                });
+            }
+        });
+
+        function getCurrentFiscalYear() {
+            const now = new Date();
+            return String(now.getMonth() >= 9 ? now.getFullYear() + 543 + 1 : now.getFullYear() + 543);
+        }
+
+        function initYearSelector() {
+            const ms = getMonthlyStatus();
+            const cy = getCurrentFiscalYear();
+            const cyNum = parseInt(cy);
+
+            // รวบรวมปีงบประมาณทั้งหมดจากข้อมูล
+            const yearSet = new Set([String(cyNum - 1), cy, String(cyNum + 1)]);
+            Object.values(ms).forEach(customerYears => {
+                Object.keys(customerYears).forEach(y => yearSet.add(y));
+            });
+            // รวม custom years จากระบบรับชำระ
+            const customYears = getWasteData('customYears');
+            if (Array.isArray(customYears)) customYears.forEach(y => yearSet.add(y));
+
+            const years = Array.from(yearSet).sort();
+            kor3SelectedYear = cy; // default = ปีปัจจุบัน
+
+            const btnGroup = document.getElementById('yearBtnGroup');
+            btnGroup.innerHTML = years.map(y =>
+                `<button type="button" class="btn btn-sm year-btn ${y === kor3SelectedYear ? 'active btn-primary' : 'btn-outline-secondary'}" onclick="selectYear('${y}')">${y}</button>`
+            ).join('');
+        }
+
+        function selectYear(year) {
+            kor3SelectedYear = year;
+            // Update button styles
+            document.querySelectorAll('#yearBtnGroup .year-btn').forEach(btn => {
+                btn.classList.remove('active', 'btn-primary');
+                btn.classList.add('btn-outline-secondary');
+            });
+            event.target.classList.remove('btn-outline-secondary');
+            event.target.classList.add('active', 'btn-primary');
+            renderKor3();
+        }
+
+        function renderKor3() {
+            let customers = getWasteCustomers().filter(c => c.status === 'active');
+            const ms = getMonthlyStatus();
+            const q = (document.getElementById('kor3Search').value || '').toLowerCase();
+            const moo = document.getElementById('kor3Moo').value;
+            const statusFilter = document.getElementById('kor3Status').value;
+            const year = kor3SelectedYear || getCurrentFiscalYear();
+
+            if (q) customers = customers.filter(c => c.name.toLowerCase().includes(q) || c.house_no.includes(q));
+            if (moo) customers = customers.filter(c => c.moo === moo);
+
+            // Filter by status within the selected fiscal year
+            if (statusFilter === 'has_unpaid') customers = customers.filter(c => {
+                const yearData = (ms[c.id] || {})[year] || {};
+                return WASTE_MONTH_KEYS.some(mk => yearData[mk] !== 'paid');
+            });
+            if (statusFilter === 'all_paid') customers = customers.filter(c => {
+                const yearData = (ms[c.id] || {})[year] || {};
+                return WASTE_MONTH_KEYS.every(mk => yearData[mk] === 'paid');
+            });
+
+            // สรุปสถิติ
+            const allCustomers = getWasteCustomers().filter(c => c.status === 'active');
+            let totalPaid = 0, totalUnpaid = 0, totalPending = 0, totalRevenue = 0;
+            let householdsAllPaid = 0, householdsHasUnpaid = 0;
+            allCustomers.forEach(c => {
+                const yearData = (ms[c.id] || {})[year] || {};
+                let customerAllPaid = true;
+                WASTE_MONTH_KEYS.forEach(mk => {
+                    const monthFee = getFeeForMonth(c.id, mk, year);
+                    if (yearData[mk] === 'paid') { totalPaid++; totalRevenue += monthFee; }
+                    else if (yearData[mk] === 'pending') { totalPending++; customerAllPaid = false; }
+                    else { totalUnpaid++; customerAllPaid = false; }
+                });
+                if (customerAllPaid) householdsAllPaid++;
+                else householdsHasUnpaid++;
+            });
+
+            // Render summary cards
+            document.getElementById('kor3Summary').innerHTML = `
+        <div class="col-6 col-lg-3"><div class="kor3-summary-card" style="background:#f0f5ff;">
+            <div class="icon-box" style="background:#dbeafe;color:#1a56db;"><i class="fa-solid fa-users"></i></div>
+            <div><div class="value">${allCustomers.length}</div><div class="label">ครัวเรือนทั้งหมด</div></div>
+        </div></div>
+        <div class="col-6 col-lg-3"><div class="kor3-summary-card" style="background:#f0fdf4;">
+            <div class="icon-box" style="background:#dcfce7;color:#166534;"><i class="fa-solid fa-check-circle"></i></div>
+            <div><div class="value text-success">${householdsAllPaid}</div><div class="label">ชำระครบทุกเดือน (ครัวเรือน)</div></div>
+        </div></div>
+        <div class="col-6 col-lg-3"><div class="kor3-summary-card" style="background:#fef2f2;">
+            <div class="icon-box" style="background:#fecaca;color:#991b1b;"><i class="fa-solid fa-times-circle"></i></div>
+            <div><div class="value text-danger">${householdsHasUnpaid}</div><div class="label">มีเดือนค้างชำระ (ครัวเรือน)</div></div>
+        </div></div>
+        <div class="col-6 col-lg-3"><div class="kor3-summary-card" style="background:#f0fdf4;">
+            <div class="icon-box" style="background:#bbf7d0;color:#057a55;"><i class="fa-solid fa-coins"></i></div>
+            <div><div class="value text-success">฿${formatMoney(totalRevenue)}</div><div class="label">รายรับปีนี้ (ประมาณ)</div></div>
+        </div></div>
+    `;
+
+            // Render table
+            const tbody = document.getElementById('kor3Body');
+            const fyNum = parseInt(year);
+
+            // Count paid/unpaid per month for footer
+            const monthPaidCounts = new Array(12).fill(0);
+            const monthTotalCounts = new Array(12).fill(0);
+            const monthRevenue = new Array(12).fill(0);
+
+            tbody.innerHTML = customers.map((c, idx) => {
+                const yearData = (ms[c.id] || {})[year] || {};
+                const customerHistory = getFeeHistory(c.id);
+                const hasHistory = customerHistory && customerHistory.length > 0;
+
+                // Calculate fee for each month
+                const monthFees = WASTE_MONTH_KEYS.map(mk => getFeeForMonth(c.id, mk, year));
+                // Find where fee changes happen
+                const feeChangeMonths = [];
+                for (let i = 1; i < monthFees.length; i++) {
+                    if (monthFees[i] !== monthFees[i-1]) feeChangeMonths.push(i);
+                }
+
+                const monthCells = WASTE_MONTH_KEYS.map((mk, mi) => {
+                    const val = yearData[mk] || 'unpaid';
+                    const cls = val === 'paid' ? 'month-paid' : val === 'pending' ? 'month-pending' : val === 'exempted' ? 'month-exempted' : 'month-unpaid';
+                    const icon = val === 'paid' ? '✓' : val === 'pending' ? '◷' : val === 'exempted' ? '-' : '✗';
+                    const calYear = mi < 3 ? String(fyNum - 1) : year;
+                    monthTotalCounts[mi]++;
+                    if (val === 'paid') { monthPaidCounts[mi]++; monthRevenue[mi] += monthFees[mi]; }
+                    const titleText = val === 'paid' ? 'ชำระแล้ว' : val === 'pending' ? 'รออนุมัติ' : val === 'exempted' ? 'ยกเว้นชำระ' : 'ค้างชำระ';
+                    const feeText = `฿${monthFees[mi]}`;
+                    // Highlight fee change month
+                    const isChangeMonth = feeChangeMonths.includes(mi);
+                    const changeStyle = isChangeMonth ? 'border-left: 3px solid #f59e0b !important;' : '';
+                    return `<td class="month-cell ${cls}" style="${changeStyle}" onclick="showMonthDetail('${c.id}','${mk}','${WASTE_MONTHS[mi]}','${val}','${year}','${calYear}')" title="${WASTE_MONTHS[mi]} ${calYear.substring(2)} - ${titleText} | ค่าธรรมเนียม: ${feeText}">${icon}<br><span style="font-size:0.55rem;opacity:0.7;">${feeText}</span></td>`;
+                }).join('');
+
+                // Fee display: show current fee, or show change indicator
+                let feeDisplay = `฿${formatMoney(c.fee)}`;
+                if (hasHistory) {
+                    const uniqueFees = [...new Set(monthFees)];
+                    if (uniqueFees.length > 1) {
+                        feeDisplay = `<span title="ค่าธรรมเนียมเปลี่ยนระหว่างปี">฿${uniqueFees.map(f => formatMoney(f)).join('→')}</span>`;
+                    }
+                }
+
+                return `<tr><td class="ps-3 text-muted">${idx + 1}</td><td class="fw-semibold">${c.name}</td><td>${c.house_no} ม.${c.moo}</td><td class="text-end fw-semibold text-primary" style="font-size:0.78rem;">${feeDisplay}</td>${monthCells}</tr>`;
+            }).join('') || '<tr><td colspan="16" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';
+
+            // Render footer with monthly summary
+            const foot = document.getElementById('kor3Foot');
+            const footCells = monthPaidCounts.map((paid, mi) => {
+                const total = monthTotalCounts[mi];
+                const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
+                const bg = pct >= 80 ? '#dcfce7' : pct >= 50 ? '#fef9c3' : '#fef2f2';
+                const color = pct >= 80 ? '#166534' : pct >= 50 ? '#854d0e' : '#991b1b';
+                return `<td class="month-cell" style="background:${bg};color:${color};font-size:0.7rem;">${paid}/${total}<br><span style="font-size:0.65rem;">(${pct}%)</span></td>`;
+            }).join('');
+            foot.innerHTML = `<tr style="border-top:2px solid #d1d5db;"><td class="ps-3" colspan="4" style="font-size:0.75rem;font-weight:700;background:#f8fafc;">สรุปจำนวนชำระ/ทั้งหมด</td>${footCells}</tr>`;
+        }
+
+        function showMonthDetail(customerId, monthKey, monthLabel, status, fiscalYear, calYear) {
+            const c = getWasteCustomers().find(x => x.id === customerId);
+            if (!c) return;
+
+            const monthFee = getFeeForMonth(customerId, monthKey, fiscalYear);
+            const statusText = status === 'paid' ? '✅ ชำระแล้ว' : status === 'pending' ? '⏳ รออนุมัติ' : status === 'exempted' ? '➖ ยกเว้นชำระ' : '❌ ค้างชำระ';
+
+            // Fee history info
+            let feeHistoryHtml = '';
+            const history = getFeeHistory(customerId);
+            if (history && history.length > 0) {
+                const currentFee = c.fee;
+                if (monthFee !== currentFee) {
+                    feeHistoryHtml = `<p style="font-size:12px;color:#b45309;"><i class="fa-solid fa-info-circle"></i> ค่าธรรมเนียมปัจจุบัน: ฿${formatMoney(currentFee)} (เดือนนี้ใช้ค่าเดิม ฿${formatMoney(monthFee)})</p>`;
+                }
+            }
+
+            // ค้นหาข้อมูลการชำระหรือการยกเว้นที่เกี่ยวข้อง
+            let paymentInfo = '';
+            if (status === 'exempted') {
+                const exemptions = typeof getWasteExemptions === 'function' ? getWasteExemptions() : [];
+                const relatedExemptions = exemptions.filter(ex => 
+                    ex.customer_id === customerId && 
+                    ex.fiscal_year === fiscalYear && 
+                    Array.isArray(ex.month_keys) && ex.month_keys.includes(monthKey)
+                );
+                
+                if (relatedExemptions.length > 0) {
+                    const rp = relatedExemptions[0];
+                    paymentInfo = `
+                        <hr style="margin:10px 0;">
+                        <p style="font-size:12px;color:#6b7280;margin-bottom:6px;">ข้อมูลการยกเว้น</p>
+                        <p><b>วันที่ทำรายการ:</b> ${rp.date} ${rp.time || ''}</p>
+                        <p><b>หมายเหตุ:</b> <span style="color:#dc2626;font-weight:600;">${rp.reject_reason || '-'}</span></p>
+                        <p><b>เจ้าหน้าที่:</b> ${rp.staff || '-'}</p>
+                    `;
+                }
+            } else if (status === 'paid' || status === 'pending') {
+                const payments = getWastePayments();
+                const monthWithYear = `${monthLabel} ${calYear.substring(2)}`;
+                const relatedPayments = payments.filter(p =>
+                    p.customer_id === customerId &&
+                    p.fiscal_year === fiscalYear && 
+                    (Array.isArray(p.month_keys) ? p.month_keys.includes(monthKey) : (Array.isArray(p.months_paid) && p.months_paid.some(m => m.includes(monthLabel))))
+                );
+
+                if (relatedPayments.length > 0) {
+                    const rp = relatedPayments[0]; // ใบเสร็จล่าสุด
+                    paymentInfo = `
+                        <hr style="margin:10px 0;">
+                        <p style="font-size:12px;color:#6b7280;margin-bottom:6px;">ข้อมูลการชำระ</p>
+                        <p><b>เลขใบเสร็จ:</b> <span style="color:#1a56db;font-weight:600;">${rp.receipt_no || '-'}</span></p>
+                        <p><b>วันที่ชำระ:</b> ${rp.date} ${rp.time || ''}</p>
+                        <p><b>ช่องทาง:</b> ${rp.method}</p>
+                        <p><b>เจ้าหน้าที่:</b> ${rp.staff || '-'}</p>
+                        <p><b>แหล่งที่มา:</b> ${rp.source === 'citizen-portal' ? '🌐 Citizen Portal' : '🏢 Walk-in เคาน์เตอร์'}</p>
+                    `;
+                }
+            }
+
+            Swal.fire({
+                title: `${c.name}`,
+                html: `<div style="text-align:left;font-size:14px;">
+            <p><b>บ้านเลขที่:</b> ${c.house_no} ม.${c.moo}</p>
+            <p><b>เดือน:</b> ${monthLabel} ${calYear.substring(2)} (ปีงบฯ ${fiscalYear})</p>
+            <p><b>ค่าธรรมเนียมเดือนนี้:</b> ฿${formatMoney(monthFee)}</p>
+            ${feeHistoryHtml}
+            <p><b>สถานะ:</b> ${statusText}</p>
+            ${paymentInfo}
+        </div>`,
+                icon: status === 'paid' ? 'success' : status === 'pending' ? 'warning' : status === 'exempted' ? 'info' : 'error',
+                confirmButtonText: 'ปิด',
+                showCancelButton: status === 'unpaid',
+                cancelButtonText: status === 'unpaid' ? 'ไปหน้ารับชำระ' : '',
+                cancelButtonColor: '#057a55'
+            }).then(result => {
+                if (result.dismiss === Swal.DismissReason.cancel && status === 'unpaid') {
+                    window.location.href = 'waste-payments.html';
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

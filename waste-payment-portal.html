@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบชำระค่าธรรมเนียมขยะ (Waste Payment Portal) - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/line-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            background: #f0f3f8;
+            display: block;
+        }
+
+        .citizen-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .action-card-link {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .service-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+
+<body>
+
+    <!-- Citizen Navbar -->
+    <nav class="navbar navbar-expand-lg citizen-nav shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-primary" href="#">
+                <img id="public-org-logo" src="https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w200"
+                    height="36" style="max-height: 40px; max-width: 40px; width: auto; object-fit: contain;" alt="GOOD GOV" class="rounded">
+                <div class="d-flex flex-column">
+                    <span class="d-none d-md-inline" style="font-size:0.95rem; line-height:1.2;">GOOD GOV</span>
+                    <span id="public-org-name" class="d-none d-md-inline text-muted fw-semibold" style="font-size:0.7rem; line-height:1;"></span>
+                </div>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                data-bs-target="#citizenNav"><span class="navbar-toggler-icon"></span></button>
+            <div class="collapse navbar-collapse" id="citizenNav">
+                <ul class="navbar-nav ms-auto align-items-center gap-2 mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link text-sm fw-semibold" href="#services">บริการ</a></li>
+                    <li class="nav-item"><a class="nav-link text-sm fw-semibold" href="#track">ติดตามคำร้อง</a></li>
+                    <li class="nav-item"><a class="nav-link text-sm fw-semibold" href="#welfare">สวัสดิการ</a></li>
+                    <li class="nav-item">
+                        <div class="dropdown">
+                            <button
+                                class="btn btn-sm btn-primary d-flex align-items-center gap-2 rounded-pill px-3 dropdown-toggle"
+                                data-bs-toggle="dropdown">
+                                <img id="navUserAvatar"
+                                    src="https://ui-avatars.com/api/?name=User&background=06C755&color=fff&size=64"
+                                    class="rounded-circle" width="24">
+                                <span class="d-none d-md-inline text-sm" id="navUserName">ผู้ใช้งาน</span>
+                                <i class="fa-brands fa-line ms-1" style="color:#06C755;font-size:.85rem;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-14">
+                                <li><a class="dropdown-item text-sm py-2" href="#" onclick="showUserProfile()"><i
+                                            class="fa-solid fa-user me-2 text-muted"></i>ข้อมูลส่วนตัว</a></li>
+                                <li><a class="dropdown-item text-sm py-2" href="#"><i
+                                            class="fa-solid fa-receipt me-2 text-muted"></i>ประวัติการชำระเงิน</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item text-sm py-2 text-danger" href="javascript:void(0)"
+                                        onclick="logoutCitizen()"><i
+                                            class="fa-solid fa-right-from-bracket me-2"></i>ออกจากระบบ</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Header & User Info -->
+    <div class="citizen-header mb-4" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding-bottom: 3.5rem;">
+        <div class="container pt-3">
+            <div class="row align-items-center">
+                <div class="col-12">
+                    <h3 class="fw-bold mb-1 text-white" id="heroGreeting">สวัสดี, ผู้ใช้งาน 👋</h3>
+                    <div class="text-white mb-2" style="opacity:0.8; font-size:0.95rem;">
+                        <i class="fa-solid fa-house me-1"></i> บ้านเลขที่ <span id="heroHouseNo" class="fw-bold">กำลังโหลด...</span>
+                        <span id="heroSubdistrict" class="ms-2">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mb-5" style="margin-top: -4.5rem; position: relative; z-index: 10;">
+        
+        <!-- Big Hero Action Card for Waste Payment -->
+        <div class="action-card position-relative overflow-hidden p-4 p-md-5 mb-4 fade-in-up text-start" style="background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 10px 30px rgba(16, 185, 129, 0.15); border-radius: 20px;">
+            <!-- Background Decoration -->
+            <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; opacity: 0.1; filter: blur(20px);"></div>
+            <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 50%; opacity: 0.1; filter: blur(20px);"></div>
+
+            <div class="row align-items-center position-relative z-1">
+                <div class="col-lg-6 mb-4 mb-lg-0 text-center text-lg-start">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 shadow-sm mb-3" style="width: 80px; height: 80px; border-radius: 20px;">
+                        <i class="fa-solid fa-trash-can text-success" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h2 class="fw-bold mb-2 text-dark">ชำระค่าธรรมเนียมขยะ</h2>
+                    <p class="text-muted mb-0" style="font-size: 1.05rem;">ตรวจสอบยอดชำระประจำเดือนและชำระออนไลน์ได้อย่างรวดเร็ว ระบบอัปเดตสถานะอัตโนมัติเมื่อชำระสำเร็จ</p>
+                </div>
+
+                <div class="col-lg-6">
+                    <!-- Data Section inside Hero Card -->
+                    <div class="bg-white p-4 rounded-4 shadow-sm border position-relative" style="border-top: 4px solid #10b981 !important;" id="heroPaymentBox">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted fw-semibold" id="heroDebtTitle">ยอดค้างชำระปีปัจจุบัน</span>
+                            <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2" id="paymentStatusBadge">ไม่มีค้างชำระ</span>
+                        </div>
+                        
+                        <div class="text-center mb-4">
+                            <div class="fw-bold text-dark" style="font-size: 2.5rem;" id="heroDebtAmount">฿0.00</div>
+                            <div class="text-muted text-sm mt-1" id="heroDebtDetail">ชำระครบถ้วนแล้ว</div>
+                        </div>
+
+                        <a href="citizen-waste-payment.html" class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-6 shadow-sm mb-3 d-flex justify-content-center align-items-center" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; text-decoration: none;">
+                            <i class="fa-solid fa-file-invoice-dollar me-2"></i>ชำระค่าขยะ
+                        </a>
+                        
+                        <div class="text-center bg-light p-3 rounded-3 mt-3">
+                            <div class="text-sm text-muted mb-1">สถานะการชำระล่าสุด:</div>
+                            <div class="fw-semibold text-success" id="heroLatestPaymentStatus">
+                                <div class="spinner-border text-success spinner-border-sm" role="status"></div> กำลังโหลด...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Services -->
+        <h5 class="fw-bold mb-3" id="services">งานบริการขยะมูลฝอย</h5>
+        <div class="row g-3 mb-5">
+            <div class="col-12 col-md-4">
+                <a href="citizen-waste-payment.html" class="action-card-link">
+                    <div class="action-card h-100 shadow-sm border-0 d-flex flex-column align-items-center text-center p-4">
+                        <i class="fa-solid fa-qrcode text-success mb-2" style="font-size: 2rem;"></i>
+                        <div class="fw-bold mb-1" style="font-size: 1rem;">ชำระค่าขยะ</div>
+                        <div class="text-xs text-muted">ชำระผ่าน QR PromptPay</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-12 col-md-4">
+                <a href="#" class="action-card-link" data-bs-toggle="modal" data-bs-target="#registerWasteModal">
+                    <div class="action-card h-100 shadow-sm border-0 d-flex flex-column align-items-center text-center p-4">
+                        <i class="fa-solid fa-file-pen text-primary mb-2" style="font-size: 2rem;"></i>
+                        <div class="fw-bold mb-1" style="font-size: 1rem;">ขอขึ้นทะเบียนชำระค่าขยะ</div>
+                        <div class="text-xs text-muted">ลงทะเบียนบ้านใหม่</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-12 col-md-4">
+                <a href="#" class="action-card-link" data-bs-toggle="modal" data-bs-target="#cancelWasteModal">
+                    <div class="action-card h-100 shadow-sm border-0 d-flex flex-column align-items-center text-center p-4">
+                        <i class="fa-solid fa-file-circle-xmark text-danger mb-2" style="font-size: 2rem;"></i>
+                        <div class="fw-bold mb-1" style="font-size: 1rem;">คำขอยกเลิกชำระค่าธรรมเนียม</div>
+                        <div class="text-xs text-muted">แจ้งยกเลิกบริการ/ย้ายออก</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4" id="track">
+            <div class="col-lg-8">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4 pb-0">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-success me-2"></i>ประวัติการดำเนินการ</h6>
+                        <a href="javascript:void(0)" onclick="openTrackAllModal()" class="text-sm text-success text-decoration-none fw-semibold">ดูทั้งหมด</a>
+                    </div>
+                    <div class="card-body" id="requestTrackList">
+                        <!-- Supabase content injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <!-- LINE Connect -->
+                <div class="card mb-3 text-white border-0 shadow-sm" style="background:linear-gradient(135deg,#06C755,#00b341); border-radius: 14px;">
+                    <div class="card-body p-4 text-center">
+                        <i class="fa-brands fa-line fa-3x mb-3"></i>
+                        <h6 class="fw-bold mb-2">เชื่อมต่อ LINE เทศบาล</h6>
+                        <p class="text-sm mb-3" style="opacity:0.9;">รับแจ้งเตือนชำระค่าขยะรายเดือน · รับใบเสร็จอิเล็กทรอนิกส์</p>
+                        <button class="btn btn-light fw-bold rounded-pill px-4 text-success shadow-sm" onclick="showToastCitizen('เพิ่มเพื่อนเทศบาลสำเร็จ!','success')">
+                            <i class="fa-solid fa-plus me-2"></i>เพิ่มเพื่อนเลย
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-4 mt-4" style="background:#1f2937; color:rgba(255,255,255,0.5);">
+        <div class="container text-center text-sm">
+            <div class="fw-semibold text-white mb-1">เทศบาลตำบลตัวอย่างอัจฉริยะ</div>
+            Smart Governance Municipality Platform &copy; 2026 · Powered by Supabase
+        </div>
+    </footer>
+
+    <!-- Report Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-14 shadow-lg">
+                <div class="modal-header border-0">
+                    <h6 class="modal-title fw-bold"><i
+                            class="fa-solid fa-megaphone text-warning me-2"></i>แจ้งปัญหา/ร้องทุกข์</h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">หัวข้อปัญหา</label>
+                        <select class="form-select">
+                            <option>ไฟถนนดับ</option>
+                            <option>ถนนชำรุด/หลุมบ่อ</option>
+                            <option>ขยะไม่มีมาเก็บ</option>
+                            <option>น้ำท่วมขัง</option>
+                            <option>เรื่องอื่นๆ</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">รายละเอียด</label>
+                        <textarea class="form-control" rows="3"
+                            placeholder="อธิบายปัญหาที่พบ พร้อมสถานที่ให้ชัดเจน..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ที่อยู่ / จุดเกิดเหตุ</label>
+                        <input class="form-control" placeholder="เช่น หน้าบ้านเลขที่ 45 ซอยสุขเจริญ">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">แนบรูปภาพ</label>
+                        <input type="file" class="form-control" accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button class="btn btn-primary"
+                        onclick="showToastCitizen('ส่งคำร้องสำเร็จ! เจ้าหน้าที่จะติดต่อกลับภายใน 24 ชั่วโมง','success'); bootstrap.Modal.getInstance(document.getElementById('reportModal')).hide();">
+                        <i class="fa-solid fa-paper-plane me-1"></i>ส่งคำร้อง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pay Modal -->
+    <div class="modal fade" id="payModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content border-0 rounded-14 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold"><i class="fa-solid fa-qrcode text-primary me-2"></i>ชำระภาษีออนไลน์
+                    </h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="p-3 rounded mb-3" style="background:#f0f5ff;">
+                        <div class="text-sm text-muted">ภาษีที่ดินและสิ่งปลูกสร้าง ปี 2026</div>
+                        <div class="fw-bold fs-4 text-primary">฿1,250.00</div>
+                        <div class="text-xs text-muted">อ้างอิง: TAX-660428-001</div>
+                    </div>
+                    <img src="https://chart.googleapis.com/chart?chs=220x220&cht=qr&chl=PromptPay-1250-TAX&choe=UTF-8"
+                        alt="QR PromptPay" class="img-fluid rounded mb-3" style="max-width:200px;">
+                    <p class="text-xs text-muted">สแกน QR Code ด้วยแอป ธนาคาร หรือ PromptPay<br>ภายใน 15 นาที</p>
+                    <div class="alert alert-warning border-0 text-sm py-2 mb-0 rounded-10">
+                        <i class="fa-solid fa-clock me-1"></i>หมดเวลา: <strong id="countdown">15:00</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div class="modal fade" id="userProfileModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-14 shadow-lg">
+                <div class="modal-header border-0"
+                    style="background:linear-gradient(135deg,#06C755,#00b341);border-radius:14px 14px 0 0;">
+                    <h6 class="modal-title fw-bold text-white"><i class="fa-brands fa-line me-2"></i>ข้อมูลผู้ใช้งาน
+                    </h6>
+                    <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="profileModalBody">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Track All Modal -->
+    <div class="modal fade" id="trackAllModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 rounded-14 shadow-lg">
+                <div class="modal-header border-0 pb-3" style="background:#f8fafc; border-radius:14px 14px 0 0; border-bottom:1px solid #e2e8f0 !important;">
+                    <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-clock-rotate-left me-2"></i>ประวัติคำร้องทั้งหมด</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted text-sm" id="trackAllCount">กำลังโหลดข้อมูล...</span>
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="loadAllRequests()">
+                            <i class="fa-solid fa-rotate-right me-1"></i>รีเฟรชข้อมูล
+                        </button>
+                    </div>
+                    <div id="trackAllList">
+                        <!-- All requests will be loaded here -->
+                        <div class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script>
+        // ---- Check citizen session on load ----
+        (async function () {
+            let session = LineAuth.getSession();
+            if (!session || !session.lineUserId) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Verify session with Supabase (force new registration if not in User_population)
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('User_population')
+                        .select('*')
+                        .eq('line_user_id', session.lineUserId)
+                        .maybeSingle();
+                    
+                    if (!data) {
+                        // Old data found but not in new Supabase table! Clear and force login
+                        LineAuth.clearSession();
+                        window.location.href = 'index.html';
+                        return;
+                    } else {
+                        // Update session with latest Supabase data
+                        session.firstName = data.first_name;
+                        session.lastName = data.last_name;
+                        session.fullName = data.full_name;
+                        session.houseNo = data.house_no;
+                        session.moo = data.moo;
+                        session.subdistrictName = data.subdistrict_name;
+                        session.lineAvatar = data.line_avatar;
+                        // Save updated session back to local storage
+                        LineAuth.createSession({
+                            lineUserId: data.line_user_id,
+                            lineName: data.line_name,
+                            lineAvatar: data.line_avatar,
+                            nationalId: data.national_id,
+                            title: data.title,
+                            firstName: data.first_name,
+                            lastName: data.last_name,
+                            fullName: data.full_name,
+                            houseNo: data.house_no,
+                            moo: data.moo,
+                            road: data.road,
+                            soi: data.soi,
+                            provinceId: data.province_id,
+                            provinceName: data.province_name,
+                            districtId: data.district_id,
+                            districtName: data.district_name,
+                            subdistrictId: data.subdistrict_id,
+                            subdistrictName: data.subdistrict_name,
+                            address: data.address,
+                            phone: data.phone,
+                            email: data.email
+                        });
+                    }
+                } catch (e) {
+                    console.error("Supabase session verification failed", e);
+                }
+            }
+
+            // Populate user data across the page
+            const name = session.firstName ? `${session.firstName} ${session.lastName}` : (session.fullName || session.lineName || 'ผู้ใช้งาน');
+            const shortName = name.split(' ')[0];
+            document.getElementById('navUserName').textContent = 'คุณ' + shortName;
+            document.getElementById('heroGreeting').textContent = 'สวัสดี, คุณ' + name + ' 👋';
+
+            // Update hero address card if data exists
+            if (session.houseNo) {
+                document.getElementById('heroHouseNo').textContent = `${session.houseNo} หมู่ ${session.moo || '-'}`;
+            }
+            if (session.subdistrictName) {
+                document.getElementById('heroSubdistrict').textContent = `ต.${session.subdistrictName}`;
+            }
+
+            if (session.lineAvatar) {
+                document.getElementById('navUserAvatar').src = session.lineAvatar;
+            } else {
+                document.getElementById('navUserAvatar').src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(shortName) + '&background=06C755&color=fff&size=64';
+            }
+
+            // Load settings for logo and org name
+            setTimeout(async () => {
+                let settings = null;
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    try {
+                        const { data } = await supabaseClient.from('waste_settings').select('org_name, org_logo').limit(1).single();
+                        if (data) settings = data;
+                    } catch (e) {}
+                }
+                if (!settings) {
+                    const local = localStorage.getItem('waste_settings');
+                    if (local) settings = JSON.parse(local);
+                }
+                if (settings) {
+                    const logoEl = document.getElementById('public-org-logo');
+                    const nameEl = document.getElementById('public-org-name');
+                    if (logoEl && settings.org_logo) logoEl.src = settings.org_logo;
+                    if (nameEl && settings.org_name) nameEl.textContent = settings.org_name;
+                }
+            }, 100);
+        })();
+
+        const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+        const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+        function getThaiMonths(paidMonths) {
+            if (!paidMonths) return "-";
+            const months = Array.isArray(paidMonths) ? paidMonths : String(paidMonths).split(", ");
+            return months.map(m => {
+                const idx = MONTH_KEYS.indexOf(m.trim().toLowerCase());
+                return idx >= 0 ? THAI_MONTHS_SHORT[idx] : m;
+            }).join(", ");
+        }
+
+        async function loadDynamicRequests() {
+            const listContainer = document.getElementById('requestTrackList');
+            if (!listContainer) return;
+
+            const session = LineAuth.getSession();
+            const userName = session ? (session.firstName ? `${session.firstName} ${session.lastName}` : (session.fullName || session.lineName || '')) : '';
+            let houseNo = session ? session.houseNo : '';
+
+            let allRequests = [];
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    // Fetch Waste Payments
+                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*').order('payment_datetime', { ascending: false }).limit(10);
+                    if (session && session.houseNo && userName) {
+                        qWaste = qWaste.or(`house_no.ilike."%${session.houseNo}%",payer_name.eq."${userName}"`);
+                    } else if (session && session.houseNo) {
+                        qWaste = qWaste.ilike('house_no', `%${session.houseNo}%`);
+                    } else if (userName) {
+                        qWaste = qWaste.eq('payer_name', userName);
+                    }
+                    const { data: dWaste1 } = await qWaste;
+                    
+                    // Fetch additional transactions made by this device
+                    const myTx = JSON.parse(localStorage.getItem('my_waste_tx_ids') || '[]');
+                    let dWaste2 = [];
+                    if (myTx.length > 0) {
+                        const { data } = await supabaseClient.from('garbage_payment_transactions').select('*').in('id', myTx);
+                        if (data) dWaste2 = data;
+                    }
+                    
+                    // Merge and deduplicate
+                    const mergedWaste = [...(dWaste1 || []), ...dWaste2];
+                    const uniqueWaste = Array.from(new Map(mergedWaste.map(item => [item.id, item])).values());
+                    
+                    uniqueWaste.forEach(r => allRequests.push({ type: 'waste', date: r.payment_datetime, data: r }));
+                } else {
+                    // Local fallback
+                    let wpts = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
+                    if (userName) wpts = wpts.filter(r => r.payer_name === userName);
+                    wpts.forEach(r => allRequests.push({ type: 'waste', date: r.payment_datetime, data: r }));
+                }
+            } catch(err) { console.warn("Fetch failed", err); }
+
+            // Fetch register requests
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    const lineUserId = session ? session.lineUserId : null;
+                    let qReg = supabaseClient.from('waste_register_requests').select('*').order('created_at', {ascending: false}).limit(10);
+                    if (lineUserId) {
+                        qReg = qReg.eq('line_user_id', lineUserId);
+                    } else if (userName) {
+                        qReg = qReg.ilike('name', `%${userName}%`);
+                    }
+                    const { data: dReg } = await qReg;
+                    if (dReg) dReg.forEach(r => allRequests.push({ type: 'register', date: r.created_at, data: r }));
+                }
+            } catch(err) { console.warn("Fetch register reqs failed", err); }
+
+            // Fetch cancel requests
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    let qCan = supabaseClient.from('waste_cancel_requests').select('*').order('created_at', {ascending: false}).limit(10);
+                    if (session && session.houseNo && userName) {
+                        qCan = qCan.or(`house_no.ilike."%${session.houseNo}%",name.ilike."%${userName}%"`);
+                    } else if (session && session.houseNo) {
+                        qCan = qCan.ilike('house_no', `%${session.houseNo}%`);
+                    } else if (userName) {
+                        qCan = qCan.ilike('name', `%${userName}%`);
+                    }
+                    const { data: dCan } = await qCan;
+                    if (dCan) dCan.forEach(r => allRequests.push({ type: 'cancel', date: r.created_at || r.date, data: r }));
+                } else {
+                    let cpts = JSON.parse(localStorage.getItem('waste_cancel_requests') || '[]');
+                    if (userName) cpts = cpts.filter(r => r.name === userName || (session && session.houseNo && r.house_no === session.houseNo));
+                    cpts.forEach(r => allRequests.push({ type: 'cancel', date: r.created_at || r.date, data: r }));
+                }
+            } catch(err) { console.warn("Fetch cancel reqs failed", err); }
+
+            allRequests.sort((a, b) => new Date(b.date) - new Date(a.date));
+            const latestRequests = allRequests.slice(0, 3);
+
+            if (latestRequests.length === 0) {
+                listContainer.innerHTML = `<div class="text-center text-muted py-4"><i class="fa-solid fa-file-invoice-dollar mb-2 text-secondary opacity-50" style="font-size:2rem;"></i><br><span class="text-sm">ยังไม่มีประวัติการดำเนินการ</span></div>`;
+            } else {
+                listContainer.innerHTML = '';
+                latestRequests.forEach(item => {
+                    const req = item.data;
+                    const dateObj = new Date(item.date);
+                    const dateStr = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+                    
+                    let receiptBtn = '';
+                    let title, idStr, iconClass;
+                    let statusText = 'รอตรวจสอบ'; let statusBadge = 'bg-warning text-dark'; let progressW = '50%'; let progressBg = 'bg-warning progress-bar-animated progress-bar-striped'; let bgStyle = 'background:#fffbeb; border:1px solid #fef3c7;'; let iconColor = 'text-warning';
+
+                    if (item.type === 'register') {
+                        title = `คำขอขึ้นทะเบียน บ้านเลขที่ ${req.house_no} ม.${req.moo}`;
+                        idStr = req.id ? String(req.id).substring(0,8) : '-';
+                        iconClass = 'fa-file-pen';
+                        if (req.status === 'approved') { statusText = 'อนุมัติแล้ว'; statusBadge = 'bg-success'; progressW = '100%'; progressBg = 'bg-success'; bgStyle = 'background:#f0fdf4; border:1px solid #dcfce7;'; iconColor = 'text-success'; }
+                        else if (req.status === 'rejected') { statusText = 'ปฏิเสธ'; statusBadge = 'bg-danger'; progressW = '100%'; progressBg = 'bg-danger'; bgStyle = 'background:#fef2f2; border:1px solid #fee2e2;'; iconColor = 'text-danger'; }
+                    } else if (item.type === 'cancel') {
+                        title = `คำขอยกเลิก บ้านเลขที่ ${req.house_no} ม.${req.moo}`;
+                        idStr = req.id ? String(req.id).substring(0,8) : '-';
+                        iconClass = 'fa-file-excel';
+                        if (req.status === 'approved') { statusText = 'อนุมัติแล้ว'; statusBadge = 'bg-success'; progressW = '100%'; progressBg = 'bg-success'; bgStyle = 'background:#f0fdf4; border:1px solid #dcfce7;'; iconColor = 'text-success'; }
+                        else if (req.status === 'rejected') { statusText = 'ปฏิเสธ'; statusBadge = 'bg-danger'; progressW = '100%'; progressBg = 'bg-danger'; bgStyle = 'background:#fef2f2; border:1px solid #fee2e2;'; iconColor = 'text-danger'; }
+                    } else {
+                        title = `ชำระค่าขยะ บ้านเลขที่ ${req.house_no} (${req.payer_name})`;
+                        idStr = req.id ? String(req.id).substring(0,8) : 'N/A';
+                        iconClass = 'fa-trash-can';
+                        if (req.status === 'completed' || req.status === 'approved' || req.receipt_url) {
+                            statusText = 'ชำระสำเร็จ'; statusBadge = 'bg-success'; progressW = '100%'; progressBg = 'bg-success'; bgStyle = 'background:#f0fdf4; border:1px solid #dcfce7;'; iconColor = 'text-success'; 
+                            receiptBtn = `
+                                <div class="d-flex gap-2 mt-2 ms-auto">
+                                    <button onclick="viewCitizenReceipt('${req.id}')" class="btn btn-sm btn-success px-3 rounded-pill"><i class="fa-solid fa-receipt me-1"></i> ดูใบเสร็จ</button>
+                                    ${req.receipt_url ? `<a href="${req.receipt_url}" download="Receipt_${req.id}.jpg" target="_blank" class="btn btn-sm btn-outline-success px-3 rounded-pill"><i class="fa-solid fa-download"></i></a>` : ''}
+                                </div>`;
+                        } else if (req.status === 'rejected') {
+                            statusText = 'ไม่สำเร็จ'; statusBadge = 'bg-danger'; progressW = '100%'; progressBg = 'bg-danger'; bgStyle = 'background:#fef2f2; border:1px solid #fee2e2;'; iconColor = 'text-danger';
+                        }
+                    }
+
+                    const html = `
+                <div class="d-flex align-items-start gap-3 mb-3 p-3 rounded" style="${bgStyle}">
+                    <div class="service-icon ${statusBadge.split(' ')[0]} bg-opacity-10 ${iconColor}" style="width:40px;height:40px;border-radius:10px;"><i class="fa-solid ${iconClass}"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div class="fw-semibold text-sm">${title}</div>
+                            <span class="badge ${statusBadge}" style="font-size:0.65rem;">${statusText}</span>
+                        </div>
+                        <div class="text-xs text-muted mb-2">${dateStr} · เลขที่: ${idStr}</div>
+                        <div class="progress" style="height:6px;border-radius:3px;background:rgba(0,0,0,0.05);">
+                            <div class="progress-bar ${progressBg}" style="width:${progressW};border-radius:3px;"></div>
+                        </div>
+                        ${req.status === 'rejected' && (req.reject_reason || req.note) ? `<div class="mt-2 text-danger" style="font-size:0.75rem;"><i class="fa-solid fa-circle-exclamation me-1"></i> หมายเหตุ: <strong>${req.reject_reason || req.note}</strong></div>` : ''}
+                        ${receiptBtn ? `<div class="d-flex justify-content-end">${receiptBtn}</div>` : ''}
+                    </div>
+                </div>`;
+                    listContainer.insertAdjacentHTML('beforeend', html);
+                });
+            }
+
+            // Update Latest Payment Status
+            const latestStatusBody = document.getElementById('heroLatestPaymentStatus');
+            const latestPayment = allRequests.find(req => req.type === 'waste');
+            
+            if (latestStatusBody && latestPayment) {
+                const latest = latestPayment.data;
+                const paidMonths = getThaiMonths(latest.paid_months);
+                latestStatusBody.innerHTML = `ชำระ ฿${Number(latest.amount || 0).toLocaleString('th-TH')} (รอบบิล ${paidMonths}) <i class="fa-solid fa-check-circle ms-1"></i>`;
+            } else if (latestStatusBody) {
+                latestStatusBody.innerHTML = `ยังไม่มีข้อมูลชำระเงิน`;
+            }
+            
+            // Try to load hero stats
+            if (typeof supabaseClient !== 'undefined' && supabaseClient !== null && session) {
+                try {
+                    const sHouseNo = session.houseNo ? session.houseNo.trim() : '';
+                    const sMoo = session.moo ? session.moo.trim() : '';
+                    const sSubdistrict = session.subdistrictName ? session.subdistrictName.trim() : '';
+                    const sName = session.firstName && session.lastName ? `${session.firstName} ${session.lastName}` : (session.fullName || session.lineName || '');
+                    
+                    const TARGET_SUBDISTRICT = 'เหมืองหม้อ';
+                    
+                    if (sSubdistrict && sSubdistrict !== TARGET_SUBDISTRICT) {
+                        // User is out of district
+                        document.getElementById('paymentStatusBadge').style.display = 'none';
+                        const heroTitle = document.getElementById('heroDebtTitle');
+                        if (heroTitle) heroTitle.innerText = "ข้อความแจ้งเตือน";
+                        
+                        const debtEl = document.getElementById('heroDebtAmount');
+                        debtEl.className = "fw-bold text-warning mt-2";
+                        debtEl.style.fontSize = "1.6rem";
+                        debtEl.innerText = `ท่านอยู่นอกเขตตำบล`;
+                        
+                        document.getElementById('heroDebtDetail').innerHTML = `แต่สามารถชำระค่าขยะให้กับบ้านที่อยู่ในเขตตำบล<br>จากปุ่มด้านล่างนี้ (ยอดจะไม่แสดง)`;
+                        document.getElementById('heroPaymentBox').style.borderTop = "4px solid #f59e0b";
+                    } else if (sHouseNo || sName) {
+                        // Find customer
+                        let customer = null;
+                        
+                        // 1. Try Address Match
+                        if (sHouseNo && sMoo && sSubdistrict) {
+                            const { data: addressMatch } = await supabaseClient
+                                .from('waste_customers')
+                                .select('*')
+                                .eq('house_no', sHouseNo)
+                                .eq('moo', sMoo)
+                                .eq('subdistrict', sSubdistrict)
+                                .limit(1);
+                                
+                            if (addressMatch && addressMatch.length > 0) {
+                                customer = addressMatch[0];
+                            }
+                        }
+                        
+                        // 2. Fallback Name Match
+                        if (!customer && session.firstName && session.lastName) {
+                            const { data: nameMatch } = await supabaseClient
+                                .from('waste_customers')
+                                .select('*')
+                                .ilike('name', `%${session.firstName}%`)
+                                .ilike('name', `%${session.lastName}%`)
+                                .limit(1);
+                                
+                            if (nameMatch && nameMatch.length > 0) {
+                                customer = nameMatch[0];
+                            }
+                        }
+                        
+                        if (customer) {
+                            // Calculate debt for current fiscal year
+                            const now = new Date();
+                            const currentFiscalYear = String(now.getMonth() >= 9 ? now.getFullYear() + 543 + 1 : now.getFullYear() + 543);
+                            
+                            const { data: msData } = await supabaseClient
+                                .from('waste_monthly_status')
+                                .select('month_key, status')
+                                .eq('customer_id', customer.id)
+                                .eq('fiscal_year', currentFiscalYear);
+                                
+                            let unpaidCount = 0;
+                            const fee = Number(customer.fee) || 0;
+                            const WASTE_MONTH_KEYS = ['oct','nov','dec','jan','feb','mar','apr','may','jun','jul','aug','sep'];
+                            
+                            const statusMap = {};
+                            if (msData && msData.length > 0) {
+                                msData.forEach(row => {
+                                    statusMap[row.month_key] = row.status;
+                                });
+                            }
+                            
+                            WASTE_MONTH_KEYS.forEach(mk => {
+                                const st = statusMap[mk] || 'unpaid';
+                                if (st !== 'paid') { // 'unpaid' or 'pending'
+                                    unpaidCount++;
+                                }
+                            });
+                            
+                            const totalDebt = unpaidCount * fee;
+                            
+                            // Update Alert Card / Hero Box
+                            if (totalDebt > 0) {
+                                document.getElementById('paymentStatusBadge').className = "badge bg-danger-subtle text-danger rounded-pill px-3 py-2";
+                                document.getElementById('paymentStatusBadge').innerText = "มียอดค้างชำระ";
+                                document.getElementById('heroPaymentBox').style.borderTop = "4px solid #dc2626";
+                                document.getElementById('heroDebtAmount').className = "fw-bold text-danger";
+                                document.getElementById('heroDebtAmount').innerText = `฿${totalDebt.toLocaleString('th-TH')}.00`;
+                                document.getElementById('heroDebtDetail').innerText = `ค้างชำระปีงบประมาณ ${currentFiscalYear} จำนวน ${unpaidCount} เดือน`;
+                            } else {
+                                document.getElementById('paymentStatusBadge').className = "badge bg-success-subtle text-success rounded-pill px-3 py-2";
+                                document.getElementById('paymentStatusBadge').innerText = "ไม่มีค้างชำระ";
+                                document.getElementById('heroPaymentBox').style.borderTop = "4px solid #10b981";
+                                document.getElementById('heroDebtAmount').className = "fw-bold text-dark";
+                                document.getElementById('heroDebtAmount').innerText = `฿0.00`;
+                                document.getElementById('heroDebtDetail').innerText = `ชำระครบถ้วนแล้วสำหรับปีงบประมาณ ${currentFiscalYear}`;
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.error('Error fetching hero stats:', e);
+                }
+            }
+        }
+
+        // Call it immediately after script loads
+        loadDynamicRequests();
+
+        function openTrackAllModal() {
+            const modal = new bootstrap.Modal(document.getElementById('trackAllModal'));
+            modal.show();
+            loadAllRequests();
+        }
+
+        async function loadAllRequests() {
+            const listContainer = document.getElementById('trackAllList');
+            const countLabel = document.getElementById('trackAllCount');
+            if (!listContainer) return;
+
+            listContainer.innerHTML = '<div class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div></div>';
+            countLabel.innerText = 'กำลังโหลดข้อมูล...';
+
+            const session = LineAuth.getSession();
+            const userName = session ? (session.firstName ? `${session.firstName} ${session.lastName}` : (session.fullName || session.lineName || '')) : '';
+
+            let allRequests = [];
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*').order('payment_datetime', { ascending: false });
+                    if (session && session.houseNo && userName) {
+                        qWaste = qWaste.or(`house_no.ilike."%${session.houseNo}%",payer_name.eq."${userName}"`);
+                    } else if (session && session.houseNo) {
+                        qWaste = qWaste.ilike('house_no', `%${session.houseNo}%`);
+                    } else if (userName) {
+                        qWaste = qWaste.eq('payer_name', userName);
+                    }
+                    const { data: dWaste1 } = await qWaste;
+
+                    // Fetch additional transactions made by this device
+                    const myTx = JSON.parse(localStorage.getItem('my_waste_tx_ids') || '[]');
+                    let dWaste2 = [];
+                    if (myTx.length > 0) {
+                        const { data } = await supabaseClient.from('garbage_payment_transactions').select('*').in('id', myTx);
+                        if (data) dWaste2 = data;
+                    }
+                    
+                    // Merge and deduplicate
+                    const mergedWaste = [...(dWaste1 || []), ...dWaste2];
+                    const uniqueWaste = Array.from(new Map(mergedWaste.map(item => [item.id, item])).values());
+                    
+                    uniqueWaste.forEach(r => allRequests.push({ type: 'waste', date: r.payment_datetime, data: r }));
+                } else {
+                    let wpts = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
+                    if (userName) wpts = wpts.filter(r => r.payer_name === userName);
+                    wpts.forEach(r => allRequests.push({ type: 'waste', date: r.payment_datetime, data: r }));
+                }
+            } catch(err) { console.warn("Fetch failed", err); }
+
+            // Fetch register requests
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    const lineUserId = session ? session.lineUserId : null;
+                    let qReg = supabaseClient.from('waste_register_requests').select('*').order('created_at', {ascending: false});
+                    if (lineUserId) {
+                        qReg = qReg.eq('line_user_id', lineUserId);
+                    } else if (userName) {
+                        qReg = qReg.ilike('name', `%${userName}%`);
+                    }
+                    const { data: dReg } = await qReg;
+                    if (dReg) dReg.forEach(r => allRequests.push({ type: 'register', date: r.created_at, data: r }));
+                }
+            } catch(err) { console.warn("Fetch register reqs failed", err); }
+
+            // Fetch cancel requests
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    let qCan = supabaseClient.from('waste_cancel_requests').select('*').order('created_at', {ascending: false});
+                    if (session && session.houseNo && userName) {
+                        qCan = qCan.or(`house_no.ilike."%${session.houseNo}%",name.ilike."%${userName}%"`);
+                    } else if (session && session.houseNo) {
+                        qCan = qCan.ilike('house_no', `%${session.houseNo}%`);
+                    } else if (userName) {
+                        qCan = qCan.ilike('name', `%${userName}%`);
+                    }
+                    const { data: dCan } = await qCan;
+                    if (dCan) dCan.forEach(r => allRequests.push({ type: 'cancel', date: r.created_at || r.date, data: r }));
+                } else {
+                    let cpts = JSON.parse(localStorage.getItem('waste_cancel_requests') || '[]');
+                    if (userName) cpts = cpts.filter(r => r.name === userName || (session && session.houseNo && r.house_no === session.houseNo));
+                    cpts.forEach(r => allRequests.push({ type: 'cancel', date: r.created_at || r.date, data: r }));
+                }
+            } catch(err) { console.warn("Fetch cancel reqs failed", err); }
+
+            allRequests.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (allRequests.length === 0) {
+                listContainer.innerHTML = `<div class="text-center text-muted py-5"><i class="fa-solid fa-file-invoice-dollar mb-3 text-secondary opacity-50" style="font-size:3rem;"></i><br><h5>ไม่พบข้อมูล</h5><p class="text-sm">คุณยังไม่มีประวัติการดำเนินการในระบบ</p></div>`;
+                countLabel.innerText = 'พบ 0 รายการ';
+                return;
+            }
+
+            countLabel.innerHTML = `พบข้อมูล <strong>${allRequests.length}</strong> รายการ`;
+            listContainer.innerHTML = '';
+
+            allRequests.forEach(item => {
+                const req = item.data;
+                const dateObj = new Date(item.date);
+                const dateStr = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+                const timeStr = dateObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                
+                let title, detailLine, idStr, iconClass, slipBtn = '', receiptBtn = '';
+                let statusText = 'รอตรวจสอบ'; let statusBadge = 'bg-warning text-dark'; let progressW = '50%'; let progressBg = 'bg-warning progress-bar-animated progress-bar-striped'; let bgStyle = 'background:#fff; border:1px solid #fde047; border-left:4px solid #fbbf24;'; let iconColor = 'text-warning';
+
+                if (item.type === 'register') {
+                    title = `คำขอขึ้นทะเบียนชำระค่าขยะ`;
+                    detailLine = `<strong>ชื่อ:</strong> ${req.name} <strong>บ้านเลขที่:</strong> ${req.house_no} ม.${req.moo}`;
+                    idStr = req.id ? String(req.id).substring(0,8) : '-';
+                    iconClass = 'fa-file-pen';
+                    if (req.status === 'approved') { statusText = 'อนุมัติแล้ว'; statusBadge = 'bg-success'; progressW = '100%'; progressBg = 'bg-success'; bgStyle = 'background:#fff; border:1px solid #bbf7d0; border-left:4px solid #22c55e;'; iconColor = 'text-success'; }
+                    else if (req.status === 'rejected') { statusText = 'ปฏิเสธ'; statusBadge = 'bg-danger'; progressW = '100%'; progressBg = 'bg-danger'; bgStyle = 'background:#fff; border:1px solid #fecaca; border-left:4px solid #ef4444;'; iconColor = 'text-danger'; }
+                } else if (item.type === 'cancel') {
+                    title = `คำขอยกเลิกบริการ/ย้ายออก`;
+                    detailLine = `<strong>ชื่อ:</strong> ${req.name} <strong>บ้านเลขที่:</strong> ${req.house_no} ม.${req.moo}`;
+                    idStr = req.id ? String(req.id).substring(0,8) : '-';
+                    iconClass = 'fa-file-excel';
+                    if (req.status === 'approved') { statusText = 'อนุมัติแล้ว'; statusBadge = 'bg-success'; progressW = '100%'; progressBg = 'bg-success'; bgStyle = 'background:#fff; border:1px solid #bbf7d0; border-left:4px solid #22c55e;'; iconColor = 'text-success'; }
+                    else if (req.status === 'rejected') { statusText = 'ปฏิเสธ'; statusBadge = 'bg-danger'; progressW = '100%'; progressBg = 'bg-danger'; bgStyle = 'background:#fff; border:1px solid #fecaca; border-left:4px solid #ef4444;'; iconColor = 'text-danger'; }
+                } else {
+                    title = `ชำระค่าธรรมเนียมขยะ`;
+                    detailLine = `<strong>บ้านเลขที่:</strong> ${req.house_no} <strong>ยอด:</strong> ฿${Number(req.amount || 0).toLocaleString()}`;
+                    idStr = req.id ? String(req.id).substring(0,8) : 'N/A';
+                    iconClass = 'fa-trash-can';
+                    if (req.status === 'completed' || req.status === 'approved' || req.receipt_url) { statusText = 'ชำระสำเร็จ'; statusBadge = 'bg-success'; progressW = '100%'; progressBg = 'bg-success'; bgStyle = 'background:#fff; border:1px solid #bbf7d0; border-left:4px solid #22c55e;'; iconColor = 'text-success'; }
+                    else if (req.status === 'rejected') { statusText = 'ไม่สำเร็จ'; statusBadge = 'bg-danger'; progressW = '100%'; progressBg = 'bg-danger'; bgStyle = 'background:#fff; border:1px solid #fecaca; border-left:4px solid #ef4444;'; iconColor = 'text-danger'; }
+
+                    slipBtn = (req.slip_image) ? `<a href="${req.slip_image}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 px-3 rounded-pill"><i class="fa-regular fa-image me-1"></i> ดูสลิปโอนเงิน</a>` : '';
+                    receiptBtn = ((req.status === 'completed' || req.status === 'approved' || req.receipt_url)) ? `
+                        <div class="d-flex gap-2 mt-2">
+                            <button onclick="viewCitizenReceipt('${req.id}')" class="btn btn-sm btn-success px-3 rounded-pill"><i class="fa-solid fa-receipt me-1"></i> ดูใบเสร็จ</button>
+                            ${req.receipt_url ? `<a href="${req.receipt_url}" download="Receipt_${req.id}.jpg" target="_blank" class="btn btn-sm btn-outline-success px-3 rounded-pill"><i class="fa-solid fa-download me-1"></i> บันทึก</a>` : ''}
+                        </div>` : '';
+                }
+
+                const html = `
+                <div class="card mb-3 shadow-sm" style="${bgStyle}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="fw-bold mb-1 text-dark"><i class="fa-solid ${iconClass} ${iconColor} me-2"></i>${title}</h6>
+                                <div class="text-sm text-muted">${detailLine}</div>
+                            </div>
+                            <span class="badge ${statusBadge} px-2 py-1">${statusText}</span>
+                        </div>
+                        <div class="text-xs text-muted mb-3"><i class="fa-regular fa-calendar me-1"></i> ${dateStr} เวลา ${timeStr} น. <span class="mx-1">|</span> <i class="fa-solid fa-hashtag me-1"></i> ${idStr}</div>
+                        
+                        <div class="progress mb-2" style="height:8px;border-radius:4px;background:#f1f5f9;">
+                            <div class="progress-bar ${progressBg}" style="width:${progressW};border-radius:4px;"></div>
+                        </div>
+                        
+                        ${req.status === 'rejected' && (req.reject_reason || req.note) ? `<div class="mt-2 p-2 bg-danger-subtle text-danger rounded-3 text-sm"><i class="fa-solid fa-circle-exclamation me-1"></i> หมายเหตุ: <strong>${req.reject_reason || req.note}</strong></div>` : ''}
+                        
+                        ${slipBtn}
+                        ${receiptBtn}
+                    </div>
+                </div>`;
+                listContainer.insertAdjacentHTML('beforeend', html);
+            });
+            
+            // Update global cache with items from this view as well
+            const currentWaste = allRequests.filter(x => x.type === 'waste').map(x => x.data);
+            if (!window.allLoadedWasteRequests) window.allLoadedWasteRequests = [];
+            
+            // Merge unique items into cache
+            currentWaste.forEach(nw => {
+                if (!window.allLoadedWasteRequests.find(ex => ex.id == nw.id)) {
+                    window.allLoadedWasteRequests.push(nw);
+                }
+            });
+        }
+
+        function viewCitizenReceipt(id) {
+            console.log("Viewing receipt for ID:", id);
+            let t = null;
+            
+            // Search in global cache first
+            if (window.allLoadedWasteRequests) {
+                t = window.allLoadedWasteRequests.find(x => x.id == id);
+            }
+            
+            // Fallback to localStorage if not found in cache
+            if (!t) {
+                const wpts = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
+                t = wpts.find(x => x.id == id);
+            }
+
+            if (!t) {
+                console.warn("Transaction not found for ID:", id);
+                return;
+            }
+            
+            // ถ้ามี URL ใบเสร็จจาก Google Drive ให้แสดงเป็นรูปภาพ
+            if (t.receipt_url) {
+                Swal.fire({
+                    title: '<i class="fa-solid fa-file-invoice text-success me-2"></i>ใบเสร็จรับเงินอย่างเป็นทางการ',
+                    imageUrl: t.receipt_url,
+                    imageWidth: '100%',
+                    imageAlt: 'Official Receipt',
+                    showCloseButton: true,
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fa-solid fa-download me-1"></i> บันทึกใบเสร็จ',
+                    cancelButtonText: 'ปิด',
+                    confirmButtonColor: '#057a55',
+                    footer: '<div class="text-xs text-muted">สามารถบันทึกรูปภาพเก็บไว้เป็นหลักฐานได้</div>'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const link = document.createElement('a');
+                        link.href = t.receipt_url;
+                        link.download = `Receipt_${t.receipt_no || id}.jpg`;
+                        link.target = '_blank';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                });
+                return;
+            }
+            
+            const p = {
+                receipt_no: t.receipt_no || 'RE' + String(Date.now()).substring(7),
+                date: new Date(t.payment_datetime).toLocaleDateString('th-TH'),
+                customer_name: t.payer_name,
+                house_no: t.house_no,
+                months_paid: getThaiMonths(t.paid_months),
+                method: t.payment_method,
+                amount: t.amount
+            };
+            
+            Swal.fire({
+                title: '<i class="fa-solid fa-file-invoice text-success me-2"></i>ใบเสร็จรับเงิน',
+                html: `
+                <div class="text-start" style="font-size:0.95rem;">
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">เลขที่รายการ:</span> <strong class="text-dark">${p.receipt_no}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">วันที่ชำระ:</span> <strong class="text-dark">${p.date}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">ชื่อผู้ชำระ:</span> <strong class="text-dark">${p.customer_name}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">บ้านเลขที่:</span> <strong class="text-dark">${p.house_no}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">เดือนที่ชำระ:</span> <strong class="text-end text-dark">${p.months_paid}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">ช่องทาง:</span> <strong class="text-dark">${p.method}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mt-3 bg-light p-2 rounded">
+                        <span class="fs-5 fw-bold text-dark">ยอดชำระ:</span> <strong class="fs-4 text-success">฿${Number(p.amount).toLocaleString('th-TH', {minimumFractionDigits:2})}</strong>
+                    </div>
+                </div>
+                `,
+                showCloseButton: true,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-print me-1"></i> พิมพ์ใบเสร็จ',
+                cancelButtonText: 'ปิดหน้าต่าง',
+                confirmButtonColor: '#057a55'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                    const doc = iframe.contentDocument || iframe.contentWindow.document;
+                    const htmlStart = '<' + 'html' + '><' + 'head' + '><' + 'title' + '>Receipt<' + '/title' + '>';
+                    const bootstrap = '<' + 'link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"' + '>';
+                    const styles = '<' + 'style' + '>body{font-family:Sarabun,sans-serif;padding:30px;}.box{border:1px solid #eee;padding:20px;border-radius:10px;}<' + '/style' + '><' + '/head' + '>';
+                    const bodyStart = '<' + 'body' + '><div class="box text-center"><h2 class="text-success">ใบเสร็จรับเงิน</h2><hr>';
+                    const table = '<table class="table text-start">' +
+                        '<tr><td>เลขที่</td><td>' + p.receipt_no + '</td></tr>' +
+                        '<tr><td>วันที่</td><td>' + p.date + '</td></tr>' +
+                        '<tr><td>ชื่อ</td><td>' + p.customer_name + '</td></tr>' +
+                        '<tr><td>บ้านเลขที่</td><td>' + p.house_no + '</td></tr>' +
+                        '<tr><td>ยอดชำระ</td><td>฿' + Number(p.amount).toLocaleString() + '</td></tr>' +
+                        '</table></div>';
+                    const bodyEnd = '<' + '/body' + '><' + '/html' + '>';
+                    
+                    doc.write(htmlStart + bootstrap + styles + bodyStart + table + bodyEnd);
+                    doc.close();
+                    
+                    setTimeout(() => { 
+                        iframe.contentWindow.focus(); 
+                        iframe.contentWindow.print(); 
+                        setTimeout(() => iframe.remove(), 1000); 
+                    }, 500);
+                }
+            });
+        }
+
+        function logoutCitizen() {
+            LineAuth.clearSession();
+            window.location.href = 'index.html';
+        }
+
+        function showUserProfile() {
+            const s = LineAuth.getSession();
+            if (!s) return;
+            const body = document.getElementById('profileModalBody');
+            body.innerHTML = `
+            <div class="text-center mb-3">
+                <img src="${s.lineAvatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.fullName || 'U') + '&background=06C755&color=fff&size=128'}" class="rounded-circle mb-2" width="72" height="72">
+                <div class="fw-bold">${s.fullName || '-'}</div>
+                <div class="text-muted text-sm">${s.lineName || '-'} <i class="fa-brands fa-line" style="color:#06C755;"></i></div>
+            </div>
+            <table class="table table-sm text-sm mb-0">
+                <tr><td class="text-muted" style="width:40%;"><i class="fa-solid fa-id-card me-2"></i>บัตร ปชช.</td><td class="fw-semibold">${s.nationalId ? s.nationalId.replace(/(\d)(\d{4})(\d{5})(\d{2})(\d)/, '$1-$2-$3-$4-$5') : '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-map-pin me-2"></i>ที่อยู่</td><td>${s.address || '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-phone me-2"></i>โทรศัพท์</td><td>${s.phone || '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-envelope me-2"></i>Email</td><td>${s.email || '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-calendar me-2"></i>ลงทะเบียนเมื่อ</td><td>${s.registeredAt ? new Date(s.registeredAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</td></tr>
+            </table>`;
+            new bootstrap.Modal(document.getElementById('userProfileModal')).show();
+        }
+
+        function showToastCitizen(message, type = 'success') {
+            const colors = { success: '#057a55', danger: '#c81e1e', warning: '#c27803', info: '#0694a2' };
+            const icons = { success: 'fa-circle-check', danger: 'fa-circle-xmark', warning: 'fa-triangle-exclamation', info: 'fa-circle-info' };
+            const t = document.createElement('div');
+            t.style.cssText = `position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;background:#fff;border-left:4px solid ${colors[type]};border-radius:10px;padding:.85rem 1.25rem;box-shadow:0 4px 20px rgba(0,0,0,.15);display:flex;align-items:center;gap:.75rem;font-family:'Prompt',sans-serif;font-size:.875rem;min-width:260px;max-width:360px;`;
+            t.innerHTML = `<i class="fa-solid ${icons[type]}" style="color:${colors[type]};font-size:1.1rem;"></i><span>${message}</span>`;
+            document.body.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3500);
+        }
+
+        // QR Countdown Timer
+        let seconds = 900;
+        setInterval(() => {
+            const el = document.getElementById('countdown');
+            if (!el || seconds <= 0) return;
+            seconds--;
+            const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+            const s = String(seconds % 60).padStart(2, '0');
+            el.textContent = `${m}:${s}`;
+        }, 1000);
+
+        // GAS URL for Register Image Upload
+        const REGISTER_UPLOAD_GAS_URL = "https://script.google.com/macros/s/AKfycbwC1WZ5eIPRs7TsMxQMsmExxBfbGkPc50bteuYtxLRvnAWCI6qzskrZzXQxR8wXYQ3b/exec";
+
+        let registerMap = null;
+        let registerMarker = null;
+
+        // Initialize Map when modal is opened
+        document.addEventListener('DOMContentLoaded', () => {
+            const modalEl = document.getElementById('registerWasteModal');
+            if (modalEl) {
+                modalEl.addEventListener('shown.bs.modal', async function () {
+            // Load fee types
+            const typeSelect = document.getElementById('regType');
+            if (typeSelect.options.length <= 1) {
+                try {
+                    const { data } = await supabaseClient.from('waste_fee_types').select('*').order('fee', {ascending: true});
+                    if (data) {
+                        typeSelect.innerHTML = '<option value="" disabled selected>เลือกประเภท</option>' + 
+                            data.map(f => `<option value="${f.type}">${f.type} (${f.fee} ฿/เดือน)</option>`).join('');
+                    } else {
+                        typeSelect.innerHTML = '<option value="" disabled selected>ไม่สามารถโหลดข้อมูลได้</option>';
+                    }
+                } catch (e) {
+                    typeSelect.innerHTML = '<option value="" disabled selected>ไม่สามารถโหลดข้อมูลได้</option>';
+                }
+            }
+
+            if (!registerMap) {
+                registerMap = L.map('regMap').setView([13.736717, 100.523186], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(registerMap);
+                registerMarker = L.marker([13.736717, 100.523186], { draggable: true }).addTo(registerMap);
+                
+                registerMarker.on('dragend', function (e) {
+                    const pos = registerMarker.getLatLng();
+                    document.getElementById('regLat').value = pos.lat;
+                    document.getElementById('regLng').value = pos.lng;
+                });
+
+                // Auto-fetch current location
+                setTimeout(() => {
+                    getCurrentLocation();
+                }, 500);
+            } else {
+                registerMap.invalidateSize();
+            }
+        });
+        }
+        });
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                Swal.fire({title: 'กำลังค้นหาตำแหน่ง...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        Swal.close();
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        document.getElementById('regLat').value = lat;
+                        document.getElementById('regLng').value = lng;
+                        
+                        if (registerMap && registerMarker) {
+                            registerMap.setView([lat, lng], 16);
+                            registerMarker.setLatLng([lat, lng]);
+                        }
+                    },
+                    (error) => {
+                        Swal.close();
+                        Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดึงตำแหน่งได้ กรุณาตรวจสอบการตั้งค่า Location ของอุปกรณ์', 'error');
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                Swal.fire('ไม่รองรับ', 'เบราว์เซอร์ของคุณไม่รองรับการดึงตำแหน่ง', 'warning');
+            }
+        }
+
+        async function submitRegisterRequest(event) {
+            event.preventDefault();
+            
+            const btn = document.getElementById('btnSubmitRegister');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังดำเนินการ...';
+            
+            try {
+                const houseNo = document.getElementById('regHouseNo').value;
+                const moo = document.getElementById('regMoo').value;
+                const name = document.getElementById('regName').value;
+                const phone = document.getElementById('regPhone').value;
+                const type = document.getElementById('regType').value;
+                const lat = document.getElementById('regLat').value || null;
+                const lng = document.getElementById('regLng').value || null;
+                const imageFile = document.getElementById('regImage').files[0];
+                
+                if (!lat || !lng) {
+                    Swal.fire('กรุณาระบุตำแหน่ง', 'โปรดกด "ดึงตำแหน่งปัจจุบัน" หรือลากหมุดบนแผนที่', 'warning');
+                    btn.disabled = false;
+                    btn.innerHTML = 'ส่งคำขอขึ้นทะเบียน';
+                    return;
+                }
+
+                let imageUrl = null;
+
+                // 1. Upload Image to GAS if selected
+                if (imageFile) {
+                    Swal.fire({title: 'กำลังอัปโหลดรูปภาพ...', text: 'อาจใช้เวลาสักครู่', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(imageFile);
+                        reader.onload = () => resolve(reader.result.split(',')[1]);
+                        reader.onerror = error => reject(error);
+                    });
+                    
+                    const uploadRes = await fetch(REGISTER_UPLOAD_GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            base64: base64,
+                            filename: `Register_${Date.now()}_${houseNo.replace('/','-')}.jpg`,
+                            mimeType: imageFile.type
+                        })
+                    });
+                    
+                    const uploadData = await uploadRes.json();
+                    if (uploadData.status === 'success') {
+                        imageUrl = uploadData.url;
+                    } else {
+                        throw new Error(uploadData.message || 'Upload failed');
+                    }
+                }
+
+                // 2. Save to Supabase
+                Swal.fire({title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+                
+                const session = LineAuth.getSession();
+                const lineUserId = session ? session.lineUserId : null;
+
+                const newRequest = {
+                    name: name,
+                    house_no: houseNo,
+                    moo: moo,
+                    type: type,
+                    phone: phone,
+                    lat: lat,
+                    lng: lng,
+                    image_url: imageUrl,
+                    status: 'pending',
+                    line_user_id: lineUserId
+                };
+                
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    const { error } = await supabaseClient.from('waste_register_requests').insert([newRequest]);
+                    if (error) throw error;
+                } else {
+                    // Fallback local storage
+                    const id = 'REG-' + Math.floor(1000 + Math.random() * 9000);
+                    newRequest.id = id;
+                    newRequest.created_at = new Date().toISOString();
+                    let reqs = JSON.parse(localStorage.getItem('waste_register_requests')) || [];
+                    reqs.push(newRequest);
+                    localStorage.setItem('waste_register_requests', JSON.stringify(reqs));
+                }
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('registerWasteModal'));
+                if(modal) modal.hide();
+                document.getElementById('registerForm').reset();
+                if(registerMap) registerMap.setView([13.736717, 100.523186], 13);
+                
+                Swal.fire({
+                    title: 'ส่งคำขอสำเร็จ!',
+                    text: 'เทศบาลได้รับคำขอขึ้นทะเบียนของคุณแล้ว เจ้าหน้าที่จะดำเนินการตรวจสอบโดยเร็ว',
+                    icon: 'success',
+                    confirmButtonColor: '#10b981'
+                });
+            } catch (error) {
+                console.error(error);
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถส่งคำขอได้ กรุณาลองใหม่อีกครั้ง: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'ส่งคำขอขึ้นทะเบียน';
+            }
+        }
+        
+        async function submitCancelRequest(event) {
+            event.preventDefault();
+            const houseNo = document.getElementById('cancelHouseNo').value;
+            const moo = document.getElementById('cancelMoo').value;
+            const name = document.getElementById('cancelName').value;
+            const reason = document.getElementById('cancelReason').value;
+            
+            const btn = event.target.querySelector('button[type="submit"]');
+            const origBtnText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังส่งคำขอ...';
+            btn.disabled = true;
+
+            const id = 'CAN-' + Math.floor(1000 + Math.random() * 9000);
+            const date = new Date().toISOString().split('T')[0];
+            
+            const newCancel = {
+                id: id,
+                house_no: houseNo,
+                moo: moo,
+                name: name,
+                reason: reason,
+                date: date,
+                status: 'pending',
+                created_at: new Date().toISOString()
+            };
+            
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    const { error } = await supabaseClient.from('waste_cancel_requests').insert([newCancel]);
+                    if (error) {
+                        console.error('Supabase error:', error);
+                        throw new Error('ไม่สามารถบันทึกข้อมูลลงฐานข้อมูลได้');
+                    }
+                } else {
+                    let cancels = [];
+                    try { cancels = JSON.parse(localStorage.getItem('waste_cancel_requests')) || []; } catch(e) {}
+                    cancels.push(newCancel);
+                    localStorage.setItem('waste_cancel_requests', JSON.stringify(cancels));
+                }
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('cancelWasteModal'));
+                if(modal) modal.hide();
+                document.getElementById('cancelForm').reset();
+                
+                Swal.fire({
+                    title: 'ส่งคำขอสำเร็จ!',
+                    text: 'เทศบาลได้รับคำขอยกเลิกบริการของคุณแล้ว เจ้าหน้าที่จะดำเนินการตรวจสอบโดยเร็ว',
+                    icon: 'success',
+                    confirmButtonColor: '#dc2626'
+                });
+            } catch (error) {
+                console.error(error);
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถส่งคำขอได้ กรุณาลองใหม่อีกครั้ง: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origBtnText;
+            }
+        }
+    </script>
+    <!-- Register Waste Modal -->
+    <div class="modal fade" id="registerWasteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-14 shadow-lg">
+                <div class="modal-header border-0 bg-light rounded-top-14">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-file-pen text-primary me-2"></i>ขอขึ้นทะเบียนชำระค่าขยะ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="registerForm" onsubmit="submitRegisterRequest(event)">
+                        <div class="mb-3">
+                            <label class="form-label text-sm fw-semibold">ชื่อ-นามสกุลผู้ยื่นคำขอ</label>
+                            <input type="text" class="form-control form-control-sm" id="regName" required placeholder="นาย สมชาย ใจดี">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-sm fw-semibold">บ้านเลขที่</label>
+                                <input type="text" class="form-control form-control-sm" id="regHouseNo" required placeholder="เช่น 45/3">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-sm fw-semibold">หมู่ที่</label>
+                                <input type="text" class="form-control form-control-sm" id="regMoo" required placeholder="เช่น 2">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-sm fw-semibold">ประเภทอาคาร/สถานที่</label>
+                            <select class="form-select form-select-sm" id="regType" required>
+                                <option value="" disabled selected>กำลังโหลดข้อมูล...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-sm fw-semibold">เบอร์โทรศัพท์ติดต่อ</label>
+                            <input type="tel" class="form-control form-control-sm" id="regPhone" required placeholder="08X-XXX-XXXX">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-sm fw-semibold">รูปภาพสถานที่ (ถ้ามี)</label>
+                            <input type="file" class="form-control form-control-sm" id="regImage" accept="image/jpeg,image/png">
+                            <div class="form-text" style="font-size:0.75rem;">รองรับเฉพาะไฟล์ JPG, PNG ขนาดไม่เกิน 5MB</div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-sm fw-semibold d-flex justify-content-between">
+                                <span>พิกัดตำแหน่ง <span class="text-danger">*</span></span>
+                                <a href="#" class="text-decoration-none text-primary" onclick="getCurrentLocation(); return false;"><i class="fa-solid fa-location-crosshairs me-1"></i>ดึงตำแหน่งปัจจุบัน</a>
+                            </label>
+                            <div id="regMap" style="height: 180px; width: 100%; border-radius: 8px; border: 1px solid #dee2e6; background: #e9ecef;" class="mb-2"></div>
+                            <input type="hidden" id="regLat">
+                            <input type="hidden" id="regLng">
+                            <div class="form-text" style="font-size:0.75rem;"><i class="fa-solid fa-circle-info me-1"></i>สามารถลากหมุดสีแดงเพื่อปรับตำแหน่งให้แม่นยำได้</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold" id="btnSubmitRegister" style="background:#10b981; border:none;">ส่งคำขอขึ้นทะเบียน</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Waste Modal -->
+    <div class="modal fade" id="cancelWasteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-14 shadow-lg">
+                <div class="modal-header border-0 bg-light rounded-top-14">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-file-circle-xmark text-danger me-2"></i>คำขอยกเลิกชำระค่าธรรมเนียม</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="cancelForm" onsubmit="submitCancelRequest(event)">
+                        <div class="mb-3">
+                            <label class="form-label text-sm fw-semibold">ชื่อ-นามสกุลผู้ยื่นคำขอ</label>
+                            <input type="text" class="form-control form-control-sm" id="cancelName" required>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-sm fw-semibold">บ้านเลขที่</label>
+                                <input type="text" class="form-control form-control-sm" id="cancelHouseNo" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-sm fw-semibold">หมู่ที่</label>
+                                <input type="text" class="form-control form-control-sm" id="cancelMoo" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-sm fw-semibold">เหตุผลการขอยกเลิก</label>
+                            <textarea class="form-control form-control-sm" id="cancelReason" rows="3" required placeholder="ย้ายที่อยู่, ไม่มีผู้อยู่อาศัย, ฯลฯ"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100 rounded-pill fw-bold" style="background:#dc2626; border:none;">ส่งคำขอยกเลิก</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Widget (Citizen) -->
+    <style>
+        .chat-widget-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #06C755;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            z-index: 1050;
+            transition: all 0.3s ease;
+        }
+        .chat-widget-btn:hover {
+            transform: scale(1.05);
+            background-color: #05a847;
+        }
+        .chat-widget-btn .badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform: translate(30%, -30%);
+            border: 2px solid white;
+        }
+        .chat-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            max-height: calc(100vh - 120px);
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            display: none;
+            flex-direction: column;
+            z-index: 1050;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        .chat-window.show {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .chat-header {
+            background: #06C755;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+        .chat-body {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chat-msg {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            position: relative;
+        }
+        .chat-msg.citizen {
+            align-self: flex-end;
+            background: #dcfce7;
+            color: #166534;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-msg.official {
+            align-self: flex-start;
+            background: #e2e8f0;
+            color: #334155;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-msg .time {
+            font-size: 0.65rem;
+            opacity: 0.7;
+            margin-top: 4px;
+            display: block;
+            text-align: right;
+        }
+        .chat-input-area {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input {
+            flex-grow: 1;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        .chat-input:focus {
+            border-color: #06C755;
+        }
+        .btn-send {
+            background: #06C755;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-send:hover {
+            background: #05a847;
+        }
+        @media (max-width: 576px) {
+            .chat-window {
+                width: calc(100vw - 40px);
+                height: 60vh;
+            }
+        }
+    </style>
+
+    <div class="chat-widget-btn" onclick="toggleCitizenChat()">
+        <i class="fa-regular fa-comment-dots fa-2x"></i>
+        <span class="badge bg-danger rounded-pill" id="chatUnreadBadge" style="display:none;">0</span>
+    </div>
+
+    <div class="chat-window" id="citizenChatWindow">
+        <div class="chat-header">
+            <div>
+                <i class="fa-solid fa-headset me-2"></i> ติดต่อเจ้าหน้าที่กองคลัง
+            </div>
+            <button class="btn-close btn-close-white" onclick="toggleCitizenChat()"></button>
+        </div>
+        <div class="chat-body" id="chatMessagesArea">
+            <div class="text-center text-muted text-xs my-2">-- เริ่มการสนทนา --</div>
+            <!-- Messages will be injected here -->
+        </div>
+        <div class="chat-input-area">
+            <input type="text" class="chat-input" id="chatInput" placeholder="พิมพ์ข้อความ..." onkeypress="handleChatKeypress(event)">
+            <button class="btn-send" onclick="sendCitizenMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="assets/js/citizen-waste.js"></script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="ระบบบริหารจัดการเทศบาลอัจฉริยะ - เข้าสู่ระบบ Smart Governance Municipality Platform">
+    <title>เข้าสู่ระบบ - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        body {
+            background: linear-gradient(145deg, #0f1f3d 0%, #1a3a6b 50%, #1240ab 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        /* Animated background blobs */
+        .bg-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: floatBlob 8s ease-in-out infinite;
+        }
+
+        .bg-blob-1 {
+            width: 500px;
+            height: 500px;
+            background: #3b82f6;
+            top: -150px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .bg-blob-2 {
+            width: 350px;
+            height: 350px;
+            background: #06b6d4;
+            bottom: -100px;
+            left: -80px;
+            animation-delay: 3s;
+        }
+
+        .bg-blob-3 {
+            width: 250px;
+            height: 250px;
+            background: #8b5cf6;
+            top: 40%;
+            left: 10%;
+            animation-delay: 1.5s;
+        }
+
+        @keyframes floatBlob {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-30px) scale(1.05);
+            }
+        }
+
+        /* Grid overlay for tech feel */
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            padding: 2.5rem 2.25rem;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+            animation: fadeInUp 0.5s ease both;
+        }
+
+        .login-card h3 {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .login-card p {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #fff !important;
+            border-radius: 10px;
+            padding: 0.65rem 1rem;
+            font-family: 'Prompt', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08) !important;
+            color: #fff !important;
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        .input-group-text {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-right: none !important;
+            border-radius: 10px 0 0 10px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .input-group .form-control {
+            border-left: none !important;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #1a56db, #3b82f6);
+            border: none;
+            border-radius: 10px;
+            padding: 0.7rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #fff;
+            width: 100%;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(26, 86, 219, 0.4);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(26, 86, 219, 0.5);
+            background: linear-gradient(135deg, #1240ab, #2563eb);
+            color: #fff;
+        }
+
+        .btn-line {
+            background: #06C755;
+            border: none;
+            border-radius: 10px;
+            padding: 0.7rem;
+            font-weight: 600;
+            color: #fff;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        .btn-line:hover {
+            background: #05a847;
+            transform: translateY(-2px);
+            color: #fff;
+        }
+
+        .divider-text {
+            position: relative;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.8rem;
+        }
+
+        .divider-text::before,
+        .divider-text::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 42%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .divider-text::before {
+            left: 0;
+        }
+
+        .divider-text::after {
+            right: 0;
+        }
+
+        .role-chips {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .role-chip {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, 0.55);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .role-chip:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .role-chip.active {
+            background: rgba(26, 86, 219, 0.6);
+            border-color: #3b82f6;
+            color: #fff;
+        }
+
+        .citizen-link {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.82rem;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .citizen-link a {
+            color: #60a5fa;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .citizen-link a:hover {
+            text-decoration: underline;
+        }
+
+        .logo-badge {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Password toggle */
+        .pw-toggle {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-left: none !important;
+            border-radius: 0 10px 10px 0;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+        }
+
+        .pw-toggle:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.15) !important;
+        }
+
+        .form-check-input {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .form-check-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.82rem;
+        }
+
+        .forgot-link {
+            color: #60a5fa;
+            font-size: 0.82rem;
+            text-decoration: none;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        .left-panel {
+            color: #fff;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .feature-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Custom Tabs */
+        .custom-tabs {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 1.5rem;
+        }
+
+        .custom-tabs .nav-link {
+            color: rgba(255, 255, 255, 0.6);
+            border-radius: 10px;
+            font-size: 0.85rem;
+            padding: 0.6rem 1rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .custom-tabs .nav-link:hover {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .custom-tabs .nav-link.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+
+<body>
+    <!-- Background blobs -->
+    <div class="bg-blob bg-blob-1"></div>
+    <div class="bg-blob bg-blob-2"></div>
+    <div class="bg-blob bg-blob-3"></div>
+
+    <div class="login-wrapper">
+        <div class="container">
+            <div class="row align-items-center justify-content-center g-5">
+
+                <!-- Left info panel (hidden on mobile) -->
+                <div class="col-lg-5 d-none d-lg-block left-panel" style="animation: fadeInUp 0.5s ease 0.2s both;">
+                    <div class="mb-4">
+                        <h2 class="fw-bold mb-2">GOOD GOV<br><span id="hero-org-name" style="font-size: 0.85em; opacity: 0.9;"></span><br>ระบบชำระค่าธรรมเนียมขยะแบบครบวงจร</h2>
+                        <p style="color: rgba(255,255,255,0.55); font-size: 1rem;">Smart Waste Management System<br>แพลตฟอร์มบริหารจัดการค่าธรรมเนียมขยะสำหรับองค์กรปกครองส่วนท้องถิ่น</p>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="feature-icon text-primary"><i class="fa-solid fa-address-book"></i></div>
+                        <div>
+                            <div class="fw-semibold" style="font-size:0.9rem;">จัดการทะเบียนและลูกหนี้ขยะ</div>
+                            <div style="color:rgba(255,255,255,0.5); font-size:0.8rem;">
+                                ระบบฐานข้อมูลครัวเรือนและประวัติการชำระเงิน</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon text-success"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                        <div>
+                            <div class="fw-semibold" style="font-size:0.9rem;">รับชำระและออกใบเสร็จอัตโนมัติ</div>
+                            <div style="color:rgba(255,255,255,0.5); font-size:0.8rem;">รองรับเงินสด โอนเงิน พร้อมพิมพ์ใบเสร็จทันที</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon text-warning"><i class="fa-solid fa-chart-line"></i></div>
+                        <div>
+                            <div class="fw-semibold" style="font-size:0.9rem;">รายงานรายรับและสรุป ก.ค.3</div>
+                            <div style="color:rgba(255,255,255,0.5); font-size:0.8rem;">สรุปยอดเงินรายวัน รายเดือน สรุปผลเรียลไทม์</div>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon text-info"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <div>
+                            <div class="fw-semibold" style="font-size:0.9rem;">พิกัดแผนที่ครัวเรือนอัจฉริยะ</div>
+                            <div style="color:rgba(255,255,255,0.5); font-size:0.8rem;">ระบุพิกัดบ้านและติดตามการจัดเก็บค่าขยะ
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 rounded-14"
+                        style="background:rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);">
+                        <div class="d-flex gap-3 justify-content-around text-center">
+                            <div>
+                                <div class="fw-bold fs-5">Fast</div>
+                                <div style="font-size:0.75rem; color:rgba(255,255,255,0.5);">ลดเวลาทำงาน</div>
+                            </div>
+                            <div style="border-left:1px solid rgba(255,255,255,0.1);"></div>
+                            <div>
+                                <div class="fw-bold fs-5">100%</div>
+                                <div style="font-size:0.75rem; color:rgba(255,255,255,0.5);">ความแม่นยำ</div>
+                            </div>
+                            <div style="border-left:1px solid rgba(255,255,255,0.1);"></div>
+                            <div>
+                                <div class="fw-bold fs-5">24/7</div>
+                                <div style="font-size:0.75rem; color:rgba(255,255,255,0.5);">ตรวจสอบได้ตลอดเวลา</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Login Card -->
+                <div class="col-sm-10 col-md-7 col-lg-4">
+                    <div class="login-card">
+                        <!-- Logo -->
+                        <div class="text-center mb-4">
+                            <div class="logo-badge mb-3">
+                                <img id="login-org-logo" src="https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w500"
+                                    alt="Organization Logo"
+                                    style="height:65px; margin-bottom:0.5rem; border-radius: 8px; object-fit: contain;">
+                                <div style="color:#fff; font-size:0.9rem; font-weight:700; letter-spacing:0.02em; margin-bottom: 0.1rem;">GOOD GOV</div>
+                                <div id="login-org-name" style="color:rgba(255,255,255,0.8); font-size:0.75rem; font-weight:500;"></div>
+                            </div>
+                            <h3 class="fs-5 fw-bold mb-0">เข้าสู่ระบบ (Login)</h3>
+                        </div>
+
+                        <!-- Nav Tabs -->
+                        <ul class="nav nav-pills nav-fill custom-tabs" id="loginTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="citizen-tab" data-bs-toggle="tab"
+                                    data-bs-target="#citizen" type="button" role="tab" aria-controls="citizen"
+                                    aria-selected="true">
+                                    <i class="fa-solid fa-users me-2"></i>สำหรับประชาชน
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff"
+                                    type="button" role="tab" aria-controls="staff" aria-selected="false">
+                                    <i class="fa-solid fa-user-tie me-2"></i>เจ้าหน้าที่
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content" id="loginTabsContent">
+
+                            <!-- Citizen Tab -->
+                            <div class="tab-pane fade show active" id="citizen" role="tabpanel"
+                                aria-labelledby="citizen-tab">
+                                <div class="text-center mb-4 mt-2">
+                                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">
+                                        เข้าสู่ระบบเพื่อใช้บริการของเทศบาล <br>ผ่านบัญชี LINE ของคุณ</p>
+                                </div>
+
+                                <div class="mb-3 text-start">
+                                    <label class="form-label" style="font-size: 0.85rem; color: rgba(255,255,255,0.8);">เลือกระบบที่ต้องการเข้าใช้งาน</label>
+                                    <select class="form-select form-select-sm" id="citizenSystemSelect" style="background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: white; padding-top: 0.5rem; padding-bottom: 0.5rem;">
+                                        <option value="waste" class="text-dark">ระบบชำระค่าขยะ (Waste Collection Payment System)</option>
+                                        <option value="eservice" class="text-dark" hidden>ระบบบริการประชาชน (E-Service System)</option>
+                                    </select>
+                                </div>
+
+                                <button type="button" class="btn btn-line mt-2 py-3 fs-6 w-100" id="lineLoginBtn"
+                                    onclick="handleLineLogin(document.getElementById('citizenSystemSelect').value)">
+                                    <i class="fa-brands fa-line me-2 fa-lg"></i>เข้าสู่ระบบด้วย LINE
+                                </button>
+
+                                <div class="text-center mt-4"
+                                    style="font-size:0.75rem; color:rgba(255,255,255,0.45); line-height:1.6;">
+                                    <i class="fa-solid fa-shield-halved me-1 text-success opacity-75"></i> ระบบปลอดภัย 1
+                                    LINE = 1 ผู้ใช้<br>
+                                    ลงทะเบียนครั้งเดียว จดจำข้อมูลอัตโนมัติ
+                                </div>
+                            </div>
+
+                            <!-- Staff Tab -->
+                            <div class="tab-pane fade" id="staff" role="tabpanel" aria-labelledby="staff-tab">
+                                <!-- Form -->
+                                <form id="loginForm" onsubmit="handleLogin(event)">
+                                    <div class="mb-3">
+                                        <label class="form-label"
+                                            style="font-size:0.85rem; color:rgba(255,255,255,0.8);">ชื่อผู้ใช้งาน
+                                            (Username / ID)</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                                            <input type="text" class="form-control" id="username" required
+                                                placeholder="กรอกชื่อผู้ใช้งาน">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label"
+                                            style="font-size:0.85rem; color:rgba(255,255,255,0.8);">รหัสผ่าน
+                                            (Password)</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                                            <input type="password" class="form-control" id="password" required
+                                                placeholder="••••••••">
+                                            <button type="button" class="btn pw-toggle" onclick="togglePw()"
+                                                id="pw-toggle-btn"><i class="fa-regular fa-eye"
+                                                    id="pw-eye"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="rememberMe">
+                                            <label class="form-check-label" for="rememberMe"
+                                                style="font-size:0.8rem;">จดจำการเข้าสู่ระบบ</label>
+                                        </div>
+                                        <a href="#" class="forgot-link" style="font-size:0.8rem;">ลืมรหัสผ่าน?</a>
+                                    </div>
+                                    <button type="submit" class="btn btn-login mb-2" id="loginBtn">
+                                        <i class="fa-solid fa-right-to-bracket me-2"></i>เข้าสู่ระบบ
+                                    </button>
+                                </form>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-3" style="color: rgba(255,255,255,0.35); font-size: 0.75rem;">
+                        &copy; 2024 Smart Governance Municipality Platform. Powered by Supabase &amp; Leaflet.
+                    </div>
+                </div>
+
+            </div><!-- /row -->
+        </div><!-- /container -->
+    </div><!-- /login-wrapper -->
+
+    <!-- LINE Registration Modal -->
+    <div class="modal fade" id="lineRegisterModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg"
+                style="border-radius:20px; background:#0f1f3d; border:1px solid rgba(255,255,255,0.1);">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <div class="text-center w-100">
+                        <div
+                            style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#06C755,#00b341);display:inline-flex;align-items:center;justify-content:center;margin-bottom:.75rem;">
+                            <i class="fa-brands fa-line text-white fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold text-white mb-1">ลงทะเบียนผู้ใช้งาน</h5>
+                        <p style="color:rgba(255,255,255,0.5);font-size:.82rem;" class="mb-0">
+                            กรุณากรอกข้อมูลเพื่อเชื่อมต่อบัญชี LINE กับระบบเทศบาล</p>
+                    </div>
+                </div>
+                <div class="modal-body px-4 pt-3 pb-2">
+                    <!-- LINE Profile Preview -->
+                    <div class="d-flex align-items-center gap-3 p-3 mb-3 rounded-14"
+                        style="background:rgba(6,199,85,0.1);border:1px solid rgba(6,199,85,0.2);">
+                        <img id="regLineAvatar"
+                            src="https://ui-avatars.com/api/?name=LINE&background=06C755&color=fff&size=80"
+                            class="rounded-circle" width="44" height="44">
+                        <div>
+                            <div class="fw-semibold text-white text-sm" id="regLineName">LINE User</div>
+                            <div style="color:rgba(255,255,255,0.4);font-size:.72rem;" id="regLineId">ID: —</div>
+                        </div>
+                        <span class="badge ms-auto" style="background:rgba(6,199,85,0.2);color:#06C755;"><i
+                                class="fa-solid fa-check me-1"></i>ยืนยันแล้ว</span>
+                    </div>
+
+                    <form id="registerForm" onsubmit="handleRegistration(event)">
+                        <!-- Section: ข้อมูลส่วนตัว -->
+                        <div class="mb-2"
+                            style="color:rgba(255,255,255,0.4);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">
+                            <i class="fa-solid fa-user-pen me-1"></i> ข้อมูลส่วนตัว
+                        </div>
+
+                        <!-- เลขบัตรประชาชน -->
+                        <div class="mb-3">
+                            <label class="form-label"
+                                style="color:rgba(255,255,255,0.7);font-size:.82rem;">เลขบัตรประจำตัวประชาชน <span
+                                    class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"
+                                    style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);"><i
+                                        class="fa-solid fa-id-card"></i></span>
+                                <input type="text" class="form-control reg-input" id="regNationalId" maxlength="13"
+                                    required placeholder="เลขบัตร 13 หลัก" oninput="formatNationalId(this)">
+                            </div>
+                        </div>
+
+                        <!-- คำนำหน้า + ชื่อ + สกุล -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-3">
+                                <label class="form-label" style="color:rgba(255,255,255,0.7);font-size:.82rem;">คำนำหน้า
+                                    <span class="text-danger">*</span></label>
+                                <select class="form-select reg-input" id="regTitle" required>
+                                    <option value="">เลือก</option>
+                                    <option value="นาย">นาย</option>
+                                    <option value="นาง">นาง</option>
+                                    <option value="นางสาว">นางสาว</option>
+                                    <option value="เด็กชาย">เด็กชาย</option>
+                                    <option value="เด็กหญิง">เด็กหญิง</option>
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label" style="color:rgba(255,255,255,0.7);font-size:.82rem;">ชื่อ
+                                    <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control reg-input" id="regFirstName" required
+                                    placeholder="ชื่อ">
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label" style="color:rgba(255,255,255,0.7);font-size:.82rem;">นามสกุล
+                                    <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control reg-input" id="regLastName" required
+                                    placeholder="นามสกุล">
+                            </div>
+                        </div>
+
+                        <!-- Section: ที่อยู่ -->
+                        <div class="mb-2 mt-3"
+                            style="color:rgba(255,255,255,0.4);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">
+                            <i class="fa-solid fa-map-location-dot me-1"></i> ที่อยู่
+                        </div>
+
+                        <!-- บ้านเลขที่ + หมู่ที่ -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <label class="form-label"
+                                    style="color:rgba(255,255,255,0.7);font-size:.82rem;">บ้านเลขที่ <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control reg-input" id="regHouseNo" required
+                                    placeholder="เช่น 45/3">
+                            </div>
+                            <div class="col-3">
+                                <label class="form-label" style="color:rgba(255,255,255,0.7);font-size:.82rem;">หมู่ที่
+                                    <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control reg-input" id="regMoo" required
+                                    placeholder="เช่น 2">
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label" style="color:rgba(255,255,255,0.7);font-size:.82rem;">ถนน
+                                    <span
+                                        style="color:rgba(255,255,255,0.3);font-size:.7rem;">(ไม่บังคับ)</span></label>
+                                <input type="text" class="form-control reg-input" id="regRoad" placeholder="ชื่อถนน">
+                            </div>
+                        </div>
+
+                        <!-- ซอย -->
+                        <div class="mb-3">
+                            <label class="form-label" style="color:rgba(255,255,255,0.7);font-size:.82rem;">ซอย <span
+                                    style="color:rgba(255,255,255,0.3);font-size:.7rem;">(ไม่บังคับ)</span></label>
+                            <input type="text" class="form-control reg-input" id="regSoi" placeholder="ชื่อซอย">
+                        </div>
+
+                        <!-- จังหวัด + อำเภอ + ตำบล -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <label class="form-label" style="color:rgba(255,255,255,0.7);font-size:.82rem;">จังหวัด
+                                    <span class="text-danger">*</span></label>
+                                <select class="form-select reg-input" id="regProvince" required
+                                    onchange="onProvinceChange()">
+                                    <option value="">กำลังโหลด...</option>
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label"
+                                    style="color:rgba(255,255,255,0.7);font-size:.82rem;">อำเภอ/เขต <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select reg-input" id="regDistrict" required
+                                    onchange="onDistrictChange()" disabled>
+                                    <option value="">-- เลือกอำเภอ --</option>
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label"
+                                    style="color:rgba(255,255,255,0.7);font-size:.82rem;">ตำบล/แขวง <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select reg-input" id="regSubdistrict" required disabled>
+                                    <option value="">-- เลือกตำบล --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Section: ข้อมูลติดต่อ -->
+                        <div class="mb-2 mt-3"
+                            style="color:rgba(255,255,255,0.4);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">
+                            <i class="fa-solid fa-address-book me-1"></i> ข้อมูลติดต่อ
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label"
+                                    style="color:rgba(255,255,255,0.7);font-size:.82rem;">เบอร์โทรศัพท์ <span
+                                        class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"
+                                        style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);"><i
+                                            class="fa-solid fa-phone"></i></span>
+                                    <input type="tel" class="form-control reg-input" id="regPhone" maxlength="10"
+                                        required placeholder="08X-XXX-XXXX">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" style="color:rgba(255,255,255,0.7);font-size:.82rem;">Email
+                                    <span
+                                        style="color:rgba(255,255,255,0.3);font-size:.7rem;">(ไม่บังคับ)</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"
+                                        style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);"><i
+                                            class="fa-solid fa-envelope"></i></span>
+                                    <input type="email" class="form-control reg-input" id="regEmail"
+                                        placeholder="email@example.com">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="regError" class="alert alert-danger border-0 py-2 text-sm rounded-10 d-none"
+                            role="alert"></div>
+                        <button type="submit" class="btn w-100 fw-semibold py-2 mt-2" id="regSubmitBtn"
+                            style="background:linear-gradient(135deg,#06C755,#00b341);color:#fff;border:none;border-radius:12px;font-size:.95rem;">
+                            <i class="fa-solid fa-user-check me-2"></i>ลงทะเบียนและเข้าสู่ระบบ
+                        </button>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-3 px-4">
+                    <div class="text-center w-100" style="color:rgba(255,255,255,0.3);font-size:.7rem;">
+                        <i class="fa-solid fa-lock me-1"></i>ข้อมูลถูกเข้ารหัสและเก็บรักษาอย่างปลอดภัย · 1 LINE ID ต่อ 1
+                        ผู้ใช้
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .reg-input {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            color: #fff !important;
+            font-size: .875rem;
+        }
+
+        .reg-input:focus {
+            background: rgba(255, 255, 255, 0.12) !important;
+            border-color: rgba(96, 165, 250, 0.5) !important;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+        }
+
+        .reg-input option {
+            background: #1a2744;
+            color: #fff;
+        }
+
+        .reg-input::placeholder {
+            color: rgba(255, 255, 255, 0.3) !important;
+        }
+    </style>
+
+    <!-- LINE Login Loading Overlay -->
+    <div id="lineLoadingOverlay" class="d-none"
+        style="position:fixed;inset:0;z-index:9999;background:rgba(15,31,61,0.95);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;">
+        <div
+            style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#06C755,#00b341);display:flex;align-items:center;justify-content:center;animation:pulse 1.5s infinite;">
+            <i class="fa-brands fa-line text-white fa-2x"></i>
+        </div>
+        <div class="text-white fw-semibold">กำลังตรวจสอบบัญชี LINE...</div>
+        <div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div>
+    </div>
+    <style>
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1)
+            }
+
+            50% {
+                transform: scale(1.1)
+            }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="assets/js/line-auth.js"></script>
+    <script src="assets/js/thai-address.js"></script>
+    <script>
+        // ---- Staff login functions ----
+        function selectRole(el, user, pass) {
+            document.querySelectorAll('.role-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('username').value = user;
+            document.getElementById('password').value = pass;
+        }
+
+        function togglePw() {
+            const pw = document.getElementById('password');
+            const eye = document.getElementById('pw-eye');
+            if (pw.type === 'password') { pw.type = 'text'; eye.className = 'fa-regular fa-eye-slash'; }
+            else { pw.type = 'password'; eye.className = 'fa-regular fa-eye'; }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+
+            if (username === 'admingimt' && password === 'admingimt') {
+                const userInfo = {
+                    id: 'admin_bypass',
+                    name: 'Admin GIMT',
+                    role: 'Super Admin',
+                    dept: 'ผู้ดูแลระบบ',
+                    avatar: '',
+                    email: 'admin@gimt.com'
+                };
+                localStorage.setItem('sgov_user', JSON.stringify(userInfo));
+                
+                if (rememberMe) {
+                    localStorage.setItem('sgov_saved_credentials', JSON.stringify({ username, password }));
+                } else {
+                    localStorage.removeItem('sgov_saved_credentials');
+                }
+                
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>กำลังตรวจสอบ...';
+
+            try {
+                if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+                    throw new Error("ระบบฐานข้อมูลไม่พร้อมใช้งาน");
+                }
+
+                // ค้นหาจากตาราง Staff
+                const { data, error } = await supabaseClient
+                    .from('Staff')
+                    .select('*')
+                    .eq('username', username)
+                    .eq('password', password)
+                    .eq('status', 'active')
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                if (!data) {
+                    throw new Error("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง หรือบัญชีถูกระงับ");
+                }
+
+                // บันทึก Session
+                const userInfo = {
+                    id: data.id,
+                    name: `${data.first_name} ${data.last_name}`,
+                    role: data.role,
+                    dept: data.department,
+                    avatar: data.avatar_url,
+                    email: data.email
+                };
+
+                localStorage.setItem('sgov_user', JSON.stringify(userInfo));
+
+                // จัดการฟังก์ชันจดจำการเข้าสู่ระบบ (Remember Me)
+                if (rememberMe) {
+                    localStorage.setItem('sgov_saved_credentials', JSON.stringify({ username, password }));
+                } else {
+                    localStorage.removeItem('sgov_saved_credentials');
+                }
+
+                // เก็บ Audit Log (Optional)
+                try {
+                    await supabaseClient.from('Audit_Log').insert([{
+                        staff_id: data.id,
+                        staff_name: userInfo.name,
+                        action: 'LOGIN',
+                        details: 'เข้าสู่ระบบสำเร็จ'
+                    }]);
+                } catch (auditError) {
+                    console.warn("Audit Log Error:", auditError);
+                }
+
+                // Redirect ตามบทบาทหรือกอง
+                if (data.role === 'Super Admin') {
+                    window.location.href = 'dashboard.html';
+                } else if (data.department === 'กองคลัง') {
+                    window.location.href = 'finance.html';
+                } else if (data.department === 'กองช่าง') {
+                    window.location.href = 'publicworks.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
+
+            } catch (err) {
+                alert('เข้าสู่ระบบล้มเหลว: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2"></i>เข้าสู่ระบบ';
+            }
+        }
+
+        // ---- LINE Login for Citizens ----
+        let pendingLineProfile = null;
+
+        function handleLineLogin(target = 'eservice') {
+            localStorage.setItem('sgov_citizen_target', target);
+            
+            // if already logged in, redirect directly
+            if (LineAuth.isLoggedIn()) {
+                const s = LineAuth.getSession();
+                if (s && s.lineUserId) {
+                    if (target === 'waste') {
+                        window.location.href = 'waste-payment-portal.html';
+                    } else {
+                        window.location.href = 'citizen-portal.html';
+                    }
+                    return;
+                }
+            }
+
+            const btn = document.getElementById('lineLoginBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังเชื่อมต่อ LINE...';
+            setTimeout(() => LineAuth.initiateLogin(), 500);
+        }
+
+        function formatNationalId(input) {
+            input.value = input.value.replace(/\D/g, '').substring(0, 13);
+        }
+
+        // ---- Thai Address Cascading Dropdowns ----
+        async function initThaiAddress() {
+            await ThaiAddress.loadData();
+            ThaiAddress.populateProvinces(document.getElementById('regProvince'));
+        }
+
+        function onProvinceChange() {
+            const pId = document.getElementById('regProvince').value;
+            const distEl = document.getElementById('regDistrict');
+            const subEl = document.getElementById('regSubdistrict');
+            ThaiAddress.populateDistricts(distEl, pId ? parseInt(pId) : null);
+            distEl.disabled = !pId;
+            subEl.innerHTML = '<option value="">-- เลือกตำบล --</option>';
+            subEl.disabled = true;
+        }
+
+        function onDistrictChange() {
+            const dId = document.getElementById('regDistrict').value;
+            const subEl = document.getElementById('regSubdistrict');
+            ThaiAddress.populateSubdistricts(subEl, dId ? parseInt(dId) : null);
+            subEl.disabled = !dId;
+        }
+
+        // Load address data on page load
+        initThaiAddress();
+
+        // ---- Registration Form ----
+        function showRegError(msg) {
+            const el = document.getElementById('regError');
+            el.textContent = msg; el.classList.remove('d-none');
+        }
+        function hideRegError() {
+            document.getElementById('regError').classList.add('d-none');
+        }
+
+        async function handleRegistration(e) {
+            e.preventDefault();
+            hideRegError();
+            if (!pendingLineProfile) { showRegError('ไม่พบข้อมูล LINE กรุณาล็อกอินใหม่'); return; }
+
+            const nationalId = document.getElementById('regNationalId').value.replace(/\D/g, '');
+            const title = document.getElementById('regTitle').value;
+            const firstName = document.getElementById('regFirstName').value.trim();
+            const lastName = document.getElementById('regLastName').value.trim();
+            const houseNo = document.getElementById('regHouseNo').value.trim();
+            const moo = document.getElementById('regMoo').value.trim();
+            const road = document.getElementById('regRoad').value.trim();
+            const soi = document.getElementById('regSoi').value.trim();
+            const provinceId = document.getElementById('regProvince').value;
+            const districtId = document.getElementById('regDistrict').value;
+            const subdistrictId = document.getElementById('regSubdistrict').value;
+            const phone = document.getElementById('regPhone').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+
+            // Validation
+            if (!LineAuth.validateNationalId(nationalId)) { showRegError('เลขบัตรประชาชนไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง'); return; }
+            if (!title) { showRegError('กรุณาเลือกคำนำหน้า'); return; }
+            if (!firstName) { showRegError('กรุณากรอกชื่อ'); return; }
+            if (!lastName) { showRegError('กรุณากรอกนามสกุล'); return; }
+            if (!houseNo) { showRegError('กรุณากรอกบ้านเลขที่'); return; }
+            if (!moo) { showRegError('กรุณากรอกหมู่ที่'); return; }
+            if (!provinceId) { showRegError('กรุณาเลือกจังหวัด'); return; }
+            if (!districtId) { showRegError('กรุณาเลือกอำเภอ'); return; }
+            if (!subdistrictId) { showRegError('กรุณาเลือกตำบล'); return; }
+            if (!LineAuth.validatePhone(phone)) { showRegError('เบอร์โทรศัพท์ไม่ถูกต้อง (ตัวอย่าง: 0812345678)'); return; }
+            if (email && !LineAuth.validateEmail(email)) { showRegError('รูปแบบอีเมลไม่ถูกต้อง'); return; }
+
+            const btn = document.getElementById('regSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังบันทึก...';
+
+            // Build full name and address
+            const fullName = `${title}${firstName} ${lastName}`;
+            const provinceName = ThaiAddress.getProvinceName(parseInt(provinceId));
+            const districtName = ThaiAddress.getDistrictName(parseInt(districtId));
+            const subdistrictName = ThaiAddress.getSubdistrictName(parseInt(subdistrictId));
+            const addressParts = [`บ้านเลขที่ ${houseNo}`, `หมู่ ${moo}`];
+            if (soi) addressParts.push(`ซอย${soi}`);
+            if (road) addressParts.push(`ถนน${road}`);
+            addressParts.push(`ต.${subdistrictName}`, `อ.${districtName}`, `จ.${provinceName}`);
+            const address = addressParts.join(' ');
+
+            const userData = {
+                lineUserId: pendingLineProfile.userId,
+                lineName: pendingLineProfile.displayName,
+                lineAvatar: pendingLineProfile.pictureUrl,
+                nationalId, title, firstName, lastName, fullName,
+                houseNo, moo, road, soi,
+                provinceId: parseInt(provinceId), provinceName,
+                districtId: parseInt(districtId), districtName,
+                subdistrictId: parseInt(subdistrictId), subdistrictName,
+                address, phone, email
+            };
+
+            // Save to Supabase User_population table
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                try {
+                    // Check if national_id already exists
+                    const { data: existingUser, error: checkError } = await supabaseClient
+                        .from('User_population')
+                        .select('national_id')
+                        .eq('national_id', userData.nationalId)
+                        .maybeSingle();
+
+                    if (existingUser) {
+                        showRegError('เลขบัตรประชาชนนี้ถูกลงทะเบียนกับบัญชี LINE อื่นแล้ว');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-user-check me-2"></i>ลงทะเบียนและเข้าสู่ระบบ';
+                        return;
+                    }
+
+                    const { error: sbError } = await supabaseClient
+                        .from('User_population')
+                        .insert({
+                            line_user_id: userData.lineUserId,
+                            line_name: userData.lineName,
+                            line_avatar: userData.lineAvatar,
+                            national_id: userData.nationalId,
+                            title: userData.title,
+                            first_name: userData.firstName,
+                            last_name: userData.lastName,
+                            full_name: userData.fullName,
+                            house_no: userData.houseNo,
+                            moo: userData.moo,
+                            road: userData.road,
+                            soi: userData.soi,
+                            province_id: userData.provinceId,
+                            province_name: userData.provinceName,
+                            district_id: userData.districtId,
+                            district_name: userData.districtName,
+                            subdistrict_id: userData.subdistrictId,
+                            subdistrict_name: userData.subdistrictName,
+                            address: userData.address,
+                            phone: userData.phone,
+                            email: userData.email
+                        });
+
+                    if (sbError) {
+                        console.error("Supabase Insert Error:", sbError);
+                        if (sbError.code === '23505') {
+                            showRegError('ข้อมูลซ้ำซ้อน: ข้อมูลนี้ถูกลงทะเบียนไว้แล้วในระบบ');
+                        } else {
+                            showRegError('ไม่สามารถบันทึกข้อมูลลงฐานข้อมูลได้: ' + sbError.message);
+                        }
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-user-check me-2"></i>ลงทะเบียนและเข้าสู่ระบบ';
+                        return;
+                    }
+                } catch (err) {
+                    console.error("Supabase Error:", err);
+                }
+            }
+
+            // Create local session for the newly registered user
+            LineAuth.createSession(userData);
+
+            await new Promise(r => setTimeout(r, 800));
+            const target = localStorage.getItem('sgov_citizen_target') || 'eservice';
+            if (target === 'waste') {
+                window.location.href = 'waste-payment-portal.html';
+            } else {
+                window.location.href = 'citizen-portal.html';
+            }
+        }
+
+        // ---- Handle LINE OAuth Callback on page load ----
+        (async function () {
+            // Check if already logged in as citizen
+            if (LineAuth.isLoggedIn()) {
+                const s = LineAuth.getSession();
+                if (s && s.lineUserId) {
+                    // Already logged in → go to citizen portal
+                    // (don't auto-redirect to let staff still use this page)
+                }
+            }
+
+            // Load saved staff credentials if Remember Me was checked previously
+            try {
+                const savedCreds = localStorage.getItem('sgov_saved_credentials');
+                if (savedCreds) {
+                    const parsed = JSON.parse(savedCreds);
+                    if (parsed && parsed.username && parsed.password) {
+                        document.getElementById('username').value = parsed.username;
+                        document.getElementById('password').value = parsed.password;
+                        document.getElementById('rememberMe').checked = true;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not load saved credentials', e);
+            }
+
+            const result = LineAuth.handleCallback();
+            if (!result.success) {
+                if (result.error) alert('LINE Login Error: ' + result.error);
+                return;
+            }
+
+            // Show loading
+            const overlay = document.getElementById('lineLoadingOverlay');
+            overlay.classList.remove('d-none');
+            overlay.style.display = 'flex';
+
+            try {
+                const profile = await LineAuth.getLineProfile(result);
+                if (!profile) { throw new Error('ไม่สามารถดึงข้อมูล LINE ได้'); }
+
+                // Check if user already registered in Supabase
+                let isRegistered = false;
+                let user = null;
+
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    const { data, error } = await supabaseClient
+                        .from('User_population')
+                        .select('*')
+                        .eq('line_user_id', profile.userId)
+                        .maybeSingle();
+
+                    if (data) {
+                        isRegistered = true;
+                        user = {
+                            lineUserId: data.line_user_id,
+                            lineName: data.line_name,
+                            lineAvatar: data.line_avatar,
+                            nationalId: data.national_id,
+                            title: data.title,
+                            firstName: data.first_name,
+                            lastName: data.last_name,
+                            fullName: data.full_name,
+                            houseNo: data.house_no,
+                            moo: data.moo,
+                            road: data.road,
+                            soi: data.soi,
+                            provinceId: data.province_id,
+                            provinceName: data.province_name,
+                            districtId: data.district_id,
+                            districtName: data.district_name,
+                            subdistrictId: data.subdistrict_id,
+                            subdistrictName: data.subdistrict_name,
+                            address: data.address,
+                            phone: data.phone,
+                            email: data.email
+                        };
+                    }
+                }
+
+                if (isRegistered) {
+                    LineAuth.createSession(user);
+                    overlay.querySelector('.text-white.fw-semibold').textContent = 'ยินดีต้อนรับกลับ, ' + user.fullName + '!';
+                    await new Promise(r => setTimeout(r, 1000));
+                    const target = localStorage.getItem('sgov_citizen_target') || 'eservice';
+                    if (target === 'waste') {
+                        window.location.href = 'waste-payment-portal.html';
+                    } else {
+                        window.location.href = 'citizen-portal.html';
+                    }
+                } else {
+                    // New user → show registration modal
+                    overlay.classList.add('d-none');
+                    overlay.style.display = 'none';
+                    pendingLineProfile = profile;
+                    document.getElementById('regLineName').textContent = profile.displayName || 'LINE User';
+                    document.getElementById('regLineId').textContent = 'ID: ' + profile.userId.substring(0, 10) + '...';
+                    if (profile.pictureUrl) document.getElementById('regLineAvatar').src = profile.pictureUrl;
+                    const modal = new bootstrap.Modal(document.getElementById('lineRegisterModal'));
+                    modal.show();
+                }
+            } catch (err) {
+                overlay.classList.add('d-none');
+                overlay.style.display = 'none';
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+            }
+        })();
+
+        // ---- Load Settings for Logo and Org Name ----
+        document.addEventListener('DOMContentLoaded', async () => {
+            let settings = null;
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                try {
+                    const { data } = await supabaseClient.from('waste_settings').select('org_name, org_logo').limit(1).single();
+                    if (data) settings = data;
+                } catch (e) {}
+            }
+            if (!settings) {
+                const local = localStorage.getItem('waste_settings');
+                if (local) settings = JSON.parse(local);
+            }
+            if (settings) {
+                const loginLogo = document.getElementById('login-org-logo');
+                const loginName = document.getElementById('login-org-name');
+                const heroName = document.getElementById('hero-org-name');
+                if (loginLogo && settings.org_logo) loginLogo.src = settings.org_logo;
+                if (loginName && settings.org_name) loginName.textContent = settings.org_name;
+                if (heroName && settings.org_name) heroName.textContent = settings.org_name;
+            }
+        });
+    </script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+
+</html>

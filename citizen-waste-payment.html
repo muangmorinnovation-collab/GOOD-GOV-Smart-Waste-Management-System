@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ชำระค่าธรรมเนียมขยะ - GOOD GOV</title>
+    <meta name="description" content="ชำระค่าธรรมเนียมขยะออนไลน์ ตรวจสอบยอดค้างชำระ แนบหลักฐานการโอน">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="assets/js/line-auth.js"></script>
+    <style>
+        * { font-family: 'Prompt', sans-serif; }
+        
+        /* Override global style.css body flex layout */
+        body { 
+            background: #f0f4f8 !important; 
+            padding-bottom: 110px; 
+            display: block !important; /* Fixes side-by-side issue */
+        }
+
+        /* Constrain width on desktop to keep it looking like a mobile app */
+        .cw-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* ===== Header ===== */
+        .cw-header {
+            background: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%);
+            color: white;
+            padding: 24px 0 56px;
+            border-radius: 0 0 28px 28px;
+            position: relative;
+            overflow: hidden;
+        }
+        .cw-header::before {
+            content: '';
+            position: absolute; top: -40%; right: -20%;
+            width: 300px; height: 300px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 50%;
+        }
+
+        /* ===== Step Indicator ===== */
+        .step-bar { display: flex; align-items: center; justify-content: center; gap: 0; margin: 0 auto 10px; max-width: 320px; }
+        .step-circle {
+            width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+            background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.5);
+            transition: all 0.3s;
+        }
+        .step-circle.active { background: #fff; color: #059669; box-shadow: 0 0 0 4px rgba(255,255,255,0.25); }
+        .step-circle.done { background: #34d399; color: #fff; }
+        .step-line { flex: 1; height: 2px; background: rgba(255,255,255,0.15); margin: 0 4px; transition: background 0.3s; }
+        .step-line.done { background: #34d399; }
+        .step-labels { display: flex; justify-content: space-between; max-width: 340px; margin: 0 auto; }
+        .step-lbl { font-size: 0.65rem; opacity: 0.6; text-align: center; flex: 1; }
+        .step-lbl.active { opacity: 1; font-weight: 600; }
+
+        /* ===== Cards ===== */
+        .cw-card {
+            background: #fff; border-radius: 20px; border: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        }
+        .cw-card-lift { margin-top: -36px; position: relative; z-index: 10; }
+
+        /* ===== Search Result ===== */
+        .sr-card {
+            padding: 16px; border-radius: 16px; border: 1.5px solid #e2e8f0;
+            background: #fff; cursor: pointer; transition: all 0.2s;
+        }
+        .sr-card:active, .sr-card:hover { border-color: #10b981; background: #f0fdf4; transform: scale(0.99); }
+
+        /* ===== Month Timeline ===== */
+        .mt-row {
+            display: flex; align-items: center; padding: 14px 16px; border-radius: 14px;
+            background: #fff; border: 1.5px solid #e5e7eb; margin-bottom: 8px;
+            transition: all 0.2s; cursor: default;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mt-row.paid { background: #f0fdf4; border-color: #86efac; }
+        .mt-row.unpaid { border-left: 4px solid #f87171; }
+        .mt-row.pending { background: #fffbeb; border-color: #fde047; border-left: 4px solid #fbbf24; }
+        .mt-row.selectable { cursor: pointer; }
+        .mt-row.selectable:active { transform: scale(0.98); }
+        .mt-row.selected { background: #ecfdf5; border-color: #10b981; box-shadow: 0 2px 8px rgba(16,185,129,0.12); }
+        .mt-row.locked { opacity: 0.5; background: #f8fafc; }
+
+        .mt-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            margin-right: 14px; font-size: 1rem; flex-shrink: 0;
+        }
+        .mt-row.paid .mt-icon { background: #dcfce7; color: #16a34a; }
+        .mt-row.unpaid .mt-icon, .mt-row.selectable .mt-icon { background: #fee2e2; color: #dc2626; }
+        .mt-row.selected .mt-icon { background: #d1fae5; color: #059669; }
+        .mt-row.pending .mt-icon { background: #fef3c7; color: #d97706; }
+        .mt-row.locked .mt-icon { background: #e2e8f0; color: #94a3b8; }
+
+        /* ===== Summary Card ===== */
+        .summary-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: #fff; border-radius: 20px; padding: 22px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .summary-item { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.88rem; opacity: 0.85; }
+        .summary-total { font-size: 1.6rem; font-weight: 700; }
+
+        /* ===== Upload ===== */
+        .upload-zone {
+            border: 2px dashed #cbd5e1; border-radius: 20px; padding: 32px 20px;
+            text-align: center; cursor: pointer; transition: all 0.2s;
+        }
+        .upload-zone:active { border-color: #10b981; background: #f0fdf4; }
+        .slip-preview { width: 100%; max-height: 220px; object-fit: contain; border-radius: 14px; display: none; cursor: pointer; border: 1px solid #e2e8f0; }
+
+        /* ===== Sticky Bottom ===== */
+        .sticky-bottom {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
+            background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+            padding: 14px 20px; border-top: 1px solid #e2e8f0;
+        }
+        .sticky-bottom .btn { font-size: 1rem; padding: 14px; }
+
+        /* ===== Copy Button ===== */
+        .btn-copy { background: #e2e8f0; border: none; font-size: 0.75rem; padding: 4px 12px; border-radius: 8px; }
+
+        /* ===== Skeleton ===== */
+        .skeleton { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200%; animation: shimmer 1.5s infinite; border-radius: 10px; }
+        @keyframes shimmer { 0%{background-position:200%} 100%{background-position:-200%} }
+
+        /* ===== Animations ===== */
+        @keyframes fadeInUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes slideUp { from{opacity:0;transform:translate(-50%,20px)} to{opacity:1;transform:translate(-50%,0)} }
+        @keyframes slideDown { from{opacity:1;transform:translate(-50%,0)} to{opacity:0;transform:translate(-50%,20px)} }
+        .fade-in { animation: fadeInUp 0.35s ease forwards; }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <div class="cw-header" id="pageHeader">
+        <div class="container cw-wrapper">
+            <div class="d-flex align-items-center mb-2">
+                <a href="javascript:void(0)" class="text-white me-3 d-flex align-items-center text-decoration-none" id="btnBack" onclick="goBack()"><i class="fa-solid fa-arrow-left fa-lg me-2"></i>ย้อนกลับ</a>
+                <h5 class="fw-bold mb-0 flex-grow-1">ชำระค่าธรรมเนียมขยะ</h5>
+            </div>
+            <p class="mb-3 small" style="opacity:0.7;">ตรวจสอบยอดค้างชำระและจ่ายออนไลน์ได้ทันที</p>
+            <!-- Step Indicator -->
+            <div class="step-bar" id="stepBar">
+                <div class="step-circle active" id="step1">1</div>
+                <div class="step-line" id="line1"></div>
+                <div class="step-circle" id="step2">2</div>
+                <div class="step-line" id="line2"></div>
+                <div class="step-circle" id="step3">3</div>
+            </div>
+            <div class="step-labels">
+                <div class="step-lbl active" id="lbl1">ค้นหา</div>
+                <div class="step-lbl" id="lbl2">เลือกเดือน</div>
+                <div class="step-lbl" id="lbl3">ชำระเงิน</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container cw-wrapper">
+
+        <!-- ========== STEP 1: SEARCH ========== -->
+        <div id="sectionSearch">
+            <div class="cw-card cw-card-lift p-4 mb-4">
+                <label class="form-label fw-bold mb-2"><i class="fa-solid fa-magnifying-glass me-2 text-success"></i>ค้นหาข้อมูลการชำระ</label>
+                <div class="position-relative">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-house-chimney text-muted small"></i></span>
+                        <input type="text" class="form-control border-start-0 py-2" id="searchInput"
+                               placeholder="เลขที่บ้าน หรือ ชื่อสกุล"
+                               onkeyup="handleSearchInput(event)" autocomplete="off">
+                        <select class="form-select border-start-0" id="searchMoo" style="max-width: 95px; background-color: #f8fafc;" onchange="searchCustomer()">
+                            <option value="">ทุกหมู่</option>
+                            <option value="1">ม.1</option>
+                            <option value="2">ม.2</option>
+                            <option value="3">ม.3</option>
+                            <option value="4">ม.4</option>
+                            <option value="5">ม.5</option>
+                            <option value="6">ม.6</option>
+                            <option value="7">ม.7</option>
+                            <option value="8">ม.8</option>
+                            <option value="9">ม.9</option>
+                            <option value="10">ม.10</option>
+                            <option value="11">ม.11</option>
+                            <option value="12">ม.12</option>
+                            <option value="13">ม.13</option>
+                            <option value="14">ม.14</option>
+                            <option value="15">ม.15</option>
+                            <option value="16">ม.16</option>
+                            <option value="17">ม.17</option>
+                            <option value="18">ม.18</option>
+                            <option value="19">ม.19</option>
+                            <option value="20">ม.20</option>
+                            <option value="21">ม.21</option>
+                            <option value="22">ม.22</option>
+                            <option value="23">ม.23</option>
+                        </select>
+                    </div>
+                    <ul class="dropdown-menu w-100 shadow-sm" id="searchAutocomplete" style="max-height: 250px; overflow-y: auto; display: none; position: absolute; top: 100%; left: 0; z-index: 1000; padding: 0.5rem 0; margin-top: 2px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1);"></ul>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-light fw-semibold flex-shrink-0 border" onclick="clearSearch()" style="width: 80px;"><i class="fa-solid fa-eraser"></i> ล้าง</button>
+                    <button class="btn btn-success w-100 fw-semibold" onclick="searchCustomer()"><i class="fa-solid fa-search me-1"></i>ค้นหา</button>
+                </div>
+                <div class="mt-3">
+                    <ul class="text-muted mb-0 ps-3" style="font-size: 0.8rem; opacity: 0.85;">
+                        <li>ระบบดึงข้อมูลชื่อสกุล บ้านเลขที่ อัตโนมัติ เพื่อง่ายต่อการค้นหาชำระเงิน</li>
+                        <li>หากข้อมูลที่ดึงมาอัตโนมัติผิด สามารถกด <strong>ล้าง</strong> แล้วค้นหาบ้านเลขที่ ชื่อสกุล เพื่อชำระได้เลย</li>
+                        <li>หากต้องการชำระให้บ้านหลังอื่นให้กด <strong>ล้าง</strong> แล้วค้นหาบ้านเลขที่ ชื่อสกุล แล้วกดค้นหาได้เลย</li>
+                    </ul>
+                </div>
+                <div id="searchResults" class="mt-3">
+                    <div class="text-center text-muted py-4">
+                        <i class="fa-solid fa-file-invoice fa-2x mb-2" style="opacity:0.2;"></i>
+                        <p class="small mb-0">กรอกข้อมูลเพื่อค้นหาประวัติการชำระ</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== STEP 2: DETAILS ========== -->
+        <div id="sectionDetails" style="display:none;" class="fade-in">
+            <!-- Customer Info Card -->
+            <div class="cw-card cw-card-lift p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-1" id="dispName">-</h5>
+                        <p class="text-muted small mb-0"><i class="fa-solid fa-location-dot me-1"></i><span id="dispAddress">-</span></p>
+                    </div>
+                    <span class="badge rounded-pill px-3 py-2" id="dispType" style="background:#ecfdf5;color:#059669;">-</span>
+                </div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-light">
+                            <div class="text-muted small mb-1">ค่าบริการ/เดือน</div>
+                            <div class="fw-bold text-dark h5 mb-0" id="dispFeePerMonth">฿0</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-light">
+                            <div class="text-muted small mb-1">ปีงบประมาณ</div>
+                            <select class="form-select form-select-sm border-0 bg-transparent fw-bold p-0" id="fiscalYearSelect" onchange="onFiscalYearChange()"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Status -->
+            <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-calendar-days me-2 text-success"></i>สถานะรายเดือน</h6>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-success rounded-pill px-2 py-0 text-xs fw-semibold" onclick="toggleAllMonths()" id="btnToggleAllMonths" style="display:none;">เลือกทั้งหมด</button>
+                    <span class="badge bg-danger rounded-pill" id="dispDebtBadge" style="display:none;">ค้าง 0 เดือน</span>
+                </div>
+            </div>
+            <div id="monthlyStatusList" class="mb-4">
+                <!-- Skeleton placeholder -->
+                <div class="skeleton mb-2" style="height:60px;"></div>
+                <div class="skeleton mb-2" style="height:60px;"></div>
+                <div class="skeleton mb-2" style="height:60px;"></div>
+            </div>
+        </div>
+
+        <!-- ========== STEP 3: PAYMENT ========== -->
+        <div id="sectionPayment" style="display:none;" class="fade-in">
+
+            <!-- Summary Card -->
+            <div class="summary-card cw-card-lift mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 fw-bold"><i class="fa-solid fa-receipt me-2"></i>สรุปรายการชำระ</h6>
+                    <span class="badge bg-success rounded-pill" id="payCountBadge">0 เดือน</span>
+                </div>
+                <div id="payItemsList" class="mb-2"></div>
+                <hr style="border-color:rgba(255,255,255,0.15);">
+                <div class="d-flex justify-content-between align-items-end">
+                    <div class="small" style="opacity:0.7;">ยอดชำระรวม</div>
+                    <div class="summary-total" id="payTotalAmount">฿0.00</div>
+                </div>
+            </div>
+
+            <!-- Payment Methods -->
+            <h6 class="fw-bold mb-3 px-1"><i class="fa-solid fa-credit-card me-2 text-primary"></i>ช่องทางการชำระเงิน</h6>
+            <div class="cw-card p-4 mb-4">
+                <!-- QR Option -->
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="payMethod" id="methodQR" value="QR PromptPay" checked onchange="togglePayMethod()">
+                    <label class="form-check-label fw-bold" for="methodQR"><i class="fa-solid fa-qrcode me-2 text-primary"></i>QR PromptPay</label>
+                </div>
+                <div id="qrArea" class="text-center mb-3">
+                    <div class="d-inline-block p-3 bg-white border rounded-4 shadow-sm">
+                        <img id="qrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PromptPay" alt="QR Code" width="180" height="180" style="border-radius:8px;">
+                    </div>
+                    <p class="text-muted small mt-2 mb-0">สแกนเพื่อจ่ายด้วยแอปธนาคารทุกแห่ง</p>
+                </div>
+                <hr>
+                <!-- Bank Option -->
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="payMethod" id="methodBank" value="Bank Transfer" onchange="togglePayMethod()">
+                    <label class="form-check-label fw-bold" for="methodBank"><i class="fa-solid fa-building-columns me-2 text-info"></i>โอนผ่านบัญชีธนาคาร</label>
+                </div>
+                <div id="bankArea" style="display:none;" class="bg-light p-3 rounded-4">
+                    <div class="mb-2"><div class="text-muted small">ธนาคาร</div><div class="fw-bold" id="bankNameDisplay">ธนาคารกรุงไทย</div></div>
+                    <div class="mb-2"><div class="text-muted small">ชื่อบัญชี</div><div class="fw-bold" id="bankAccNameDisplay">เทศบาลตำบลสมาร์ทคอนเน็ค</div></div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div><div class="text-muted small">เลขที่บัญชี</div><div class="fw-bold fs-5" id="bankAccNoDisplay">123-4-56789-0</div></div>
+                        <button class="btn btn-copy" onclick="copyAccount()"><i class="fa-regular fa-copy me-1"></i>คัดลอก</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slip Upload -->
+            <h6 class="fw-bold mb-3 px-1"><i class="fa-solid fa-image me-2 text-warning"></i>แนบหลักฐานการโอนเงิน</h6>
+            <div class="cw-card p-4 mb-4">
+                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('slipFile').click()">
+                    <i class="fa-solid fa-camera fa-2x text-muted mb-2"></i>
+                    <p class="fw-semibold small mb-1">ถ่ายรูปหรือเลือกรูปสลิป</p>
+                    <p class="text-muted small mb-0">รองรับ JPG, PNG (ไม่เกิน 5 MB)</p>
+                </div>
+                <img id="slipPreview" class="slip-preview mt-3" onclick="document.getElementById('slipFile').click()">
+                <input type="file" id="slipFile" hidden accept="image/jpeg,image/png" onchange="previewSlip(this)">
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== STICKY BOTTOM BUTTON ===== -->
+    <div class="sticky-bottom" id="stickyAction" style="display:none;">
+        <div class="cw-wrapper">
+            <button class="btn btn-success w-100 rounded-pill fw-bold shadow" id="btnAction" onclick="handleAction()" disabled>
+                กรุณาเลือกเดือนที่ต้องการชำระ
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== SUCCESS MODAL ===== -->
+    <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 p-4" style="border-radius:24px;">
+                <div class="modal-body text-center">
+                    <div class="mb-3" style="animation: fadeInUp 0.5s ease;">
+                        <i class="fa-solid fa-circle-check text-success" style="font-size:5rem;"></i>
+                    </div>
+                    <h4 class="fw-bold mb-2">ส่งข้อมูลสำเร็จ!</h4>
+                    <p class="text-muted mb-1">เจ้าหน้าที่จะตรวจสอบหลักฐานการชำระเงิน</p>
+                    <p class="text-muted mb-4">และอัปเดตสถานะให้คุณภายใน <strong>24 ชั่วโมง</strong></p>
+                    <button class="btn btn-success w-100 py-2 rounded-pill fw-bold" onclick="window.location.href='waste-payment-portal.html'">
+                        <i class="fa-solid fa-house me-2"></i>กลับสู่หน้าหลัก
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="assets/js/waste.js"></script>
+    <script src="assets/js/citizen-waste.js"></script>
+</body>
+</html>

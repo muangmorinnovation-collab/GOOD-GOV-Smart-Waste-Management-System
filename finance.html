@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กองคลัง (Finance) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบจัดการกองคลัง (Finance & Revenue)"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">ระบบจัดการกองคลัง</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item active">กองคลัง</li>
+                </ol></nav>
+            </div>
+            <button class="btn btn-sm btn-outline-success" onclick="showToast('Export ไปยัง e-LAAS สำเร็จ','success')">
+                <i class="fa-solid fa-file-excel me-1"></i> Export e-LAAS
+            </button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">รายได้ค่าขยะวันนี้ (บาท)</div><div class="kpi-value text-primary" id="finance-kpi-today-rev">0</div></div>
+                    <div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-coins"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">ยอดชำระสำเร็จ (รายการ)</div><div class="kpi-value text-success" id="finance-kpi-today-count">0</div></div>
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-check-circle"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">ค่าขยะค้างชำระ (ราย)</div><div class="kpi-value text-danger" id="finance-kpi-unpaid">0</div></div>
+                    <div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-trash-can"></i></div>
+                </div>
+            </div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div><div class="kpi-label mb-1">รายได้ค่าขยะเดือนนี้ (บาท)</div><div class="kpi-value text-success" id="finance-kpi-rev-month">0</div></div>
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-chart-line"></i></div>
+                </div>
+            </div></div>
+        </div>
+
+        <!-- Module Tiles -->
+        <h6 class="fw-semibold text-muted mb-3" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em;">โมดูลย่อย</h6>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <a href="#" class="module-tile opacity-75" style="background:linear-gradient(135deg,#1a56db,#3b82f6); cursor:not-allowed;" onclick="return false;">
+                    <i class="fa-solid fa-map-location-dot"></i><h5>ระบบแผนที่ภาษี</h5><small>(ยังไม่มีบริการ)</small>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="waste-dashboard.html" class="module-tile" style="background:linear-gradient(135deg,#057a55,#10b981);">
+                    <i class="fa-solid fa-trash-can"></i><h5>ค่าธรรมเนียมขยะ</h5><small>Dashboard · รับชำระ · กค.3</small>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="#" class="module-tile opacity-75" style="background:linear-gradient(135deg,#0694a2,#22d3ee); cursor:not-allowed;" onclick="return false;">
+                    <i class="fa-solid fa-faucet-drip"></i><h5>ประปาหมู่บ้าน</h5><small>(ยังไม่มีบริการ)</small>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="#" class="module-tile opacity-75" style="background:linear-gradient(135deg,#5b21b6,#8b5cf6); cursor:not-allowed;" onclick="return false;">
+                    <i class="fa-solid fa-boxes-stacked"></i><h5>พัสดุและครุภัณฑ์</h5><small>(ยังไม่มีบริการ)</small>
+                </a>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="card">
+            <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-receipt text-primary me-2"></i>รายการรับชำระเงินวันนี้</h6>
+                <button class="btn btn-sm btn-outline-primary" onclick="showToast('กำลังพิมพ์รายงาน...','info')"><i class="fa-solid fa-print"></i></button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr>
+                            <th class="ps-4">ใบเสร็จเลขที่</th><th>ผู้ชำระ</th><th>ประเภท</th>
+                            <th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เวลา</th><th class="pe-4">สถานะ</th>
+                        </tr></thead>
+                        <tbody id="today-payments-body">
+                            <tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                        <tfoot><tr style="background:#f9fafb;">
+                            <td colspan="3" class="ps-4 text-end fw-bold">ยอดรวมวันนี้:</td>
+                            <td class="text-end fw-bold text-success" id="today-payments-total">฿0.00</td>
+                            <td colspan="3" class="pe-4"></td>
+                        </tr></tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js?v=1781176864661"></script>
+<script src="assets/js/waste.js?v=1781176864661"></script>
+<script src="assets/js/responsive.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    initWasteData();
+    
+    // 1. Initial Render with Local Storage Data
+    const renderFinanceStats = () => {
+        const stats = getWasteDashboardStats();
+        
+        // Revenue Today & Count
+        const targetDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+        
+        const payments = getWastePayments();
+        const todayPayments = payments.filter(p => p.date === targetDate && p.status === 'completed');
+        const todayRev = todayPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+        
+        const currentMonthStr = targetDate.substring(0, 7);
+        const monthPayments = payments.filter(p => p.date && p.date.startsWith(currentMonthStr) && p.status === 'completed');
+        const monthRev = monthPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+        
+        document.getElementById('finance-kpi-today-rev').textContent = formatMoney(todayRev);
+        document.getElementById('finance-kpi-today-count').textContent = todayPayments.length;
+        document.getElementById('finance-kpi-unpaid').textContent = formatMoney(stats.unpaidThisMonth);
+        document.getElementById('finance-kpi-rev-month').textContent = formatMoney(monthRev);
+        
+        // Today Payments Table
+        const tbody = document.getElementById('today-payments-body');
+        tbody.innerHTML = todayPayments.length ? todayPayments.map(p => `<tr>
+            <td class="ps-4 fw-semibold text-xs">${p.receipt_no || p.id}</td>
+            <td>${p.customer_name || 'ไม่ระบุ'}</td>
+            <td><span class="badge" style="background:#ecfdf5;color:#057a55;">ค่าธรรมเนียมขยะ</span></td>
+            <td class="text-end fw-semibold">฿${formatMoneyDecimal(p.amount)}</td>
+            <td><span class="text-xs"><i class="fa-solid ${p.method==='เงินสด'?'fa-money-bill-wave text-success':p.method==='โอน'?'fa-building-columns text-info':'fa-qrcode text-primary'} me-1"></i>${p.method || 'เงินสด'}</span></td>
+            <td class="text-xs text-muted">${p.time || '-'}</td>
+            <td class="pe-4"><span class="badge bg-success">สมบูรณ์</span></td>
+        </tr>`).join('') : '<tr><td colspan="7" class="text-center py-4 text-muted">ยังไม่มีรายการรับชำระในวันนี้</td></tr>';
+        
+        document.getElementById('today-payments-total').textContent = '฿' + formatMoneyDecimal(todayRev);
+    };
+
+    renderFinanceStats();
+
+    // 2. Fetch fresh data in background
+    Promise.all([
+        fetchWasteFeeTypes(),
+        fetchWasteCustomers(),
+        fetchMonthlyStatus(),
+        fetchWastePayments()
+    ]).then(() => {
+        // 3. Re-render once fresh data arrives
+        renderFinanceStats();
+    });
+});
+</script>
+</body>
+</html>

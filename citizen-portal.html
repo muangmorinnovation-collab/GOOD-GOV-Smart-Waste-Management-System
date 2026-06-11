@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บริการประชาชน (Citizen Portal) - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/line-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            background: #f0f3f8;
+            display: block;
+        }
+
+        .citizen-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .action-card-link {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .service-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+
+<body>
+
+    <!-- Citizen Navbar -->
+    <nav class="navbar navbar-expand-lg citizen-nav shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-primary" href="#">
+                <img id="public-org-logo" src="https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w200"
+                    height="36" style="max-height: 40px; max-width: 40px; width: auto; object-fit: contain;" alt="GOOD GOV" class="rounded">
+                <div class="d-flex flex-column">
+                    <span class="d-none d-md-inline" style="font-size:0.95rem; line-height:1.2;">GOOD GOV</span>
+                    <span id="public-org-name" class="d-none d-md-inline text-muted fw-semibold" style="font-size:0.7rem; line-height:1;"></span>
+                </div>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                data-bs-target="#citizenNav"><span class="navbar-toggler-icon"></span></button>
+            <div class="collapse navbar-collapse" id="citizenNav">
+                <ul class="navbar-nav ms-auto align-items-center gap-2 mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link text-sm fw-semibold" href="#services">บริการ</a></li>
+                    <li class="nav-item"><a class="nav-link text-sm fw-semibold" href="#track">ติดตามคำร้อง</a></li>
+                    <li class="nav-item"><a class="nav-link text-sm fw-semibold" href="#welfare">สวัสดิการ</a></li>
+                    <li class="nav-item">
+                        <div class="dropdown">
+                            <button
+                                class="btn btn-sm btn-primary d-flex align-items-center gap-2 rounded-pill px-3 dropdown-toggle"
+                                data-bs-toggle="dropdown">
+                                <img id="navUserAvatar"
+                                    src="https://ui-avatars.com/api/?name=User&background=06C755&color=fff&size=64"
+                                    class="rounded-circle" width="24">
+                                <span class="d-none d-md-inline text-sm" id="navUserName">ผู้ใช้งาน</span>
+                                <i class="fa-brands fa-line ms-1" style="color:#06C755;font-size:.85rem;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-14">
+                                <li><a class="dropdown-item text-sm py-2" href="#" onclick="showUserProfile()"><i
+                                            class="fa-solid fa-user me-2 text-muted"></i>ข้อมูลส่วนตัว</a></li>
+                                <li><a class="dropdown-item text-sm py-2" href="#"><i
+                                            class="fa-solid fa-receipt me-2 text-muted"></i>ประวัติการชำระเงิน</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item text-sm py-2 text-danger" href="javascript:void(0)"
+                                        onclick="logoutCitizen()"><i
+                                            class="fa-solid fa-right-from-bracket me-2"></i>ออกจากระบบ</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Header -->
+    <div class="citizen-header mb-5">
+        <div class="container pt-2">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <h2 class="fw-bold mb-2" id="heroGreeting">สวัสดี, ผู้ใช้งาน 👋</h2>
+                    <p class="mb-4" style="font-size:1.05rem; opacity:0.85;">ตรวจสอบสิทธิ ชำระภาษี แจ้งปัญหา
+                        และติดต่อเทศบาลได้ในที่เดียว</p>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <a href="citizen-services.html"
+                            class="btn btn-light fw-semibold text-primary rounded-pill px-4 shadow-sm">
+                            <i class="fa-solid fa-megaphone me-2"></i>บริการสาธารณะ/ร้องทุกข์
+                        </a>
+                        <button class="btn btn-outline-light fw-semibold rounded-pill px-4" data-bs-toggle="modal"
+                            data-bs-target="#payModal">
+                            <i class="fa-solid fa-qrcode me-2"></i>ชำระภาษีออนไลน์
+                        </button>
+                    </div>
+                </div>
+                <div class="col-lg-5 d-none d-lg-flex justify-content-end">
+                    <div class="p-4 rounded-14 text-center" style="background:rgba(255,255,255,0.12); min-width:220px;">
+                        <div class="text-white mb-2" style="opacity:0.7; font-size:0.8rem;">บ้านเลขที่</div>
+                        <div class="fw-bold fs-4 text-white" id="heroHouseNo">45/3 หมู่ 2</div>
+                        <div style="color:rgba(255,255,255,0.6); font-size:0.85rem;" id="heroSubdistrict">ต.หน้าเมือง
+                        </div>
+                        <hr style="border-color:rgba(255,255,255,0.2);">
+                        <div class="d-flex justify-content-around text-white text-center">
+                            <div>
+                                <div class="fw-bold">3</div>
+                                <div style="font-size:0.7rem; opacity:0.7;">คำร้องที่ยื่น</div>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-warning">1</div>
+                                <div style="font-size:0.7rem; opacity:0.7;">รอดำเนินการ</div>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-danger">1</div>
+                                <div style="font-size:0.7rem; opacity:0.7;">ค้างชำระ</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mb-5">
+
+        <!-- Tax Alert -->
+        <div class="card border-0 shadow mb-4 fade-in-up" style="border-left:4px solid #dc2626 !important;">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="service-icon bg-danger bg-opacity-10 text-danger"><i
+                            class="fa-solid fa-file-invoice-dollar"></i></div>
+                    <div>
+                        <div class="fw-bold">ภาษีที่ดินและสิ่งปลูกสร้าง — ค้างชำระ</div>
+                        <div class="text-sm text-muted">กำหนดชำระภายใน 31 พฤษภาคม 2026 (เหลือ 33 วัน)</div>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="fw-bold text-danger fs-5">฿1,250.00</div>
+                    <button class="btn btn-primary rounded-pill px-4 btn-sm shadow-sm mt-1" data-bs-toggle="modal"
+                        data-bs-target="#payModal">
+                        <i class="fa-solid fa-qrcode me-1"></i>ชำระเลย
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Services (Dynamic Popular) -->
+        <h5 class="fw-bold mb-3" id="quickServicesTitle" style="display:none;">บริการด่วนยอดนิยม</h5>
+        <div class="row g-3 mb-4" id="dynamicQuickServices">
+            <!-- Dynamic content populated by JS -->
+        </div>
+
+        <!-- All Services -->
+        <h5 class="fw-bold mb-3" id="services">งานบริการทั้งหมด</h5>
+        <div class="row g-3 mb-5">
+            <div class="col-6 col-md-3">
+                <a href="citizen-services.html" class="action-card-link">
+                    <div class="action-card h-100">
+                        <i class="fa-solid fa-wrench text-warning"></i>
+                        <div class="fw-semibold mb-1" style="font-size: 0.9rem;">งานบริการสาธารณะ/ร้องทุกข์</div>
+                        <div class="text-xs text-muted">ตัดกิ่งไม้ · น้ำ · ไฟ · ขยะ</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="#" class="action-card-link">
+                    <div class="action-card h-100">
+                        <i class="fa-solid fa-hand-holding-heart text-danger"></i>
+                        <div class="fw-semibold mb-1">สวัสดิการของฉัน</div>
+                        <div class="text-xs text-muted">เบี้ยผู้สูงอายุ · ผู้พิการ</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="#" class="action-card-link">
+                    <div class="action-card h-100">
+                        <i class="fa-solid fa-file-signature text-info"></i>
+                        <div class="fw-semibold mb-1">ขออนุญาตออนไลน์</div>
+                        <div class="text-xs text-muted">ก่อสร้าง · ทะเบียนพาณิชย์</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="#" class="action-card-link">
+                    <div class="action-card h-100">
+                        <i class="fa-solid fa-store text-success"></i>
+                        <div class="fw-semibold mb-1">ตลาดชุมชน OTOP</div>
+                        <div class="text-xs text-muted">ซื้อ-ขาย สินค้าท้องถิ่น</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="#" class="action-card-link">
+                    <div class="action-card h-100">
+                        <i class="fa-solid fa-faucet-drip text-primary"></i>
+                        <div class="fw-semibold mb-1">ตรวจสอบค่าน้ำ</div>
+                        <div class="text-xs text-muted">ประวัติมาตรวัด · E-Invoice</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="waste-payment-portal.html" class="action-card-link">
+                    <div class="action-card h-100">
+                        <i class="fa-solid fa-trash-can text-success"></i>
+                        <div class="fw-semibold mb-1" style="font-size: 0.9rem;">ชำระค่าธรรมเนียมขยะ</div>
+                        <div class="text-xs text-muted">ประวัติชำระ · ชำระออนไลน์</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="#" class="action-card-link">
+                    <div class="action-card h-100">
+                        <i class="fa-solid fa-map-location-dot text-warning"></i>
+                        <div class="fw-semibold mb-1">ตรวจสอบภาษีที่ดิน</div>
+                        <div class="text-xs text-muted">แปลง GIS · ยื่น ภ.ด.ส.5</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="#" class="action-card-link">
+                    <div class="action-card h-100">
+                        <i class="fa-solid fa-bullhorn text-secondary"></i>
+                        <div class="fw-semibold mb-1">ร่วมแสดงความเห็น</div>
+                        <div class="text-xs text-muted">E-Hearing · โหวตโครงการ</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Request Tracking + LINE Connect -->
+        <div class="row g-3 mb-4" id="track">
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i
+                                class="fa-solid fa-clock-rotate-left text-primary me-2"></i>ติดตามสถานะคำร้อง</h6>
+                        <a href="javascript:void(0)" onclick="openTrackAllModal()" class="text-sm text-primary text-decoration-none">ดูทั้งหมด</a>
+                    </div>
+                    <div class="card-body" id="requestTrackList">
+                        <!-- Supabase content injected here -->
+                        <div class="d-flex align-items-start gap-3 mb-3 p-3 rounded"
+                            style="background:#f0fdf4; border:1px solid #dcfce7;">
+                            <div class="service-icon bg-success bg-opacity-10 text-success"
+                                style="width:40px;height:40px;border-radius:10px;"><i class="fa-solid fa-check"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold text-sm">ลงทะเบียนรับเบี้ยยังชีพผู้สูงอายุ (มารดา)</div>
+                                <div class="text-xs text-muted">15 ม.ค. 2026 · เลขที่: WEL-045</div>
+                                <span class="badge bg-success mt-1" style="font-size:0.65rem;">อนุมัติแล้ว</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start gap-3 p-3 rounded"
+                            style="background:#f8fafc; border:1px solid #e5e7eb;">
+                            <div class="service-icon bg-primary bg-opacity-10 text-primary"
+                                style="width:40px;height:40px;border-radius:10px;"><i class="fa-solid fa-map"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold text-sm">ยื่นแบบคำร้อง ภ.ด.ส.5 แก้ไขข้อมูลที่ดิน</div>
+                                <div class="text-xs text-muted">10 เม.ย. 2026 · เลขที่: TAX-109</div>
+                                <span class="badge bg-primary mt-1" style="font-size:0.65rem;">อยู่ระหว่างตรวจ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <!-- LINE Connect -->
+                <div class="card mb-3 text-white" style="background:linear-gradient(135deg,#06C755,#00b341);">
+                    <div class="card-body p-4 text-center">
+                        <i class="fa-brands fa-line fa-3x mb-3"></i>
+                        <h6 class="fw-bold mb-2">เชื่อมต่อ LINE เทศบาล</h6>
+                        <p class="text-sm mb-3" style="opacity:0.9;">รับแจ้งเตือนชำระภาษี · ขยะตกค้าง ·
+                            ข่าวสารโดยตรงผ่าน LINE</p>
+                        <button class="btn btn-light fw-bold rounded-pill px-4 text-success"
+                            onclick="showToastCitizen('เพิ่มเพื่อนเทศบาลสำเร็จ!','success')">
+                            <i class="fa-solid fa-plus me-2"></i>เพิ่มเพื่อนเลย
+                        </button>
+                    </div>
+                </div>
+                <!-- Welfare Summary -->
+                <div class="card" id="welfare">
+                    <div class="card-header border-0">
+                        <h6 class="fw-bold mb-0"><i
+                                class="fa-solid fa-heart-pulse text-danger me-2"></i>สวัสดิการที่คุณได้รับ</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div>
+                                <div class="fw-semibold text-sm">เบี้ยยังชีพผู้สูงอายุ (มารดา)</div>
+                                <div class="text-xs text-muted">จ่ายทุกต้นเดือน</div>
+                            </div>
+                            <span class="badge bg-success">600 ฿/เดือน</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-2">
+                            <div>
+                                <div class="fw-semibold text-sm">เงินอุดหนุนเด็กแรกเกิด (บุตร)</div>
+                                <div class="text-xs text-muted">อายุ 2 ปี 4 เดือน</div>
+                            </div>
+                            <span class="badge bg-primary">600 ฿/เดือน</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-4 mt-4" style="background:#1f2937; color:rgba(255,255,255,0.5);">
+        <div class="container text-center text-sm">
+            <div class="fw-semibold text-white mb-1">เทศบาลตำบลตัวอย่างอัจฉริยะ</div>
+            Smart Governance Municipality Platform &copy; 2026 · Powered by Supabase
+        </div>
+    </footer>
+
+    <!-- Report Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-14 shadow-lg">
+                <div class="modal-header border-0">
+                    <h6 class="modal-title fw-bold"><i
+                            class="fa-solid fa-megaphone text-warning me-2"></i>แจ้งปัญหา/ร้องทุกข์</h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">หัวข้อปัญหา</label>
+                        <select class="form-select">
+                            <option>ไฟถนนดับ</option>
+                            <option>ถนนชำรุด/หลุมบ่อ</option>
+                            <option>ขยะไม่มีมาเก็บ</option>
+                            <option>น้ำท่วมขัง</option>
+                            <option>เรื่องอื่นๆ</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">รายละเอียด</label>
+                        <textarea class="form-control" rows="3"
+                            placeholder="อธิบายปัญหาที่พบ พร้อมสถานที่ให้ชัดเจน..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ที่อยู่ / จุดเกิดเหตุ</label>
+                        <input class="form-control" placeholder="เช่น หน้าบ้านเลขที่ 45 ซอยสุขเจริญ">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">แนบรูปภาพ</label>
+                        <input type="file" class="form-control" accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button class="btn btn-primary"
+                        onclick="showToastCitizen('ส่งคำร้องสำเร็จ! เจ้าหน้าที่จะติดต่อกลับภายใน 24 ชั่วโมง','success'); bootstrap.Modal.getInstance(document.getElementById('reportModal')).hide();">
+                        <i class="fa-solid fa-paper-plane me-1"></i>ส่งคำร้อง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pay Modal -->
+    <div class="modal fade" id="payModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content border-0 rounded-14 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold"><i class="fa-solid fa-qrcode text-primary me-2"></i>ชำระภาษีออนไลน์
+                    </h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="p-3 rounded mb-3" style="background:#f0f5ff;">
+                        <div class="text-sm text-muted">ภาษีที่ดินและสิ่งปลูกสร้าง ปี 2026</div>
+                        <div class="fw-bold fs-4 text-primary">฿1,250.00</div>
+                        <div class="text-xs text-muted">อ้างอิง: TAX-660428-001</div>
+                    </div>
+                    <img src="https://chart.googleapis.com/chart?chs=220x220&cht=qr&chl=PromptPay-1250-TAX&choe=UTF-8"
+                        alt="QR PromptPay" class="img-fluid rounded mb-3" style="max-width:200px;">
+                    <p class="text-xs text-muted">สแกน QR Code ด้วยแอป ธนาคาร หรือ PromptPay<br>ภายใน 15 นาที</p>
+                    <div class="alert alert-warning border-0 text-sm py-2 mb-0 rounded-10">
+                        <i class="fa-solid fa-clock me-1"></i>หมดเวลา: <strong id="countdown">15:00</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div class="modal fade" id="userProfileModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-14 shadow-lg">
+                <div class="modal-header border-0"
+                    style="background:linear-gradient(135deg,#06C755,#00b341);border-radius:14px 14px 0 0;">
+                    <h6 class="modal-title fw-bold text-white"><i class="fa-brands fa-line me-2"></i>ข้อมูลผู้ใช้งาน
+                    </h6>
+                    <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="profileModalBody">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Track All Modal -->
+    <div class="modal fade" id="trackAllModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 rounded-14 shadow-lg">
+                <div class="modal-header border-0 pb-3" style="background:#f8fafc; border-radius:14px 14px 0 0; border-bottom:1px solid #e2e8f0 !important;">
+                    <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-clock-rotate-left me-2"></i>ประวัติคำร้องทั้งหมด</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted text-sm" id="trackAllCount">กำลังโหลดข้อมูล...</span>
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="loadAllRequests()">
+                            <i class="fa-solid fa-rotate-right me-1"></i>รีเฟรชข้อมูล
+                        </button>
+                    </div>
+                    <div id="trackAllList">
+                        <!-- All requests will be loaded here -->
+                        <div class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script>
+        // ---- Check citizen session on load ----
+        (async function () {
+            let session = LineAuth.getSession();
+            if (!session || !session.lineUserId) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Verify session with Supabase (force new registration if not in User_population)
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('User_population')
+                        .select('*')
+                        .eq('line_user_id', session.lineUserId)
+                        .maybeSingle();
+                    
+                    if (!data) {
+                        // Old data found but not in new Supabase table! Clear and force login
+                        LineAuth.clearSession();
+                        window.location.href = 'index.html';
+                        return;
+                    } else {
+                        // Update session with latest Supabase data
+                        session.firstName = data.first_name;
+                        session.lastName = data.last_name;
+                        session.fullName = data.full_name;
+                        session.houseNo = data.house_no;
+                        session.moo = data.moo;
+                        session.subdistrictName = data.subdistrict_name;
+                        session.lineAvatar = data.line_avatar;
+                        // Save updated session back to local storage
+                        LineAuth.createSession({
+                            lineUserId: data.line_user_id,
+                            lineName: data.line_name,
+                            lineAvatar: data.line_avatar,
+                            nationalId: data.national_id,
+                            title: data.title,
+                            firstName: data.first_name,
+                            lastName: data.last_name,
+                            fullName: data.full_name,
+                            houseNo: data.house_no,
+                            moo: data.moo,
+                            road: data.road,
+                            soi: data.soi,
+                            provinceId: data.province_id,
+                            provinceName: data.province_name,
+                            districtId: data.district_id,
+                            districtName: data.district_name,
+                            subdistrictId: data.subdistrict_id,
+                            subdistrictName: data.subdistrict_name,
+                            address: data.address,
+                            phone: data.phone,
+                            email: data.email
+                        });
+                    }
+                } catch (e) {
+                    console.error("Supabase session verification failed", e);
+                }
+            }
+
+            // Populate user data across the page
+            const name = session.firstName ? `${session.firstName} ${session.lastName}` : (session.fullName || session.lineName || 'ผู้ใช้งาน');
+            const shortName = name.split(' ')[0];
+            document.getElementById('navUserName').textContent = 'คุณ' + shortName;
+            document.getElementById('heroGreeting').textContent = 'สวัสดี, คุณ' + name + ' 👋';
+
+            // Update hero address card if data exists
+            if (session.houseNo) {
+                document.getElementById('heroHouseNo').textContent = `${session.houseNo} หมู่ ${session.moo || '-'}`;
+            }
+            if (session.subdistrictName) {
+                document.getElementById('heroSubdistrict').textContent = `ต.${session.subdistrictName}`;
+            }
+
+            if (session.lineAvatar) {
+                document.getElementById('navUserAvatar').src = session.lineAvatar;
+            } else {
+                document.getElementById('navUserAvatar').src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(shortName) + '&background=06C755&color=fff&size=64';
+            }
+
+            // Load settings for logo and org name
+            setTimeout(async () => {
+                let settings = null;
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    try {
+                        const { data } = await supabaseClient.from('waste_settings').select('org_name, org_logo').limit(1).single();
+                        if (data) settings = data;
+                    } catch (e) {}
+                }
+                if (!settings) {
+                    const local = localStorage.getItem('waste_settings');
+                    if (local) settings = JSON.parse(local);
+                }
+                if (settings) {
+                    const logoEl = document.getElementById('public-org-logo');
+                    const nameEl = document.getElementById('public-org-name');
+                    if (logoEl && settings.org_logo) logoEl.src = settings.org_logo;
+                    if (nameEl && settings.org_name) nameEl.textContent = settings.org_name;
+                }
+            }, 100);
+        })();
+
+        const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+        const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+        function getThaiMonths(paidMonths) {
+            if (!paidMonths) return "-";
+            const months = Array.isArray(paidMonths) ? paidMonths : String(paidMonths).split(", ");
+            return months.map(m => {
+                const idx = MONTH_KEYS.indexOf(m.trim().toLowerCase());
+                return idx >= 0 ? THAI_MONTHS_SHORT[idx] : m;
+            }).join(", ");
+        }
+
+        async function loadPopularServices() {
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    // Count electric repairs
+                    const { count, error } = await supabaseClient
+                        .from('electric_repairs')
+                        .select('*', { count: 'exact', head: true });
+                    
+                    if (!error && count !== null) {
+                        document.getElementById('quickServicesTitle').style.display = 'block';
+                        document.getElementById('dynamicQuickServices').innerHTML = `
+                            <div class="col-6 col-md-3">
+                                <a href="citizen-services.html?autoOpen=electric" class="action-card-link">
+                                    <div class="action-card h-100" style="background: linear-gradient(145deg, #ffffff, #f8fafc); border: 2px solid #38bdf8; position: relative; overflow: hidden;">
+                                        <div style="position:absolute; top:0; right:0; background:#ef4444; color:#fff; font-size:0.6rem; padding:2px 8px; border-bottom-left-radius:8px; font-weight:bold;">ยอดฮิต</div>
+                                        <i class="fa-solid fa-bolt" style="color: #f59e0b; font-size: 1.8rem; margin-bottom: 12px;"></i>
+                                        <div class="fw-bold mb-1" style="font-size: 0.95rem; color:#0f172a;">แจ้งซ่อมไฟฟ้า</div>
+                                        <div class="text-xs fw-semibold text-primary"><i class="fa-solid fa-arrow-trend-up me-1"></i>มีการแจ้ง ${count} คำร้อง</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="waste-payment-portal.html" class="action-card-link">
+                                    <div class="action-card h-100" style="background: linear-gradient(145deg, #ffffff, #f8fafc); border: 2px solid #10b981; position: relative; overflow: hidden;">
+                                        <div style="position:absolute; top:0; right:0; background:#10b981; color:#fff; font-size:0.6rem; padding:2px 8px; border-bottom-left-radius:8px; font-weight:bold;">บริการใหม่</div>
+                                        <i class="fa-solid fa-receipt" style="color: #10b981; font-size: 1.8rem; margin-bottom: 12px;"></i>
+                                        <div class="fw-bold mb-1" style="font-size: 0.95rem; color:#0f172a;">ชำระค่าขยะ</div>
+                                        <div class="text-xs fw-semibold text-success"><i class="fa-solid fa-shield-check me-1"></i>สะดวก รวดเร็ว ปลอดภัย</div>
+                                    </div>
+                                </a>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (err) { console.warn("Failed to load popular services", err); }
+        }
+
+        async function loadDynamicRequests() {
+            const listContainer = document.getElementById('requestTrackList');
+            if (!listContainer) return;
+
+            const session = LineAuth.getSession();
+            const userName = session ? (session.firstName ? `${session.firstName} ${session.lastName}` : (session.fullName || session.lineName || '')) : '';
+
+            let allRequests = [];
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    // 1. Fetch Electric Repairs
+                    let qElec = supabaseClient.from('electric_repairs').select('*').order('created_at', { ascending: false }).limit(5);
+                    if (session && session.nationalId && userName) {
+                        qElec = qElec.or(`reporter_id_card.eq."${session.nationalId}",reporter_name.eq."${userName}"`);
+                    } else if (session && session.nationalId) {
+                        qElec = qElec.eq('reporter_id_card', session.nationalId);
+                    } else if (userName) {
+                        qElec = qElec.eq('reporter_name', userName);
+                    }
+                    const { data: dElec } = await qElec;
+                    if (dElec) dElec.forEach(r => allRequests.push({ type: 'electric', date: r.created_at, data: r }));
+
+                    // 2. Fetch Waste Payments
+                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*').order('payment_datetime', { ascending: false }).limit(5);
+                    if (session && session.houseNo && userName) {
+                        qWaste = qWaste.or(`house_no.ilike."%${session.houseNo}%",payer_name.eq."${userName}"`);
+                    } else if (session && session.houseNo) {
+                        qWaste = qWaste.ilike('house_no', `%${session.houseNo}%`);
+                    } else if (userName) {
+                        qWaste = qWaste.eq('payer_name', userName);
+                    }
+                    const { data: dWaste1 } = await qWaste;
+                    
+                    // Fetch additional transactions made by this device
+                    const myTx = JSON.parse(localStorage.getItem('my_waste_tx_ids') || '[]');
+                    let dWaste2 = [];
+                    if (myTx.length > 0) {
+                        const { data } = await supabaseClient.from('garbage_payment_transactions').select('*').in('id', myTx);
+                        if (data) dWaste2 = data;
+                    }
+                    
+                    // Merge and deduplicate
+                    const mergedWaste = [...(dWaste1 || []), ...dWaste2];
+                    const uniqueWaste = Array.from(new Map(mergedWaste.map(item => [item.id, item])).values());
+                    
+                    uniqueWaste.forEach(r => allRequests.push({ type: 'waste', date: r.payment_datetime, data: r }));
+                } else {
+                    // Local fallback
+                    let repairs = JSON.parse(localStorage.getItem('sgov_electric_repairs') || '[]');
+                    if (userName) repairs = repairs.filter(r => r.reporter_name === userName);
+                    repairs.forEach(r => allRequests.push({ type: 'electric', date: r.created_at, data: r }));
+
+                    let wpts = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
+                    if (userName) wpts = wpts.filter(r => r.payer_name === userName);
+                    wpts.forEach(r => allRequests.push({ type: 'waste', date: r.payment_datetime, data: r }));
+                }
+            } catch(err) { console.warn("Fetch failed", err); }
+
+            allRequests.sort((a, b) => new Date(b.date) - new Date(a.date));
+            allRequests = allRequests.slice(0, 3);
+
+            if (allRequests.length === 0) {
+                listContainer.innerHTML = `<div class="text-center text-muted py-4"><i class="fa-regular fa-folder-open mb-2 text-secondary opacity-50" style="font-size:2rem;"></i><br><span class="text-sm">ยังไม่มีข้อมูลคำร้องของคุณ</span></div>`;
+                return;
+            }
+
+            listContainer.innerHTML = '';
+
+            // Render newest first
+            allRequests.forEach(item => {
+
+                const req = item.data;
+                const isElec = item.type === 'electric';
+                const dateObj = new Date(item.date);
+                const dateStr = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+                
+                let receiptBtn = '';
+
+                if (isElec) {
+                    title = `แจ้งซ่อมไฟฟ้า (เสา ${req.pole_id || '-'})`;
+                    idStr = req.complaint_id || req.id || 'N/A';
+                    iconClass = 'fa-bolt';
+                    statusText = 'รอรับเรื่อง'; statusBadge = 'bg-primary'; progressW = '20%'; progressBg = 'bg-primary progress-bar-animated progress-bar-striped'; bgStyle = 'background:#eff6ff; border:1px solid #dbeafe;'; iconColor = 'text-primary';
+                    if (req.status === 'accepted') { statusText = 'รับเรื่องแล้ว'; statusBadge = 'bg-info text-dark'; progressW = '50%'; progressBg = 'bg-info progress-bar-striped'; bgStyle = 'background:#f0f9ff; border:1px solid #bae6fd;'; iconColor = 'text-info'; }
+                    else if (req.status === 'in_progress') { statusText = 'กำลังดำเนินการ'; statusBadge = 'bg-warning text-dark'; progressW = '75%'; progressBg = 'bg-warning progress-bar-animated progress-bar-striped'; bgStyle = 'background:#fffbeb; border:1px solid #fef3c7;'; iconColor = 'text-warning'; }
+                    else if (req.status === 'completed') { statusText = 'เสร็จสิ้น'; statusBadge = 'bg-success'; progressW = '100%'; progressBg = 'bg-success'; bgStyle = 'background:#f0fdf4; border:1px solid #dcfce7;'; iconColor = 'text-success'; }
+                    else if (req.status === 'cancelled') { statusText = 'ยกเลิกแล้ว'; statusBadge = 'bg-danger'; progressW = '100%'; progressBg = 'bg-danger'; bgStyle = 'background:#fef2f2; border:1px solid #fee2e2;'; iconColor = 'text-danger'; }
+                } else {
+                    title = `ชำระค่าขยะ บ้านเลขที่ ${req.house_no} (${req.payer_name})`;
+                    idStr = req.id ? String(req.id).substring(0,8) : 'N/A';
+                    iconClass = 'fa-trash-can';
+                    statusText = 'รอตรวจสอบ'; statusBadge = 'bg-warning text-dark'; progressW = '50%'; progressBg = 'bg-warning progress-bar-animated progress-bar-striped'; bgStyle = 'background:#fffbeb; border:1px solid #fef3c7;'; iconColor = 'text-warning';
+                    if (req.status === 'completed' || req.status === 'approved' || req.receipt_url) { 
+                        statusText = 'ชำระสำเร็จ'; statusBadge = 'bg-success'; progressW = '100%'; progressBg = 'bg-success'; bgStyle = 'background:#f0fdf4; border:1px solid #dcfce7;'; iconColor = 'text-success'; 
+                        receiptBtn = `
+                            <div class="d-flex gap-2 mt-2 ms-auto">
+                                <button onclick="viewCitizenReceipt('${req.id}')" class="btn btn-sm btn-success px-3 rounded-pill"><i class="fa-solid fa-receipt me-1"></i> ดูใบเสร็จ</button>
+                                ${req.receipt_url ? `<a href="${req.receipt_url}" download="Receipt_${req.id}.jpg" target="_blank" class="btn btn-sm btn-outline-success px-3 rounded-pill"><i class="fa-solid fa-download"></i></a>` : ''}
+                            </div>`;
+                    }
+                    else if (req.status === 'rejected') { statusText = 'ไม่สำเร็จ'; statusBadge = 'bg-danger'; progressW = '100%'; progressBg = 'bg-danger'; bgStyle = 'background:#fef2f2; border:1px solid #fee2e2;'; iconColor = 'text-danger'; }
+                }
+
+                const html = `
+            <div class="d-flex align-items-start gap-3 mb-3 p-3 rounded" style="${bgStyle}">
+                <div class="service-icon ${statusBadge.split(' ')[0]} bg-opacity-10 ${iconColor}" style="width:40px;height:40px;border-radius:10px;"><i class="fa-solid ${iconClass}"></i></div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div class="fw-semibold text-sm">${title}</div>
+                        <span class="badge ${statusBadge}" style="font-size:0.65rem;">${statusText}</span>
+                    </div>
+                    <div class="text-xs text-muted mb-2">${dateStr} · เลขที่: ${idStr}</div>
+                    <div class="progress" style="height:6px;border-radius:3px;background:rgba(0,0,0,0.05);">
+                        <div class="progress-bar ${progressBg}" style="width:${progressW};border-radius:3px;"></div>
+                    </div>
+                    ${receiptBtn ? `<div class="d-flex justify-content-end">${receiptBtn}</div>` : ''}
+                </div>
+            </div>`;
+                listContainer.insertAdjacentHTML('beforeend', html);
+            });
+            
+            // Update global cache
+            const currentWaste = allRequests.filter(x => x.type === 'waste').map(x => x.data);
+            if (!window.allLoadedWasteRequests) window.allLoadedWasteRequests = [];
+            currentWaste.forEach(nw => {
+                if (!window.allLoadedWasteRequests.find(ex => ex.id == nw.id)) {
+                    window.allLoadedWasteRequests.push(nw);
+                }
+            });
+        }
+
+        // Call it immediately after script loads
+        loadPopularServices();
+        loadDynamicRequests();
+
+        function openTrackAllModal() {
+            const modal = new bootstrap.Modal(document.getElementById('trackAllModal'));
+            modal.show();
+            loadAllRequests();
+        }
+
+        async function loadAllRequests() {
+            const listContainer = document.getElementById('trackAllList');
+            const countLabel = document.getElementById('trackAllCount');
+            if (!listContainer) return;
+
+            listContainer.innerHTML = '<div class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div></div>';
+            countLabel.innerText = 'กำลังโหลดข้อมูล...';
+
+            const session = LineAuth.getSession();
+            const userName = session ? (session.firstName ? `${session.firstName} ${session.lastName}` : (session.fullName || session.lineName || '')) : '';
+
+            let allRequests = [];
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    let qElec = supabaseClient.from('electric_repairs').select('*').order('created_at', { ascending: false });
+                    if (session && session.nationalId && userName) {
+                        qElec = qElec.or(`reporter_id_card.eq."${session.nationalId}",reporter_name.eq."${userName}"`);
+                    } else if (session && session.nationalId) {
+                        qElec = qElec.eq('reporter_id_card', session.nationalId);
+                    } else if (userName) {
+                        qElec = qElec.eq('reporter_name', userName);
+                    }
+                    const { data: dElec } = await qElec;
+                    if (dElec) dElec.forEach(r => allRequests.push({ type: 'electric', date: r.created_at, data: r }));
+
+                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*').order('payment_datetime', { ascending: false });
+                    if (session && session.houseNo && userName) {
+                        qWaste = qWaste.or(`house_no.ilike."%${session.houseNo}%",payer_name.eq."${userName}"`);
+                    } else if (session && session.houseNo) {
+                        qWaste = qWaste.ilike('house_no', `%${session.houseNo}%`);
+                    } else if (userName) {
+                        qWaste = qWaste.eq('payer_name', userName);
+                    }
+                    const { data: dWaste1 } = await qWaste;
+
+                    // Fetch additional transactions made by this device
+                    const myTx = JSON.parse(localStorage.getItem('my_waste_tx_ids') || '[]');
+                    let dWaste2 = [];
+                    if (myTx.length > 0) {
+                        const { data } = await supabaseClient.from('garbage_payment_transactions').select('*').in('id', myTx);
+                        if (data) dWaste2 = data;
+                    }
+                    
+                    // Merge and deduplicate
+                    const mergedWaste = [...(dWaste1 || []), ...dWaste2];
+                    const uniqueWaste = Array.from(new Map(mergedWaste.map(item => [item.id, item])).values());
+                    
+                    uniqueWaste.forEach(r => allRequests.push({ type: 'waste', date: r.payment_datetime, data: r }));
+                } else {
+                    let repairs = JSON.parse(localStorage.getItem('sgov_electric_repairs') || '[]');
+                    if (userName) repairs = repairs.filter(r => r.reporter_name === userName);
+                    repairs.forEach(r => allRequests.push({ type: 'electric', date: r.created_at, data: r }));
+
+                    let wpts = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
+                    if (userName) wpts = wpts.filter(r => r.payer_name === userName);
+                    wpts.forEach(r => allRequests.push({ type: 'waste', date: r.payment_datetime, data: r }));
+                }
+            } catch(err) { console.warn("Fetch failed", err); }
+
+            allRequests.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (allRequests.length === 0) {
+                listContainer.innerHTML = `<div class="text-center text-muted py-5"><i class="fa-regular fa-folder-open mb-3 text-secondary opacity-50" style="font-size:3rem;"></i><br><h5>ไม่พบข้อมูลคำร้อง</h5><p class="text-sm">คุณยังไม่มีประวัติการทำรายการในระบบ</p></div>`;
+                countLabel.innerText = 'พบ 0 รายการ';
+                return;
+            }
+
+            countLabel.innerHTML = `พบข้อมูล <strong>${allRequests.length}</strong> รายการ`;
+            listContainer.innerHTML = '';
+
+            allRequests.forEach(item => {
+                const req = item.data;
+                const isElec = item.type === 'electric';
+                const dateObj = new Date(item.date);
+                const dateStr = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+                const timeStr = dateObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                
+                let title, detailLine, idStr, statusText, statusBadge, progressW, progressBg, bgStyle, iconColor, iconClass;
+                
+                if (isElec) {
+                    title = `แจ้งซ่อมไฟฟ้า (เสา ${req.pole_id || '-'})`;
+                    detailLine = `<strong>อาการ:</strong> ${req.damage_cause || '-'}`;
+                    idStr = req.complaint_id || req.id || 'N/A';
+                    iconClass = 'fa-bolt';
+                    statusText = 'รอรับเรื่อง'; statusBadge = 'bg-primary'; progressW = '20%'; progressBg = 'bg-primary progress-bar-animated progress-bar-striped'; bgStyle = 'background:#fff; border:1px solid #e2e8f0;'; iconColor = 'text-primary';
+                    if (req.status === 'accepted') { statusText = 'รับเรื่องแล้ว'; statusBadge = 'bg-info text-dark'; progressW = '50%'; progressBg = 'bg-info progress-bar-striped'; bgStyle = 'background:#fff; border:1px solid #bae6fd; border-left:4px solid #38bdf8;'; iconColor = 'text-info'; }
+                    else if (req.status === 'in_progress') { statusText = 'กำลังดำเนินการ'; statusBadge = 'bg-warning text-dark'; progressW = '75%'; progressBg = 'bg-warning progress-bar-animated progress-bar-striped'; bgStyle = 'background:#fff; border:1px solid #fde047; border-left:4px solid #fbbf24;'; iconColor = 'text-warning'; }
+                    else if (req.status === 'completed') { statusText = 'เสร็จสิ้น'; statusBadge = 'bg-success'; progressW = '100%'; progressBg = 'bg-success'; bgStyle = 'background:#fff; border:1px solid #bbf7d0; border-left:4px solid #22c55e;'; iconColor = 'text-success'; }
+                    else if (req.status === 'cancelled') { statusText = 'ยกเลิกแล้ว'; statusBadge = 'bg-danger'; progressW = '100%'; progressBg = 'bg-danger'; bgStyle = 'background:#fff; border:1px solid #fecaca; border-left:4px solid #ef4444;'; iconColor = 'text-danger'; }
+                } else {
+                    title = `ชำระค่าธรรมเนียมขยะ`;
+                    detailLine = `<strong>บ้านเลขที่:</strong> ${req.house_no} <strong>ยอด:</strong> ฿${req.amount.toLocaleString()}`;
+                    idStr = req.id ? String(req.id).substring(0,8) : 'N/A';
+                    iconClass = 'fa-trash-can';
+                    statusText = 'รอตรวจสอบ'; statusBadge = 'bg-warning text-dark'; progressW = '50%'; progressBg = 'bg-warning progress-bar-animated progress-bar-striped'; bgStyle = 'background:#fff; border:1px solid #fde047; border-left:4px solid #fbbf24;'; iconColor = 'text-warning';
+                    if (req.status === 'completed' || req.status === 'approved' || req.receipt_url) { statusText = 'ชำระสำเร็จ'; statusBadge = 'bg-success'; progressW = '100%'; progressBg = 'bg-success'; bgStyle = 'background:#fff; border:1px solid #bbf7d0; border-left:4px solid #22c55e;'; iconColor = 'text-success'; }
+                    else if (req.status === 'rejected') { statusText = 'ไม่สำเร็จ'; statusBadge = 'bg-danger'; progressW = '100%'; progressBg = 'bg-danger'; bgStyle = 'background:#fff; border:1px solid #fecaca; border-left:4px solid #ef4444;'; iconColor = 'text-danger'; }
+                }
+
+                const pdfBtn = (isElec && req.pdf_url) ? `<a href="${req.pdf_url}" target="_blank" class="btn btn-sm btn-outline-danger mt-2 px-3 rounded-pill"><i class="fa-regular fa-file-pdf me-1"></i> ดาวน์โหลด PDF</a>` : '';
+                const slipBtn = (!isElec && req.slip_image) ? `<a href="${req.slip_image}" target="_blank" class="btn btn-sm btn-outline-primary mt-2 px-3 rounded-pill"><i class="fa-regular fa-image me-1"></i> ดูสลิปโอนเงิน</a>` : '';
+                const receiptBtn = (!isElec && (req.status === 'completed' || req.status === 'approved' || req.receipt_url)) ? `
+                    <div class="d-flex gap-2 mt-2">
+                        <button onclick="viewCitizenReceipt('${req.id}')" class="btn btn-sm btn-success px-3 rounded-pill"><i class="fa-solid fa-receipt me-1"></i> ดูใบเสร็จ</button>
+                        ${req.receipt_url ? `<a href="${req.receipt_url}" download="Receipt_${req.id}.jpg" target="_blank" class="btn btn-sm btn-outline-success px-3 rounded-pill"><i class="fa-solid fa-download me-1"></i> บันทึก</a>` : ''}
+                    </div>` : '';
+
+                const html = `
+                <div class="card mb-3 shadow-sm" style="${bgStyle}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="fw-bold mb-1 text-dark"><i class="fa-solid ${iconClass} ${iconColor} me-2"></i>${title}</h6>
+                                <div class="text-sm text-muted">${detailLine}</div>
+                            </div>
+                            <span class="badge ${statusBadge} px-2 py-1">${statusText}</span>
+                        </div>
+                        <div class="text-xs text-muted mb-3"><i class="fa-regular fa-calendar me-1"></i> ${dateStr} เวลา ${timeStr} น. <span class="mx-1">|</span> <i class="fa-solid fa-hashtag me-1"></i> ${idStr}</div>
+                        
+                        <div class="progress mb-2" style="height:8px;border-radius:4px;background:#f1f5f9;">
+                            <div class="progress-bar ${progressBg}" style="width:${progressW};border-radius:4px;"></div>
+                        </div>
+                        
+                        ${(isElec && req.repair_detail) ? `<div class="mt-3 p-2 bg-light rounded text-sm border"><strong class="text-dark">ผลการดำเนินการ:</strong> ${req.repair_detail}</div>` : ''}
+                        
+                        ${pdfBtn}
+                        ${slipBtn}
+                        ${receiptBtn}
+                    </div>
+                </div>`;
+                listContainer.insertAdjacentHTML('beforeend', html);
+            });
+            
+            // Update global cache with items from this view as well
+            const currentWaste = allRequests.filter(x => x.type === 'waste').map(x => x.data);
+            if (!window.allLoadedWasteRequests) window.allLoadedWasteRequests = [];
+            
+            // Merge unique items into cache
+            currentWaste.forEach(nw => {
+                if (!window.allLoadedWasteRequests.find(ex => ex.id == nw.id)) {
+                    window.allLoadedWasteRequests.push(nw);
+                }
+            });
+        }
+
+        function viewCitizenReceipt(id) {
+            console.log("Viewing receipt for ID:", id);
+            let t = null;
+            
+            // Search in global cache first
+            if (window.allLoadedWasteRequests) {
+                t = window.allLoadedWasteRequests.find(x => x.id == id);
+            }
+            
+            // Fallback to localStorage if not found in cache
+            if (!t) {
+                const wpts = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
+                t = wpts.find(x => x.id == id);
+            }
+
+            if (!t) {
+                console.warn("Transaction not found for ID:", id);
+                return;
+            }
+            
+            // ถ้ามี URL ใบเสร็จจาก Google Drive ให้แสดงเป็นรูปภาพ
+            if (t.receipt_url) {
+                Swal.fire({
+                    title: '<i class="fa-solid fa-file-invoice text-success me-2"></i>ใบเสร็จรับเงินอย่างเป็นทางการ',
+                    imageUrl: t.receipt_url,
+                    imageWidth: '100%',
+                    imageAlt: 'Official Receipt',
+                    showCloseButton: true,
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fa-solid fa-download me-1"></i> บันทึกใบเสร็จ',
+                    cancelButtonText: 'ปิด',
+                    confirmButtonColor: '#057a55',
+                    footer: '<div class="text-xs text-muted">สามารถบันทึกรูปภาพเก็บไว้เป็นหลักฐานได้</div>'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const link = document.createElement('a');
+                        link.href = t.receipt_url;
+                        link.download = `Receipt_${t.receipt_no || id}.jpg`;
+                        link.target = '_blank';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                });
+                return;
+            }
+            
+            const p = {
+                receipt_no: t.receipt_no || 'RE' + String(Date.now()).substring(7),
+                date: new Date(t.payment_datetime).toLocaleDateString('th-TH'),
+                customer_name: t.payer_name,
+                house_no: t.house_no,
+                months_paid: getThaiMonths(t.paid_months),
+                method: t.payment_method,
+                amount: t.amount
+            };
+            
+            Swal.fire({
+                title: '<i class="fa-solid fa-file-invoice text-success me-2"></i>ใบเสร็จรับเงิน',
+                html: `
+                <div class="text-start" style="font-size:0.95rem;">
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">เลขที่รายการ:</span> <strong class="text-dark">${p.receipt_no}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">วันที่ชำระ:</span> <strong class="text-dark">${p.date}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">ชื่อผู้ชำระ:</span> <strong class="text-dark">${p.customer_name}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">บ้านเลขที่:</span> <strong class="text-dark">${p.house_no}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">เดือนที่ชำระ:</span> <strong class="text-end text-dark">${p.months_paid}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">ช่องทาง:</span> <strong class="text-dark">${p.method}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mt-3 bg-light p-2 rounded">
+                        <span class="fs-5 fw-bold text-dark">ยอดชำระ:</span> <strong class="fs-4 text-success">฿${Number(p.amount).toLocaleString('th-TH', {minimumFractionDigits:2})}</strong>
+                    </div>
+                </div>
+                `,
+                showCloseButton: true,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-print me-1"></i> พิมพ์ใบเสร็จ',
+                cancelButtonText: 'ปิดหน้าต่าง',
+                confirmButtonColor: '#057a55'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                    const doc = iframe.contentDocument || iframe.contentWindow.document;
+                    const htmlStart = '<' + 'html' + '><' + 'head' + '><' + 'title' + '>Receipt<' + '/title' + '>';
+                    const bootstrap = '<' + 'link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"' + '>';
+                    const styles = '<' + 'style' + '>body{font-family:Sarabun,sans-serif;padding:30px;}.box{border:1px solid #eee;padding:20px;border-radius:10px;}<' + '/style' + '><' + '/head' + '>';
+                    const bodyStart = '<' + 'body' + '><div class="box text-center"><h2 class="text-success">ใบเสร็จรับเงิน</h2><hr>';
+                    const table = '<table class="table text-start">' +
+                        '<tr><td>เลขที่</td><td>' + p.receipt_no + '</td></tr>' +
+                        '<tr><td>วันที่</td><td>' + p.date + '</td></tr>' +
+                        '<tr><td>ชื่อ</td><td>' + p.customer_name + '</td></tr>' +
+                        '<tr><td>บ้านเลขที่</td><td>' + p.house_no + '</td></tr>' +
+                        '<tr><td>ยอดชำระ</td><td>฿' + Number(p.amount).toLocaleString() + '</td></tr>' +
+                        '</table></div>';
+                    const bodyEnd = '<' + '/body' + '><' + '/html' + '>';
+                    
+                    doc.write(htmlStart + bootstrap + styles + bodyStart + table + bodyEnd);
+                    doc.close();
+                    
+                    setTimeout(() => { 
+                        iframe.contentWindow.focus(); 
+                        iframe.contentWindow.print(); 
+                        setTimeout(() => iframe.remove(), 1000); 
+                    }, 500);
+                }
+            });
+        }
+
+        function logoutCitizen() {
+            LineAuth.clearSession();
+            window.location.href = 'index.html';
+        }
+
+        function showUserProfile() {
+            const s = LineAuth.getSession();
+            if (!s) return;
+            const body = document.getElementById('profileModalBody');
+            body.innerHTML = `
+            <div class="text-center mb-3">
+                <img src="${s.lineAvatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.fullName || 'U') + '&background=06C755&color=fff&size=128'}" class="rounded-circle mb-2" width="72" height="72">
+                <div class="fw-bold">${s.fullName || '-'}</div>
+                <div class="text-muted text-sm">${s.lineName || '-'} <i class="fa-brands fa-line" style="color:#06C755;"></i></div>
+            </div>
+            <table class="table table-sm text-sm mb-0">
+                <tr><td class="text-muted" style="width:40%;"><i class="fa-solid fa-id-card me-2"></i>บัตร ปชช.</td><td class="fw-semibold">${s.nationalId ? s.nationalId.replace(/(\d)(\d{4})(\d{5})(\d{2})(\d)/, '$1-$2-$3-$4-$5') : '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-map-pin me-2"></i>ที่อยู่</td><td>${s.address || '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-phone me-2"></i>โทรศัพท์</td><td>${s.phone || '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-envelope me-2"></i>Email</td><td>${s.email || '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-calendar me-2"></i>ลงทะเบียนเมื่อ</td><td>${s.registeredAt ? new Date(s.registeredAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</td></tr>
+            </table>`;
+            new bootstrap.Modal(document.getElementById('userProfileModal')).show();
+        }
+
+        function showToastCitizen(message, type = 'success') {
+            const colors = { success: '#057a55', danger: '#c81e1e', warning: '#c27803', info: '#0694a2' };
+            const icons = { success: 'fa-circle-check', danger: 'fa-circle-xmark', warning: 'fa-triangle-exclamation', info: 'fa-circle-info' };
+            const t = document.createElement('div');
+            t.style.cssText = `position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;background:#fff;border-left:4px solid ${colors[type]};border-radius:10px;padding:.85rem 1.25rem;box-shadow:0 4px 20px rgba(0,0,0,.15);display:flex;align-items:center;gap:.75rem;font-family:'Prompt',sans-serif;font-size:.875rem;min-width:260px;max-width:360px;`;
+            t.innerHTML = `<i class="fa-solid ${icons[type]}" style="color:${colors[type]};font-size:1.1rem;"></i><span>${message}</span>`;
+            document.body.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3500);
+        }
+
+        // QR Countdown Timer
+        let seconds = 900;
+        setInterval(() => {
+            const el = document.getElementById('countdown');
+            if (!el || seconds <= 0) return;
+            seconds--;
+            const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+            const s = String(seconds % 60).padStart(2, '0');
+            el.textContent = `${m}:${s}`;
+        }, 1000);
+    </script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+
+</html>
