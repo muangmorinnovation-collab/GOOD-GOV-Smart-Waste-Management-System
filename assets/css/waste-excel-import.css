@@ -1,0 +1,395 @@
+/* ========================================
+   SMART EXCEL IMPORT MODULE
+   Styles for AI Excel Import Engine
+   ======================================== */
+
+/* Upload Dropzone */
+.import-dropzone {
+    border: 2px dashed #d1d5db;
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    text-align: center;
+    background: #f9fafb;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.import-dropzone:hover {
+    border-color: var(--primary);
+    background: rgba(26, 86, 219, 0.04);
+}
+
+.import-dropzone.drag-over {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.06);
+    transform: scale(1.01);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.import-dropzone .drop-icon {
+    font-size: 3rem;
+    color: #9ca3af;
+    margin-bottom: 1rem;
+    transition: color 0.3s, transform 0.3s;
+}
+
+.import-dropzone:hover .drop-icon {
+    color: var(--primary);
+    transform: translateY(-4px);
+}
+
+.import-dropzone.drag-over .drop-icon {
+    color: #10b981;
+    transform: translateY(-8px) scale(1.1);
+}
+
+.import-dropzone .drop-text {
+    font-size: 1rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.import-dropzone .drop-subtext {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+}
+
+/* File Info Card */
+.file-info-card {
+    background: linear-gradient(135deg, #f0f5ff, #eff6ff);
+    border: 1px solid #dbeafe;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.file-info-card .file-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #1a56db;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+/* Sheet Tabs */
+.sheet-tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.sheet-tab {
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sheet-tab:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.sheet-tab.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(26, 86, 219, 0.3);
+}
+
+/* Confidence Badges */
+.confidence-high {
+    background: #dcfce7;
+    color: #166534;
+    font-weight: 600;
+}
+
+.confidence-medium {
+    background: #fef9c3;
+    color: #854d0e;
+    font-weight: 600;
+}
+
+.confidence-low {
+    background: #fed7aa;
+    color: #9a3412;
+    font-weight: 600;
+}
+
+.confidence-none {
+    background: #fecaca;
+    color: #991b1b;
+    font-weight: 600;
+}
+
+/* Preview Grid */
+.import-preview-table {
+    font-size: 0.8rem;
+}
+
+.import-preview-table thead th {
+    font-size: 0.72rem;
+    padding: 0.6rem 0.5rem;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.import-preview-table tbody td {
+    padding: 0.5rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.import-row-success {
+    background: #f0fdf4 !important;
+    border-left: 3px solid #10b981;
+}
+
+.import-row-warning {
+    background: #fffbeb !important;
+    border-left: 3px solid #f59e0b;
+}
+
+.import-row-error {
+    background: #fef2f2 !important;
+    border-left: 3px solid #ef4444;
+}
+
+/* Validation Summary Cards */
+.validation-card {
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: transform 0.2s;
+}
+
+.validation-card:hover {
+    transform: translateY(-2px);
+}
+
+.validation-card .v-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.validation-card .v-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.validation-card .v-label {
+    font-size: 0.72rem;
+    color: #6b7280;
+}
+
+/* Progress Bar */
+.import-progress-wrap {
+    background: #f3f4f6;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 12px;
+    position: relative;
+}
+
+.import-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #1a56db, #3b82f6);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.import-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: importShimmer 1.5s infinite;
+}
+
+@keyframes importShimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Conflict Resolver */
+.conflict-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    transition: border-color 0.2s;
+}
+
+.conflict-item:hover {
+    border-color: var(--primary);
+}
+
+.conflict-item .conflict-badge {
+    font-size: 0.7rem;
+    padding: 0.2em 0.6em;
+    border-radius: 6px;
+}
+
+.conflict-old {
+    background: #fef2f2;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.78rem;
+}
+
+.conflict-new {
+    background: #f0fdf4;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.78rem;
+}
+
+/* Import History */
+.history-status-completed {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.history-status-rolled-back {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.history-status-partial {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+/* Step Indicator */
+.import-steps {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 1.5rem;
+}
+
+.import-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #9ca3af;
+    position: relative;
+}
+
+.import-step .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.import-step.active {
+    color: var(--primary);
+}
+
+.import-step.active .step-num {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(26, 86, 219, 0.3);
+}
+
+.import-step.done {
+    color: #10b981;
+}
+
+.import-step.done .step-num {
+    background: #10b981;
+    color: #fff;
+}
+
+.import-step-line {
+    width: 40px;
+    height: 2px;
+    background: #e5e7eb;
+    align-self: center;
+}
+
+.import-step-line.done {
+    background: #10b981;
+}
+
+/* Month cell mini badges in preview */
+.month-mini {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    text-align: center;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    margin: 1px;
+}
+
+.month-mini.paid {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.month-mini.unpaid {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.month-mini.pending {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .import-dropzone {
+        padding: 2rem 1rem;
+    }
+
+    .import-steps {
+        flex-wrap: wrap;
+    }
+
+    .import-step-line {
+        display: none;
+    }
+}
