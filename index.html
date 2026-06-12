@@ -487,7 +487,6 @@
                                     <label class="form-label" style="font-size: 0.85rem; color: rgba(255,255,255,0.8);">เลือกระบบที่ต้องการเข้าใช้งาน</label>
                                     <select class="form-select form-select-sm" id="citizenSystemSelect" style="background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: white; padding-top: 0.5rem; padding-bottom: 0.5rem;">
                                         <option value="waste" class="text-dark">ระบบชำระค่าขยะ (Waste Collection Payment System)</option>
-                                        <option value="eservice" class="text-dark" hidden>ระบบบริการประชาชน (E-Service System)</option>
                                     </select>
                                 </div>
 
@@ -1154,7 +1153,12 @@
 
             try {
                 const profile = await LineAuth.getLineProfile(result);
-                if (!profile) { throw new Error('ไม่สามารถดึงข้อมูล LINE ได้'); }
+                if (!profile) { 
+                    // Silent return because LineAuth.getLineProfile already showed an alert
+                    overlay.classList.add('d-none');
+                    overlay.style.display = 'none';
+                    return; 
+                }
 
                 // Check if user already registered in Supabase
                 let isRegistered = false;
