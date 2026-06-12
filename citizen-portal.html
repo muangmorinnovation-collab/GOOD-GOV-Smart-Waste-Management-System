@@ -48,8 +48,15 @@
     <nav class="navbar navbar-expand-lg citizen-nav shadow-sm sticky-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-primary" href="#">
-                <img id="public-org-logo" src="https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w200"
-                    height="36" style="max-height: 40px; max-width: 40px; width: auto; object-fit: contain;" alt="GOOD GOV" class="rounded">
+                <img id="public-org-logo" src="" alt="Organization Logo" style="max-height: 40px; max-width: 40px; width: auto; object-fit: contain;" class="rounded">
+                <script>
+                    try {
+                        const _ls = JSON.parse(localStorage.getItem('waste_settings'));
+                        document.getElementById('public-org-logo').src = (_ls && _ls.org_logo) ? _ls.org_logo : 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w200';
+                    } catch(e) {
+                        document.getElementById('public-org-logo').src = 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w200';
+                    }
+                </script>
                 <div class="d-flex flex-column">
                     <span class="d-none d-md-inline" style="font-size:0.95rem; line-height:1.2;">GOOD GOV</span>
                     <span id="public-org-name" class="d-none d-md-inline text-muted fw-semibold" style="font-size:0.7rem; line-height:1;"></span>

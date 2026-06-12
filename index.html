@@ -446,9 +446,17 @@
                         <!-- Logo -->
                         <div class="text-center mb-4">
                             <div class="logo-badge mb-3">
-                                <img id="login-org-logo" src="https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w500"
+                                <img id="login-org-logo" src=""
                                     alt="Organization Logo"
                                     style="height:65px; margin-bottom:0.5rem; border-radius: 8px; object-fit: contain;">
+                                <script>
+                                    try {
+                                        const _ls = JSON.parse(localStorage.getItem('waste_settings'));
+                                        document.getElementById('login-org-logo').src = (_ls && _ls.org_logo) ? _ls.org_logo : 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w500';
+                                    } catch(e) {
+                                        document.getElementById('login-org-logo').src = 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w500';
+                                    }
+                                </script>
                                 <div style="color:#fff; font-size:0.9rem; font-weight:700; letter-spacing:0.02em; margin-bottom: 0.1rem;">GOOD GOV</div>
                                 <div id="login-org-name" style="color:rgba(255,255,255,0.8); font-size:0.75rem; font-weight:500;"></div>
                             </div>
