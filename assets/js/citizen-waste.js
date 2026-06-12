@@ -50,8 +50,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     Promise.all(fetchTasks).then(() => {
         // 3. Re-render UI when fresh data arrives
-        if (didAutoSearch && selectedCustomer) {
-            loadMonthlyStatus(true); // Refresh months data without animation
+        if (didAutoSearch) {
+            if (selectedCustomer) {
+                // Refresh months data without animation
+                loadMonthlyStatus(true); 
+            } else {
+                // Try searching again with fresh data from Supabase!
+                searchCustomer(true);
+            }
         } else if (!didAutoSearch && session && (session.houseNo || session.fullName || (session.firstName && session.lastName))) {
             searchCustomer(true);
         }
