@@ -162,45 +162,45 @@ const LineAuth = (() => {
             }
         }
 
-        // --- DIRECT FALLBACK (REAL DATA): Use CORS Proxy if CHANNEL_SECRET is provided ---
+        // --- PRODUCTION: call Vercel Serverless Function ---
         if (CONFIG.CHANNEL_SECRET) {
-            console.log("Edge Function ไม่ทำงาน กำลังใช้ CORS Proxy ดึงข้อมูลจริงจาก LINE...");
             try {
-                const tokenParams = new URLSearchParams();
-                tokenParams.append('grant_type', 'authorization_code');
-                tokenParams.append('code', code);
-                tokenParams.append('redirect_uri', CONFIG.REDIRECT_URI);
-                tokenParams.append('client_id', CONFIG.CHANNEL_ID);
-                tokenParams.append('client_secret', CONFIG.CHANNEL_SECRET);
-
-                const tokenRes = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.line.me/oauth2/v2.1/token'), {
+                const res = await fetch('/api/line-token', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: tokenParams.toString()
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: code,
+                        redirect_uri: CONFIG.REDIRECT_URI,
+                        client_id: CONFIG.CHANNEL_ID,
+                        client_secret: CONFIG.CHANNEL_SECRET
+                    })
                 });
-                const tokenData = await tokenRes.json();
 
-                if (tokenData.access_token) {
-                    const profileRes = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.line.me/v2/profile'), {
-                        headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
-                    });
-                    const profileData = await profileRes.json();
-                    
-                    if (profileData.userId) {
-                        return {
-                            userId: profileData.userId,
-                            displayName: profileData.displayName,
-                            pictureUrl: profileData.pictureUrl,
-                            email: null
-                        };
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.profile) {
+                        return data.profile;
+                    }
+                } else {
+                    console.warn("Vercel API failed:", res.status);
+                    if (window.location.hostname.includes('vercel.app')) {
+                        alert("เกิดข้อผิดพลาดในการยืนยันตัวตนกับ LINE (Vercel API Error)");
+                        return null;
                     }
                 }
             } catch(e) {
-                console.error("CORS Proxy error", e);
+                console.warn("Vercel API network error", e);
             }
         }
 
-        // Fallback to mock profile if both fail (so system doesn't crash)
+        // Fallback to mock profile if all fail (usually for local development without Vercel CLI)
+        if (window.location.hostname.includes('vercel.app')) {
+            // Do not fallback on production! 
+            alert("ไม่สามารถดึงข้อมูลจาก LINE ได้ กรุณาตรวจสอบการตั้งค่า LINE Login Channel หรือ Vercel API");
+            return null;
+        }
+
+        console.log("Using Mock Profile Fallback (Local Development)");
         const browserId = navigator.userAgent.length.toString(36) + screen.width + screen.height;
         let hash = 0;
         for (let i = 0; i < browserId.length; i++) {
