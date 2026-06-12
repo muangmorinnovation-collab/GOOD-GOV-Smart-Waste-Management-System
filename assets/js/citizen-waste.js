@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     Promise.all(fetchTasks).then(() => {
         // 3. Re-render UI when fresh data arrives
         if (didAutoSearch && selectedCustomer) {
-            loadMonthlyStatus(); // Refresh months data
+            loadMonthlyStatus(true); // Refresh months data without animation
         } else if (!didAutoSearch && session && (session.houseNo || session.fullName || (session.firstName && session.lastName))) {
             searchCustomer(true);
         }
@@ -342,15 +342,16 @@ async function selectCustomer(id) {
     await loadMonthlyStatus();
 }
 
-async function loadMonthlyStatus() {
+async function loadMonthlyStatus(noAnimate = false) {
     const year = document.getElementById('fiscalYearSelect').value;
     const listDiv = document.getElementById('monthlyStatusList');
     const debtBadge = document.getElementById('dispDebtBadge');
 
-    // Skeleton
-    listDiv.innerHTML = Array(4).fill('<div class="skeleton mb-2" style="height:58px;"></div>').join('');
-
-    await new Promise(r => setTimeout(r, 200));
+    // Skeleton only on initial load
+    if (!noAnimate) {
+        listDiv.innerHTML = Array(4).fill('<div class="skeleton mb-2" style="height:58px;"></div>').join('');
+        await new Promise(r => setTimeout(r, 200));
+    }
 
     const allStatus = typeof getMonthlyStatus === 'function' ? getMonthlyStatus() : {};
     const customerStatus = (allStatus[selectedCustomer.id] || {})[year] || {};
@@ -407,9 +408,10 @@ async function loadMonthlyStatus() {
         else { rowClass = 'unpaid selectable'; iconClass = 'fa-circle-xmark'; label = 'ค้างชำระ'; }
 
         const clickHandler = isSelectable || isSelected ? `onclick="toggleMonth('${key}')"` : '';
+        const animationStyle = noAnimate ? '' : `style="animation:fadeInUp 0.25s ${i * 0.04}s both;"`;
 
         html += `
-        <div class="mt-row ${rowClass}" ${clickHandler} style="animation:fadeInUp 0.25s ${i * 0.04}s both;">
+        <div class="mt-row ${rowClass}" ${clickHandler} ${animationStyle}>
             <div class="mt-icon"><i class="fa-solid ${iconClass}"></i></div>
             <div class="flex-grow-1">
                 <div class="fw-semibold">${CW_MONTH_NAMES[i]}</div>
@@ -507,7 +509,7 @@ function toggleAllMonths() {
         selectedMonthKeys = [...allSelectable];
     }
     
-    loadMonthlyStatus();
+    loadMonthlyStatus(true);
 }
 
 function toggleMonth(key) {
@@ -520,7 +522,7 @@ function toggleMonth(key) {
         selectedMonthKeys = selectedMonthKeys.filter(k => CW_MONTH_KEYS.indexOf(k) < monthIdx);
     }
     selectedMonthKeys.sort((a, b) => CW_MONTH_KEYS.indexOf(a) - CW_MONTH_KEYS.indexOf(b));
-    loadMonthlyStatus(); // re-render
+    loadMonthlyStatus(true); // re-render without animation
 }
 
 // ============================================
@@ -581,6 +583,8 @@ function goToPayment() {
     let total = 0;
     selectedMonthKeys.forEach(k => total += getFeeForMonth(selectedCustomer.id, k, year));
     document.getElementById('payTotalAmount').textContent = `฿${cwFmt(total)}`;
+    const saveQrTotalEl = document.getElementById('saveQrTotal');
+    if (saveQrTotalEl) saveQrTotalEl.textContent = `฿${cwFmt(total)}`;
 
     // Load Settings
     const settings = JSON.parse(localStorage.getItem('waste_settings') || '{}');
@@ -617,6 +621,35 @@ function copyAccount() {
     const accNo = settings.bank_account_no || '1234567890';
     // Remove dashes for easier copying if preferred, or keep them.
     navigator.clipboard.writeText(accNo).then(() => cwToast('คัดลอกเลขบัญชีแล้ว', 'success'));
+}
+
+// ============================================
+// SAVE QR CODE IMAGE
+// ============================================
+function saveQRCodeImage() {
+    const container = document.getElementById('qrContainerToSave');
+    if (!container) return;
+    
+    if (typeof html2canvas === 'undefined') {
+        cwToast('ระบบกำลังเตรียมความพร้อม กรุณาลองใหม่อีกครั้งในสักครู่', 'warning');
+        return;
+    }
+
+    html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+    }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `QR_Payment_WasteFee_${new Date().getTime()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        cwToast('บันทึกรูปลงในเครื่องสำเร็จ!', 'success');
+    }).catch(err => {
+        console.error('Error saving QR code:', err);
+        cwToast('ไม่สามารถบันทึกรูปภาพได้', 'danger');
+    });
 }
 
 // ============================================
