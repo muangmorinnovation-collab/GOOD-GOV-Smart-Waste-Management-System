@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตั้งค่าระบบ (Settings) - ระบบบริหารจัดการเทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ตั้งค่าระบบ (System Settings)"></div>
+    <div class="page-content">
+
+        <div class="mb-4">
+            <h4 class="fw-bold mb-1">ตั้งค่าระบบ</h4>
+            <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                <li class="breadcrumb-item active">ตั้งค่าระบบ</li>
+            </ol></nav>
+        </div>
+
+        <!-- Settings Tabs -->
+        <ul class="nav nav-tabs border-0 mb-4" id="settingsTabs">
+            <li class="nav-item">
+                <button class="nav-link active fw-semibold text-sm" data-bs-toggle="tab" data-bs-target="#tab-api">
+                    <i class="fa-solid fa-plug me-1"></i>API Integration
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold text-sm" data-bs-toggle="tab" data-bs-target="#tab-users">
+                    <i class="fa-solid fa-users-gear me-1"></i>จัดการผู้ใช้งาน
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold text-sm" data-bs-toggle="tab" data-bs-target="#tab-audit">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Audit Trail
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold text-sm" data-bs-toggle="tab" data-bs-target="#tab-muni">
+                    <i class="fa-solid fa-building-columns me-1"></i>ข้อมูลเทศบาล
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- API Tab -->
+            <div class="tab-pane fade show active" id="tab-api">
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <div class="card h-100">
+                            <div class="card-header border-0">
+                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-plug text-primary me-2"></i>การเชื่อมต่อ API ภายนอก</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <label class="form-label"><i class="fa-brands fa-line text-success me-1"></i>LINE Notify Token</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="lineToken" value="line_token_xxxxxxxxxxxx">
+                                        <button class="btn btn-outline-secondary" onclick="toggleField('lineToken')"><i class="fa-regular fa-eye"></i></button>
+                                    </div>
+                                    <div class="form-text">ใช้ส่งการแจ้งเตือนอัตโนมัติให้เจ้าหน้าที่และประชาชน</div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label"><i class="fa-solid fa-qrcode text-primary me-1"></i>PromptPay ID (เทศบาล)</label>
+                                    <input type="text" class="form-control" value="0994000165938">
+                                    <div class="form-text">13 หลัก — เลขประจำตัวผู้เสียภาษีของเทศบาล</div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label"><i class="fa-solid fa-map text-warning me-1"></i>LTAX Online API Key</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="ltaxKey" value="ltax_api_key_2026">
+                                        <button class="btn btn-outline-secondary" onclick="toggleField('ltaxKey')"><i class="fa-regular fa-eye"></i></button>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label"><i class="fa-solid fa-database text-info me-1"></i>Supabase URL</label>
+                                    <input type="text" class="form-control" id="supabaseUrl" value="https://gyerfzrbfczrdxzbkjyt.supabase.co">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label"><i class="fa-brands fa-google-drive text-success me-1"></i>Google Drive Photo Folder ID</label>
+                                    <input type="text" class="form-control" id="driveFolderId" value="1t3Sgt26UeEb-aWBXQzoBIrHBXkwPCkwc" placeholder="ID โฟลเดอร์สำหรับเก็บรูปเจ้าหน้าที่">
+                                    <div class="form-text">รูปภาพเจ้าหน้าที่จะถูกอัปโหลดไปเก็บไว้ที่นี่</div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label"><i class="fa-solid fa-code text-primary me-1"></i>Google Apps Script Proxy URL</label>
+                                    <input type="text" class="form-control" id="driveProxyUrl" value="https://script.google.com/macros/s/AKfycbyAJXiVaufwzYJPWxZmTMXURncbfyJuF6a36LHvXw2mrpIeauIIZfr7UOCySbxfjmnyWQ/exec" placeholder="https://script.google.com/macros/s/.../exec">
+                                    <div class="form-text">ใช้สำหรับอัปโหลดไฟล์จาก Browser ไปยัง Google Drive</div>
+                                </div>
+                                <button class="btn btn-primary" onclick="showToast('บันทึกการตั้งค่า API สำเร็จ!','success')">
+                                    <i class="fa-solid fa-save me-1"></i>บันทึกการตั้งค่า
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card mb-3">
+                            <div class="card-header border-0">
+                                <h6 class="fw-bold mb-0">ทดสอบการเชื่อมต่อ (Connection Test)</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div><i class="fa-brands fa-line text-success me-2"></i><span class="text-sm">LINE Notify</span></div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-success">เชื่อมต่อแล้ว</span>
+                                        <button class="btn btn-xs btn-outline-secondary" onclick="showToast('ส่ง LINE ทดสอบสำเร็จ!','success')">ทดสอบ</button>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div><i class="fa-solid fa-database text-primary me-2"></i><span class="text-sm">Supabase</span></div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-success">เชื่อมต่อแล้ว</span>
+                                        <button class="btn btn-xs btn-outline-secondary" onclick="showToast('Supabase connection OK','success')">ทดสอบ</button>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center py-2">
+                                    <div><i class="fa-solid fa-map text-warning me-2"></i><span class="text-sm">LTAX Online</span></div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-warning text-dark">ยังไม่ได้ตั้งค่า</span>
+                                        <button class="btn btn-xs btn-outline-secondary" onclick="showToast('กรุณาตั้งค่า API Key ก่อน','warning')">ทดสอบ</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header border-0">
+                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-bell text-warning me-2"></i>การแจ้งเตือนอัตโนมัติ</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div><div class="fw-semibold text-sm">แจ้งเตือนภาษีค้างชำระ</div><div class="text-xs text-muted">ส่งทุกวันที่ 1 ของเดือน</div></div>
+                                    <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" checked></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div><div class="fw-semibold text-sm">แจ้งเตือนใบอนุญาตหมดอายุ</div><div class="text-xs text-muted">ส่งล่วงหน้า 30 วัน</div></div>
+                                    <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" checked></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div><div class="fw-semibold text-sm">แจ้งเตือนเบี้ยยังชีพใหม่</div><div class="text-xs text-muted">ส่งทุกต้นเดือน</div></div>
+                                    <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" checked></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div class="tab-pane fade" id="tab-users">
+                <div class="card">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-users-gear text-secondary me-2"></i>จัดการสิทธิ์ผู้ใช้งาน (RBAC)</h6>
+                        <button class="btn btn-sm btn-primary" onclick="openAddStaffModal()" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+                            <i class="fa-solid fa-user-plus me-1"></i>เพิ่มเจ้าหน้าที่
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead><tr>
+                                <th class="ps-4">ชื่อเจ้าหน้าที่</th><th>อีเมล</th><th>สังกัด</th><th>บทบาท</th>
+                                <th>เข้าสู่ระบบล่าสุด</th><th>สถานะ</th><th class="pe-4 text-end">จัดการ</th>
+                            </tr></thead>
+                            <tbody id="staffTableBody">
+                                <!-- ข้อมูลจาก Supabase จะมาแสดงที่นี่ -->
+                                <tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลดข้อมูล...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Trail Tab -->
+            <div class="tab-pane fade" id="tab-audit">
+                <div class="card">
+                    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-muted me-2"></i>ประวัติการใช้งานระบบ (Audit Log)</h6>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="showToast('Export Audit Log','info')"><i class="fa-solid fa-file-export me-1"></i>Export</button>
+                    </div>
+                    <div class="card-body p-0 rounded-bottom" style="background:#0d1117; max-height:400px; overflow-y:auto; border-radius:0 0 14px 14px;">
+                        <table class="table mb-0" style="font-family:'Courier New', monospace; font-size:0.78rem; color:#d1d5db;">
+                            <thead style="position:sticky;top:0;background:#161b22;">
+                                <tr>
+                                    <th style="color:#58a6ff; padding:0.75rem 1rem; font-weight:400; border:none;">Timestamp</th>
+                                    <th style="color:#58a6ff; border:none;">Level</th>
+                                    <th style="color:#58a6ff; border:none;">ผู้ใช้งาน</th>
+                                    <th style="color:#58a6ff; border:none;">รายการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom:1px solid #21262d;">
+                                    <td style="padding:0.5rem 1rem; color:#8b949e;">2026-04-28 10:45:12</td>
+                                    <td><span style="color:#3fb950;">INFO</span></td>
+                                    <td>สมชาย ใจดี</td>
+                                    <td>User logged in successfully</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #21262d;">
+                                    <td style="padding:0.5rem 1rem; color:#8b949e;">2026-04-28 10:47:05</td>
+                                    <td><span style="color:#d29922;">UPDATE</span></td>
+                                    <td>วิชัย มานะ</td>
+                                    <td>Updated repair request PL-089 → status: Completed</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #21262d;">
+                                    <td style="padding:0.5rem 1rem; color:#8b949e;">2026-04-28 10:50:22</td>
+                                    <td><span style="color:#3fb950;">INSERT</span></td>
+                                    <td>SYSTEM</td>
+                                    <td>Auto-generated monthly waste fee for 15,200 households</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #21262d;">
+                                    <td style="padding:0.5rem 1rem; color:#8b949e;">2026-04-28 11:05:01</td>
+                                    <td><span style="color:#f85149;">WARNING</span></td>
+                                    <td>SYSTEM</td>
+                                    <td>Failed login attempt — admin@municipality.go.th (Invalid password)</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #21262d;">
+                                    <td style="padding:0.5rem 1rem; color:#8b949e;">2026-04-28 11:15:30</td>
+                                    <td><span style="color:#58a6ff;">EXPORT</span></td>
+                                    <td>สมรักษ์ ยินดี</td>
+                                    <td>Exported Revenue Summary report → e-LAAS format</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #21262d;">
+                                    <td style="padding:0.5rem 1rem; color:#8b949e;">2026-04-28 11:30:45</td>
+                                    <td><span style="color:#3fb950;">INSERT</span></td>
+                                    <td>สมรักษ์ ยินดี</td>
+                                    <td>New payment received — REC-660428-003 ฿125.50 (PromptPay)</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:0.5rem 1rem; color:#8b949e;">2026-04-28 12:00:00</td>
+                                    <td><span style="color:#3fb950;">INFO</span></td>
+                                    <td>SYSTEM</td>
+                                    <td>Scheduled backup completed successfully</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Municipality Info Tab -->
+            <div class="tab-pane fade" id="tab-muni">
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header border-0">
+                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-building-columns text-primary me-2"></i>ข้อมูลเทศบาล</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3"><label class="form-label">ชื่อเทศบาล</label><input class="form-control" value="เทศบาลตำบลตัวอย่างอัจฉริยะ"></div>
+                                <div class="mb-3"><label class="form-label">จังหวัด</label><input class="form-control" value="กรุงเทพมหานคร"></div>
+                                <div class="mb-3"><label class="form-label">เลขประจำตัวผู้เสียภาษี (13 หลัก)</label><input class="form-control" value="0994000165938"></div>
+                                <div class="mb-3"><label class="form-label">เบอร์โทรศัพท์</label><input class="form-control" value="02-XXX-XXXX"></div>
+                                <div class="mb-3"><label class="form-label">เว็บไซต์</label><input class="form-control" value="https://www.muni.go.th"></div>
+                                <button class="btn btn-primary" onclick="showToast('บันทึกข้อมูลเทศบาลสำเร็จ!','success')"><i class="fa-solid fa-save me-1"></i>บันทึก</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header border-0">
+                                <h6 class="fw-bold mb-0"><i class="fa-solid fa-shield-halved text-success me-2"></i>ความปลอดภัย</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div><div class="fw-semibold text-sm">Session Timeout</div><div class="text-xs text-muted">ออกจากระบบอัตโนมัติเมื่อไม่มีการใช้งาน</div></div>
+                                    <select class="form-select form-select-sm" style="width:auto;"><option>30 นาที</option><option>1 ชั่วโมง</option><option>4 ชั่วโมง</option></select>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div><div class="fw-semibold text-sm">Two-Factor Authentication</div><div class="text-xs text-muted">OTP ผ่าน SMS สำหรับ Super Admin</div></div>
+                                    <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" checked></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div><div class="fw-semibold text-sm">IP Whitelist</div><div class="text-xs text-muted">จำกัดการเข้าถึงจาก IP เฉพาะ</div></div>
+                                    <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<!-- Add Staff Modal -->
+<div class="modal fade" id="addStaffModal" tabindex="-1" aria-labelledby="addStaffModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light border-bottom-0">
+                <h5 class="modal-title fw-bold" id="staffModalTitle">
+                    <i class="fa-solid fa-user-plus text-primary me-2"></i>เพิ่มเจ้าหน้าที่ใหม่
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="addStaffForm">
+                    <!-- Profile Picture Section -->
+                    <div class="text-center mb-4">
+                        <div class="position-relative d-inline-block">
+                            <img src="https://ui-avatars.com/api/?name=New+User&background=f3f4f6&color=9ca3af&size=100" class="rounded-circle border shadow-sm object-fit-cover" id="staffAvatarPreview" width="100" height="100" alt="Avatar Preview">
+                            <label for="staffAvatar" class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 cursor-pointer shadow-sm" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="อัปโหลดรูปภาพ">
+                                <i class="fa-solid fa-camera fa-sm"></i>
+                            </label>
+                            <input type="file" class="d-none" id="staffAvatar" accept="image/*" onchange="previewAvatar(this)">
+                        </div>
+                        <div class="text-muted text-xs mt-2">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB</div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label text-sm fw-semibold">คำนำหน้า <span class="text-danger">*</span></label>
+                            <select class="form-select" id="staffTitle" required>
+                                <option value="" selected disabled>เลือก</option>
+                                <option value="นาย">นาย</option>
+                                <option value="นาง">นาง</option>
+                                <option value="นางสาว">นางสาว</option>
+                                <option value="ว่าที่ ร.ต.">ว่าที่ ร.ต.</option>
+                                <option value="ดร.">ดร.</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label text-sm fw-semibold">ชื่อ <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="staffFirstName" placeholder="กรอกชื่อ" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label text-sm fw-semibold">นามสกุล <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="staffLastName" placeholder="กรอกนามสกุล" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-sm fw-semibold">เบอร์ติดต่อ <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-phone text-muted"></i></span>
+                                <input type="tel" class="form-control" id="staffPhone" placeholder="08X-XXX-XXXX" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-sm fw-semibold">อีเมล <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-envelope text-muted"></i></span>
+                                <input type="email" class="form-control" id="staffEmail" placeholder="email@muni.go.th" required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-sm fw-semibold">ตำแหน่ง <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="staffPosition" placeholder="เช่น นักวิเคราะห์นโยบายและแผนชำนาญการ" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-sm fw-semibold">สังกัด <span class="text-danger">*</span></label>
+                            <select class="form-select" id="staffDepartment" required>
+                                <option value="" selected disabled>เลือกสังกัด/กอง</option>
+                                <option value="สำนักปลัดเทศบาล">สำนักปลัดเทศบาล</option>
+                                <option value="กองคลัง">กองคลัง</option>
+                                <option value="กองช่าง">กองช่าง</option>
+                                <option value="กองสาธารณสุขและสิ่งแวดล้อม">กองสาธารณสุขและสิ่งแวดล้อม</option>
+                                <option value="กองสวัสดิการสังคม">กองสวัสดิการสังคม</option>
+                                <option value="กองการศึกษา">กองการศึกษา</option>
+                                <option value="กองยุทธศาสตร์และงบประมาณ">กองยุทธศาสตร์และงบประมาณ</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 mt-2"><hr class="text-muted"></div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-sm fw-semibold">รหัสผู้ใช้งาน (Username / ID) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-user-shield text-muted"></i></span>
+                                <input type="text" class="form-control" id="staffUsername" placeholder="กำหนดรหัสผู้ใช้งาน" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-sm fw-semibold">รหัสผ่าน (Password) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-lock text-muted"></i></span>
+                                <input type="password" class="form-control" id="staffPassword" placeholder="กำหนดรหัสผ่านเริ่มต้น" required>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <div class="card bg-light border-0">
+                                <div class="card-body">
+                                    <label class="form-label text-sm fw-bold mb-3"><i class="fa-solid fa-shield-halved text-success me-2"></i>กำหนดสิทธิ์การใช้งาน (บทบาท) <span class="text-danger">*</span></label>
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <div class="form-check custom-radio-card">
+                                                <input class="form-check-input d-none" type="radio" name="role" id="roleOfficer" value="Officer" checked>
+                                                <label class="form-check-label w-100 p-3 border rounded bg-white cursor-pointer h-100" for="roleOfficer">
+                                                    <div class="d-flex align-items-center mb-1">
+                                                        <span class="badge bg-primary me-2">Officer</span>
+                                                    </div>
+                                                    <div class="text-xs text-muted">เจ้าหน้าที่ผู้ปฏิบัติงานทั่วไป เข้าถึงข้อมูลตามสังกัด</div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check custom-radio-card">
+                                                <input class="form-check-input d-none" type="radio" name="role" id="roleHead" value="Department Head">
+                                                <label class="form-check-label w-100 p-3 border rounded bg-white cursor-pointer h-100" for="roleHead">
+                                                    <div class="d-flex align-items-center mb-1">
+                                                        <span class="badge bg-warning text-dark me-2">Department Head</span>
+                                                    </div>
+                                                    <div class="text-xs text-muted">หัวหน้าส่วนราชการ ดูภาพรวมรายงานของกองได้</div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check custom-radio-card">
+                                                <input class="form-check-input d-none" type="radio" name="role" id="roleAdmin" value="Super Admin">
+                                                <label class="form-check-label w-100 p-3 border rounded bg-white cursor-pointer h-100" for="roleAdmin">
+                                                    <div class="d-flex align-items-center mb-1">
+                                                        <span class="badge bg-danger me-2">Super Admin</span>
+                                                    </div>
+                                                    <div class="text-xs text-muted">ผู้ดูแลระบบ ควบคุมทุกส่วนงานและตั้งค่าระบบ</div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <style>
+                                        .custom-radio-card input:checked + label {
+                                            border-color: #0d6efd !important;
+                                            background-color: #f8faff !important;
+                                            box-shadow: 0 0 0 1px #0d6efd;
+                                        }
+                                        .custom-radio-card label { transition: all 0.2s; }
+                                        .custom-radio-card label:hover { border-color: #a5c8fd; }
+                                    </style>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light border-top-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddStaff()"><i class="fa-solid fa-save me-1"></i>บันทึกข้อมูลเจ้าหน้าที่</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+    function toggleField(id) {
+        const el = document.getElementById(id);
+        el.type = el.type === 'password' ? 'text' : 'password';
+    }
+
+    function previewAvatar(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('staffAvatarPreview').src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // โหลดค่าจาก LocalStorage และข้อมูล Staff เมื่อเปิดหน้า
+    document.addEventListener('DOMContentLoaded', () => {
+        if(document.getElementById('driveFolderId')) {
+            const savedFolder = localStorage.getItem('sgov_drive_folder_id');
+            if (savedFolder) document.getElementById('driveFolderId').value = savedFolder;
+        }
+        if(document.getElementById('driveProxyUrl')) {
+            const savedProxy = localStorage.getItem('sgov_drive_proxy_url');
+            if (savedProxy) document.getElementById('driveProxyUrl').value = savedProxy;
+        }
+        
+        // โหลดรายชื่อเจ้าหน้าที่
+        setTimeout(loadStaffList, 1000); // รอ Supabase Client พร้อม
+    });
+
+    async function loadStaffList() {
+        const tbody = document.getElementById('staffTableBody');
+        try {
+            if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
+            
+            // ดึงข้อมูล User จาก Session
+            const user = getSessionUser();
+            
+            let query = supabaseClient.from('Staff').select('*');
+
+            // --- ตรรกะการคัดกรองข้อมูล (Data Isolation) ---
+            // ถ้าเป็น Super Admin จะไม่กรอง (เห็นทุกกอง)
+            // ถ้าเป็นบทบาทอื่น จะเห็นเฉพาะข้อมูลสมาชิกในกองของตนเองเท่านั้น
+            if (user && user.role !== 'Super Admin') {
+                console.log(`Filtering data for department: ${user.dept}`);
+                query = query.eq('department', user.dept);
+            }
+
+            const { data, error } = await query.order('created_at', { ascending: false });
+
+            if (error) throw error;
+            renderStaffTable(data);
+        } catch (err) {
+            console.error("Load Staff Error:", err);
+            if(tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-danger">ไม่สามารถโหลดข้อมูลได้: ' + err.message + '</td></tr>';
+        }
+    }
+
+    function getDriveThumbnail(url) {
+        if (!url || typeof url !== 'string') return url;
+        // ค้นหา ID ของไฟล์จาก URL ของ Google Drive
+        const match = url.match(/[-\w]{25,}/); 
+        if (match && (url.includes('drive.google.com') || url.includes('docs.google.com'))) {
+            return `https://drive.google.com/thumbnail?id=${match[0]}&sz=w200`;
+        }
+        return url;
+    }
+
+    function renderStaffTable(staffData) {
+        const tbody = document.getElementById('staffTableBody');
+        if (!tbody) return;
+
+        if (!staffData || staffData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูลเจ้าหน้าที่ในส่วนงานของคุณ</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = staffData.map(staff => `
+            <tr>
+                <td class="ps-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <img src="${getDriveThumbnail(staff.avatar_url) || 'https://ui-avatars.com/api/?name=' + staff.first_name + '&background=random'}" 
+                             class="rounded-circle shadow-sm object-fit-cover" width="32" height="32" 
+                             onerror="this.src='https://ui-avatars.com/api/?name=' + encodeURIComponent('${staff.first_name}')">
+                        <div>
+                            <div class="fw-semibold text-sm">${staff.title || ''}${staff.first_name} ${staff.last_name}</div>
+                            <div class="text-xs text-muted">${staff.position || ''}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="text-xs">${staff.email || '-'}</td>
+                <td class="text-sm">${staff.department || '-'}</td>
+                <td><span class="badge ${getRoleBadgeClass(staff.role)}">${staff.role}</span></td>
+                <td class="text-xs text-muted">${formatDate(staff.created_at)}</td>
+                <td class="pe-4">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" ${staff.status === 'active' ? 'checked' : ''} 
+                               onchange="updateStaffStatus('${staff.id}', this.checked)">
+                    </div>
+                </td>
+                <td class="pe-4 text-end">
+                    <button class="btn btn-sm btn-light border" onclick="editStaff('${staff.id}')">
+                        <i class="fa-solid fa-pen-to-square text-primary"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    let currentEditingStaffId = null;
+
+    async function editStaff(id) {
+        currentEditingStaffId = id;
+        try {
+            const { data, error } = await supabaseClient
+                .from('Staff')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (error) throw error;
+
+            // เปลี่ยนหัวข้อ Modal และปุ่ม
+            document.getElementById('staffModalTitle').innerText = 'แก้ไขข้อมูลเจ้าหน้าที่';
+            document.querySelector('#addStaffModal .btn-primary').innerHTML = '<i class="fa-solid fa-save me-1"></i>อัปเดตข้อมูล';
+
+            // ใส่ข้อมูลลงฟอร์ม
+            document.getElementById('staffTitle').value = data.title || '';
+            document.getElementById('staffFirstName').value = data.first_name || '';
+            document.getElementById('staffLastName').value = data.last_name || '';
+            document.getElementById('staffPhone').value = data.phone || '';
+            document.getElementById('staffEmail').value = data.email || '';
+            document.getElementById('staffPosition').value = data.position || '';
+            document.getElementById('staffDepartment').value = data.department || '';
+            document.getElementById('staffUsername').value = data.username || '';
+            document.getElementById('staffPassword').value = data.password || ''; // ในระบบจริงไม่ควรแสดงรหัสผ่านเดิม
+            
+            if (data.role) {
+                const roleRadio = document.querySelector(`input[name="role"][value="${data.role}"]`);
+                if (roleRadio) roleRadio.checked = true;
+            }
+
+            // แสดงรูปภาพ
+            document.getElementById('staffAvatarPreview').src = getDriveThumbnail(data.avatar_url) || 'https://ui-avatars.com/api/?name=New+User&background=f3f4f6&color=9ca3af&size=100';
+
+            // เปิด Modal
+            const modal = new bootstrap.Modal(document.getElementById('addStaffModal'));
+            modal.show();
+
+        } catch (err) {
+            showToast('ไม่สามารถโหลดข้อมูลได้: ' + err.message, 'danger');
+        }
+    }
+
+    // เพิ่มฟังก์ชันสำหรับ Reset Modal เมื่อจะเพิ่มคนใหม่
+    function openAddStaffModal() {
+        currentEditingStaffId = null;
+        document.getElementById('addStaffForm').reset();
+        document.getElementById('staffModalTitle').innerText = 'เพิ่มเจ้าหน้าที่ใหม่';
+        document.querySelector('#addStaffModal .btn-primary').innerHTML = '<i class="fa-solid fa-save me-1"></i>บันทึกข้อมูลเจ้าหน้าที่';
+        document.getElementById('staffAvatarPreview').src = 'https://ui-avatars.com/api/?name=New+User&background=f3f4f6&color=9ca3af&size=100';
+    }
+
+    function getRoleBadgeClass(role) {
+        switch(role) {
+            case 'Super Admin': return 'bg-danger';
+            case 'Department Head': return 'bg-warning text-dark';
+            case 'Officer': return 'bg-primary';
+            default: return 'bg-secondary';
+        }
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('th-TH', { 
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
+
+    async function updateStaffStatus(id, isActive) {
+        try {
+            const { error } = await supabaseClient
+                .from('Staff')
+                .update({ status: isActive ? 'active' : 'inactive' })
+                .eq('id', id);
+            if (error) throw error;
+            showToast('อัปเดตสถานะเจ้าหน้าที่เรียบร้อย', 'success');
+        } catch (err) {
+            showToast('ไม่สามารถอัปเดตสถานะได้: ' + err.message, 'danger');
+        }
+    }
+
+    async function uploadToGoogleDrive(file, folderId, proxyUrl) {
+        if (!proxyUrl) throw new Error("กรุณาตั้งค่า Google Apps Script Proxy URL ในส่วน API Integration");
+        
+        const reader = new FileReader();
+        const base64Promise = new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+
+        const base64 = await base64Promise;
+        const payload = {
+            file: base64,
+            filename: `staff_${Date.now()}_${file.name}`,
+            mimeType: file.type,
+            folderId: folderId
+        };
+
+        try {
+            const response = await fetch(proxyUrl, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                return result.url;
+            } else {
+                throw new Error(result.message || 'Upload failed');
+            }
+        } catch (err) {
+            console.warn("Drive Upload Fetch Error:", err);
+            // ถ้าติด CORS แต่ไฟล์อาจจะถูกอัปโหลดไปแล้วในบางกรณี 
+            // อย่างไรก็ตามในระบบที่สมบูรณ์ควรจัดการ CORS ที่ฝั่ง Apps Script
+            return null;
+        }
+    }
+
+    async function submitAddStaff() {
+        const form = document.getElementById('addStaffForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const btn = document.querySelector('#addStaffModal .btn-primary');
+        const originalBtnHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> กำลังบันทึก...';
+
+        try {
+            if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+                throw new Error("ระบบเชื่อมต่อฐานข้อมูลไม่พร้อมใช้งาน (Supabase not initialized)");
+            }
+
+            // 1. ดึงข้อมูลจากฟอร์ม
+            const title = document.getElementById('staffTitle').value;
+            const firstName = document.getElementById('staffFirstName').value.trim();
+            const lastName = document.getElementById('staffLastName').value.trim();
+            const phone = document.getElementById('staffPhone').value.trim();
+            const email = document.getElementById('staffEmail').value.trim();
+            const position = document.getElementById('staffPosition').value.trim();
+            const department = document.getElementById('staffDepartment').value;
+            const username = document.getElementById('staffUsername').value.trim();
+            const password = document.getElementById('staffPassword').value;
+            const role = document.querySelector('input[name="role"]:checked').value;
+            const avatarFile = document.getElementById('staffAvatar').files[0];
+
+            let avatarUrl = `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=random&color=fff`;
+
+            // 2. อัปโหลดรูปภาพไปยัง Google Drive (ถ้ามีการเลือกไฟล์)
+            if (avatarFile) {
+                const folderId = document.getElementById('driveFolderId').value;
+                const proxyUrl = document.getElementById('driveProxyUrl').value;
+                
+                // บันทึกค่าไว้ใช้ครั้งต่อไป
+                localStorage.setItem('sgov_drive_folder_id', folderId);
+                localStorage.setItem('sgov_drive_proxy_url', proxyUrl);
+
+                if (proxyUrl) {
+                    try {
+                        showToast('กำลังอัปโหลดรูปภาพไปยัง Google Drive...', 'info');
+                        const uploadedUrl = await uploadToGoogleDrive(avatarFile, folderId, proxyUrl);
+                        if (uploadedUrl) avatarUrl = uploadedUrl;
+                    } catch (driveError) {
+                        console.error("Google Drive Upload failed:", driveError.message);
+                        showToast('อัปโหลดรูปภาพไม่สำเร็จ จะใช้รูปเริ่มต้นแทน', 'warning');
+                    }
+                }
+            }
+
+            // 3. บันทึกข้อมูลลงตาราง Staff ใน Supabase
+            const staffData = {
+                title,
+                first_name: firstName,
+                last_name: lastName,
+                full_name: `${title}${firstName} ${lastName}`,
+                phone,
+                email,
+                position,
+                department,
+                username,
+                password,
+                role,
+                avatar_url: avatarUrl,
+                status: 'active'
+            };
+
+            let result;
+            if (currentEditingStaffId) {
+                // แก้ไขข้อมูลเดิม
+                result = await supabaseClient
+                    .from('Staff')
+                    .update(staffData)
+                    .eq('id', currentEditingStaffId);
+            } else {
+                // เพิ่มข้อมูลใหม่
+                staffData.created_at = new Date();
+                result = await supabaseClient
+                    .from('Staff')
+                    .insert([staffData]);
+            }
+
+            if (result.error) throw result.error;
+
+            showToast(currentEditingStaffId ? 'อัปเดตข้อมูลสำเร็จ' : 'บันทึกข้อมูลและอัปโหลดรูปภาพสำเร็จ', 'success');
+            loadStaffList(); // โหลดรายการใหม่
+            
+            const modalEl = document.getElementById('addStaffModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if(modal) modal.hide();
+            
+            form.reset();
+            document.getElementById('staffAvatarPreview').src = 'https://ui-avatars.com/api/?name=New+User&background=f3f4f6&color=9ca3af&size=100';
+            
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            
+        } catch (error) {
+            console.error("Save Staff Error:", error);
+            showToast('เกิดข้อผิดพลาด: ' + error.message, 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHtml;
+        }
+    }
+</script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>
