@@ -143,9 +143,34 @@ const STORAGE_KEYS = {
     feeHistory: 'waste_fee_history'
 };
 
+let stateSettings = null;
+async function fetchWasteSettings() {
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        const { data, error } = await supabaseClient.from('waste_settings').select('*').limit(1);
+        if (!error && data && data.length > 0) {
+            stateSettings = data[0];
+            localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(data[0]));
+            return;
+        }
+    }
+    stateSettings = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings) || '{}');
+}
+
 function initWasteData() {
-    if (!localStorage.getItem(STORAGE_KEYS.feeTypes)) localStorage.setItem(STORAGE_KEYS.feeTypes, JSON.stringify(WASTE_DEFAULT_FEE_TYPES));
-    if (!localStorage.getItem(STORAGE_KEYS.customers)) localStorage.setItem(STORAGE_KEYS.customers, JSON.stringify(WASTE_DEFAULT_CUSTOMERS));
+    if (!localStorage.getItem(STORAGE_KEYS.feeTypes)) {
+        if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+            localStorage.setItem(STORAGE_KEYS.feeTypes, JSON.stringify(WASTE_DEFAULT_FEE_TYPES));
+        } else {
+            localStorage.setItem(STORAGE_KEYS.feeTypes, JSON.stringify([]));
+        }
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.customers)) {
+        if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+            localStorage.setItem(STORAGE_KEYS.customers, JSON.stringify(WASTE_DEFAULT_CUSTOMERS));
+        } else {
+            localStorage.setItem(STORAGE_KEYS.customers, JSON.stringify([]));
+        }
+    }
     if (!localStorage.getItem(STORAGE_KEYS.payments)) localStorage.setItem(STORAGE_KEYS.payments, JSON.stringify(generateDefaultPayments()));
     if (!localStorage.getItem(STORAGE_KEYS.monthlyStatus)) localStorage.setItem(STORAGE_KEYS.monthlyStatus, JSON.stringify(generateDefaultMonthlyStatus()));
     if (!localStorage.getItem(STORAGE_KEYS.staff)) localStorage.setItem(STORAGE_KEYS.staff, JSON.stringify(WASTE_DEFAULT_STAFF));
@@ -221,9 +246,6 @@ async function saveWasteFeeTypesDB(dataList) {
             const { error } = await supabaseClient.from('waste_fee_types').upsert({ id: data.id, type: data.type, fee: data.fee });
             if (error) console.error('Error saving fee type to Supabase:', error);
         }
-        // Also handle deletions if necessary, but for simplicity we rely on local sync in this mode or we can delete records missing.
-        // Easiest is to delete all and insert, but upsert is safer. To handle deletes, we check differences.
-        // For now, save to localStorage as backup.
     }
     saveWasteData('feeTypes', dataList);
     stateFeeTypes = dataList;
@@ -235,7 +257,11 @@ function saveWasteFeeTypes(d) { saveWasteFeeTypesDB(d); }
 // Fallback logic for Customers
 async function fetchWasteCustomers() {
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        if (typeof fetchWasteFeeHistory === 'function') await fetchWasteFeeHistory();
+        if (typeof fetchWasteSettings === 'function') await fetchWasteSettings();
+        
         const { data, error } = await fetchAllFromSupabase('waste_customers', 'id', true);
+
         if (!error && data) {
             stateCustomers = data;
             return data;
@@ -248,14 +274,28 @@ async function fetchWasteCustomers() {
 }
 
 function getWasteCustomers() { 
-    return stateCustomers !== null ? stateCustomers : getWasteData('customers'); 
+    if (stateCustomers !== null) return stateCustomers;
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) return [];
+    return getWasteData('customers'); 
 }
 
 // ============================================
 // FEE HISTORY — ประวัติการเปลี่ยนแปลงค่าธรรมเนียม
 // ============================================
+let stateFeeHistory = null;
+async function fetchWasteFeeHistory() {
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        const { data, error } = await fetchAllFromSupabase('waste_fee_history', 'change_date', false);
+        if (!error && data) {
+            stateFeeHistory = data;
+            return;
+        }
+    }
+    stateFeeHistory = getWasteData('feeHistory');
+}
+
 function getFeeHistory(customerId) {
-    const all = getWasteData('feeHistory');
+    let all = stateFeeHistory !== null ? stateFeeHistory : getWasteData('feeHistory');
     if (!customerId) return all;
     return all.filter(h => h.customer_id === customerId);
 }
@@ -272,18 +312,28 @@ function addFeeHistoryEntry(customerId, oldFee, newFee, changeDate) {
     const fiscalYear = calMonth >= 9 ? String(calYear + 543 + 1) : String(calYear + 543);
 
     const entry = {
-        id: 'FH' + Date.now() + Math.random().toString(36).slice(-3),
         customer_id: customerId,
         old_fee: Number(oldFee),
         new_fee: Number(newFee),
         change_date: changeDate,
         effective_month: effectiveMonth,
-        effective_fiscal_year: fiscalYear,
-        created_at: new Date().toISOString()
+        effective_fiscal_year: fiscalYear
     };
+
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        supabaseClient.from('waste_fee_history').insert([entry]).then(({error}) => {
+            if (error) console.error('Error inserting fee history', error);
+            else fetchWasteFeeHistory(); // update state
+        });
+    }
+
+    entry.id = 'FH' + Date.now() + Math.random().toString(36).slice(-3);
+    entry.created_at = new Date().toISOString();
+    
     const all = getWasteData('feeHistory');
     all.push(entry);
     saveWasteData('feeHistory', all);
+    if (stateFeeHistory) stateFeeHistory.push(entry);
     return entry;
 }
 
@@ -523,7 +573,9 @@ function getMonthlyStatusLocal() {
 }
 
 function getMonthlyStatus() { 
-    return stateMonthlyStatus ? stateMonthlyStatus : getMonthlyStatusLocal();
+    if (stateMonthlyStatus) return stateMonthlyStatus;
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) return {};
+    return getMonthlyStatusLocal();
 }
 
 async function saveMonthlyStatusDB(customerId, fiscalYear, monthKey, status, paymentId) {

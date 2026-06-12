@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 2. Fetch fresh data in background
     const fetchTasks = [];
+    if (typeof fetchWasteSettings === 'function') fetchTasks.push(fetchWasteSettings());
+    if (typeof fetchWasteFeeHistory === 'function') fetchTasks.push(fetchWasteFeeHistory());
     if (typeof fetchWasteCustomers === 'function') fetchTasks.push(fetchWasteCustomers());
     if (typeof fetchMonthlyStatus === 'function') fetchTasks.push(fetchMonthlyStatus());
 
@@ -240,6 +242,11 @@ async function searchCustomer(isAuto = false) {
 
     // Small delay for UX
     await new Promise(r => setTimeout(r, 300));
+
+    // Force wait for real data if not loaded yet
+    if (typeof stateCustomers !== 'undefined' && stateCustomers === null && typeof fetchWasteCustomers === 'function') {
+        await fetchWasteCustomers();
+    }
 
     const allCustomers = typeof getWasteCustomers === 'function' ? getWasteCustomers() : [];
     let matches = [];
@@ -641,20 +648,59 @@ function saveQRCodeImage() {
         return;
     }
 
+    cwToast('กำลังสร้างรูปภาพ...', 'info');
+
     html2canvas(container, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff'
-    }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = `QR_Payment_WasteFee_${new Date().getTime()}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        cwToast('บันทึกรูปลงในเครื่องสำเร็จ!', 'success');
+    }).then(async canvas => {
+        const dataUrl = canvas.toDataURL('image/png');
+        const filename = `QR_Payment_Waste_${new Date().getTime()}.png`;
+        
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isLineApp = /Line/i.test(navigator.userAgent);
+
+        try {
+            const blob = await (await fetch(dataUrl)).blob();
+            const file = new File([blob], filename, { type: 'image/png' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'QR Code ชำระเงิน'
+                });
+                return; // Completed share
+            }
+        } catch (e) {
+            console.log('Web Share skipped:', e);
+        }
+
+        if (isIOS || isLineApp) {
+            // Show image for long-press
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'บันทึกรูป QR Code',
+                    html: `
+                        <p class="text-muted small mb-3">ระบบ iOS ไม่รองรับการดาวน์โหลดอัตโนมัติ<br>กรุณา <b>แตะค้างที่รูปภาพด้านล่าง</b><br>แล้วเลือก <b>"บันทึกรูปภาพ"</b> หรือ "Save Image"</p>
+                        <img src="${dataUrl}" class="img-fluid rounded shadow-sm border" style="max-height: 55vh; object-fit: contain;">
+                    `,
+                    confirmButtonText: 'ปิดหน้าต่าง',
+                    confirmButtonColor: '#198754'
+                });
+            }
+        } else {
+            // PC / Standard Android
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = dataUrl;
+            link.click();
+            cwToast('บันทึกรูปลงในเครื่องสำเร็จ!', 'success');
+        }
     }).catch(err => {
         console.error('Error saving QR code:', err);
-        cwToast('ไม่สามารถบันทึกรูปภาพได้', 'danger');
+        cwToast('ไม่สามารถสร้างรูปภาพได้', 'danger');
     });
 }
 
