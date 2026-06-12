@@ -132,7 +132,7 @@ function buildSidebar(activeKey) {
 
     const localSettings = JSON.parse(localStorage.getItem('waste_settings') || '{}');
     const orgName = localSettings.org_name || '';
-    const logoUrl = localSettings.logo_url || 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w200';
+    const logoUrl = localSettings.org_logo || 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w200';
 
     sidebar.innerHTML = `
         <div class="sidebar-header d-flex flex-column align-items-center text-center">
