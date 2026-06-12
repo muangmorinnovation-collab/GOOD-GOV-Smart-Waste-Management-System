@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตั้งค่าระบบค่าธรรมเนียมขยะ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .settings-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .settings-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .settings-header h6 {
+            margin: 0;
+            font-weight: 700;
+            color: #334155;
+        }
+        .settings-body {
+            padding: 24px;
+        }
+        .img-preview {
+            width: 100%;
+            max-width: 250px;
+            height: auto;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 8px;
+            background: #f8fafc;
+            display: none;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ตั้งค่าระบบค่าธรรมเนียมขยะ"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-gear text-success me-2"></i>ตั้งค่าระบบค่าขยะ</h4>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                        <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                        <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                        <li class="breadcrumb-item"><a href="waste-dashboard.html" class="text-decoration-none">ค่าธรรมเนียมขยะ</a></li>
+                        <li class="breadcrumb-item active">ตั้งค่า</li>
+                    </ol>
+                </nav>
+            </div>
+            <div>
+                <button class="btn btn-success fw-bold px-4 rounded-pill shadow-sm" onclick="saveSettings()">
+                    <i class="fa-solid fa-save me-2"></i>บันทึกการตั้งค่า
+                </button>
+            </div>
+        </div>
+
+        <form id="settingsForm" class="fade-in-up">
+            <div class="row">
+                <!-- Section 1: Organization Settings -->
+                <div class="col-lg-6">
+                    <div class="settings-card">
+                        <div class="settings-header">
+                            <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <i class="fa-solid fa-building"></i>
+                            </div>
+                            <h6>ตั้งค่าหน่วยงาน</h6>
+                        </div>
+                        <div class="settings-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">ชื่อหน่วยงาน</label>
+                                <input type="text" class="form-control" id="orgName" placeholder="เช่น เทศบาลตำบลสมาร์ทคอนเน็ค">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">ที่อยู่</label>
+                                <textarea class="form-control" id="orgAddress" rows="2" placeholder="ที่อยู่หน่วยงานสำหรับการออกใบแจ้งหนี้"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">เบอร์ติดต่องานจัดเก็บรายได้ กองคลัง</label>
+                                <input type="text" class="form-control" id="orgPhone" placeholder="เบอร์โทรศัพท์สำหรับติดต่อ">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Logo หน่วยงาน</label>
+                                <input class="form-control" type="file" id="orgLogoFile" accept="image/png, image/jpeg" onchange="previewImage(this, 'orgLogoPreview')">
+                                <div class="text-muted small mt-1">ไฟล์ภาพขนาดไม่เกิน 2MB รองรับ PNG, JPG</div>
+                                <img id="orgLogoPreview" class="img-preview" alt="Logo Preview">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2 & 3: Document & Envelope Settings -->
+                <div class="col-lg-6">
+                    <!-- Document Settings -->
+                    <div class="settings-card">
+                        <div class="settings-header">
+                            <div class="bg-warning bg-opacity-10 text-warning p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <i class="fa-solid fa-file-signature"></i>
+                            </div>
+                            <h6>ตั้งค่าหนังสือใบแจ้งหนี้/ทวงหนี้</h6>
+                        </div>
+                        <div class="settings-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">เลขหนังสือ</label>
+                                <input type="text" class="form-control" id="docInvoiceNo" placeholder="ตัวอย่าง: ที่ สน 12345/ว">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">ชื่อผู้ลงนามในหนังสือทวงหนี้</label>
+                                <input type="text" class="form-control" id="mayorName" placeholder="ชื่อ นามสกุล">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">ตำแหน่งผู้ลงนามในหนังสือทวงหนี้</label>
+                                <input type="text" class="form-control" id="mayorTitle" placeholder="ตำแหน่ง">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">ลายเซ็นนายก</label>
+                                <input class="form-control" type="file" id="mayorSignatureFile" accept="image/png, image/jpeg" onchange="previewImage(this, 'mayorSignaturePreview')">
+                                <div class="text-muted small mt-1">ไฟล์ภาพลายเซ็น (แนะนำภาพพื้นหลังโปร่งใส PNG) ไม่เกิน 2MB</div>
+                                <img id="mayorSignaturePreview" class="img-preview" alt="Signature Preview">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Settings -->
+                    <div class="settings-card">
+                        <div class="settings-header">
+                            <div class="bg-success bg-opacity-10 text-success p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <i class="fa-solid fa-money-bill-wave"></i>
+                            </div>
+                            <h6>ตั้งค่าระบบรับชำระ</h6>
+                        </div>
+                        <div class="settings-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">QRCODE ระบบชำระค่าธรรมเนียมขยะ<br><small class="text-muted">(ระบบหน้าบ้านสำหรับประชาชน)</small></label>
+                                <input class="form-control" type="file" id="qrCodeFile" accept="image/png, image/jpeg" onchange="previewImage(this, 'qrCodePreview')">
+                                <div class="text-muted small mt-1">ไฟล์ภาพ QR Code รับชำระเงิน ไม่เกิน 2MB</div>
+                                <img id="qrCodePreview" class="img-preview" alt="QR Code Preview">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">QRCODE พร้อมเพย์</label>
+                                <input class="form-control" type="file" id="qrCodePromptPayFile" accept="image/png, image/jpeg" onchange="previewImage(this, 'qrCodePromptPayPreview')">
+                                <div class="text-muted small mt-1">ไฟล์ภาพ QR Code รับชำระเงิน (PromptPay) ไม่เกิน 2MB</div>
+                                <img id="qrCodePromptPayPreview" class="img-preview" alt="PromptPay Preview">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">เลขบัญชีธนาคาร</label>
+                                <input type="text" class="form-control" id="bankAccount" placeholder="เช่น 123-4-56789-0">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label fw-semibold">ชื่อบัญชี</label>
+                                    <input type="text" class="form-control" id="bankAccountName" placeholder="เช่น เทศบาลตำบล...">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">ธนาคาร</label>
+                                    <input type="text" class="form-control" id="bankName" placeholder="เช่น กรุงไทย">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">สาขา</label>
+                                    <input type="text" class="form-control" id="bankBranch" placeholder="เช่น สาขาเมือง">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Envelope Settings -->
+                    <div class="settings-card">
+                        <div class="settings-header">
+                            <div class="bg-info bg-opacity-10 text-info p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <i class="fa-solid fa-envelope"></i>
+                            </div>
+                            <h6>ตั้งค่าหน้าซองจดหมาย</h6>
+                        </div>
+                        <div class="settings-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">ใบอนุญาตินำส่งเลขที่</label>
+                                    <input type="text" class="form-control" id="envLicenseNo" placeholder="เลขที่ใบอนุญาต">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">ไปรษณีย์</label>
+                                    <input type="text" class="form-control" id="envPostOffice" placeholder="สาขาไปรษณีย์ที่นำส่ง">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Technical Settings (Optional/Hidden unless needed) -->
+                    <div class="settings-card">
+                        <div class="settings-header">
+                            <div class="bg-secondary bg-opacity-10 text-secondary p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <i class="fa-solid fa-code"></i>
+                            </div>
+                            <h6>การเชื่อมต่อระบบ (สำหรับนักพัฒนา)</h6>
+                        </div>
+                        <div class="settings-body">
+                            <div class="mb-0">
+                                <label class="form-label fw-semibold">Google Apps Script Web App URL (สำหรับอัปโหลดภาพ)</label>
+                                <input type="text" class="form-control" id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec">
+                                <div class="text-muted small mt-1">URL สคริปต์ที่ใช้สำหรับบันทึกภาพลง Google Drive โฟลเดอร์ที่กำหนด</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/waste.js"></script>
+<script src="assets/js/waste-settings.js"></script>
+</body>
+</html>

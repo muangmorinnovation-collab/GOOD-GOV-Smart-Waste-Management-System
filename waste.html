@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบค่าธรรมเนียมขยะ (Waste Fee) - เทศบาลอัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ระบบจัดการค่าธรรมเนียมเก็บขนขยะมูลฝอย"></div>
+    <div class="page-content">
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">ระบบค่าธรรมเนียมเก็บขนขยะมูลฝอย</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item active">ค่าธรรมเนียมขยะ</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-danger" onclick="showToast('ส่ง LINE แจ้งเตือนค้างชำระ 128 ราย สำเร็จ','success')">
+                    <i class="fa-brands fa-line me-1"></i>แจ้งเตือนค้างชำระ
+                </button>
+                <button class="btn btn-sm btn-outline-success" onclick="showToast('Export รายงาน e-LAAS สำเร็จ','info')">
+                    <i class="fa-solid fa-file-excel me-1"></i>Export
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ครัวเรือนทั้งหมด</div><div class="kpi-value">4,210</div></div><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-house-chimney"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ชำระแล้วเดือนนี้</div><div class="kpi-value text-success">4,082</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-circle-check"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ค้างชำระ (ราย)</div><div class="kpi-value text-danger">128</div></div><div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-clock"></i></div></div></div></div>
+            <div class="col-6 col-xl-3"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">รายได้เดือนนี้ (บาท)</div><div class="kpi-value text-primary">168K</div></div><div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-coins"></i></div></div></div></div>
+        </div>
+
+        <!-- Field Worker Banner -->
+        <div class="card mb-4 fade-in-up" style="background:linear-gradient(135deg,#057a55,#10b981);">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3 text-white">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="fa-solid fa-mobile-screen-button me-2"></i>โหมดพนักงานภาคสนาม</h5>
+                    <p class="mb-0" style="opacity:0.85;">สแกน QR Code หน้าบ้านเพื่อรับชำระเงิน และออกใบเสร็จดิจิทัลทันที</p>
+                </div>
+                <button class="btn btn-light fw-bold text-success rounded-pill px-4 shadow" onclick="showToast('เปิดกล้องสแกน QR Code...','info')">
+                    <i class="fa-solid fa-qrcode me-2"></i>เปิดกล้องสแกน
+                </button>
+            </div>
+        </div>
+
+        <!-- Household Table -->
+        <div class="card">
+            <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-list-check text-success me-2"></i>ทะเบียนครัวเรือนและสถานะการชำระเงิน</h6>
+                <div class="d-flex gap-2">
+                    <input class="form-control form-control-sm" style="width:180px;" placeholder="ค้นหาบ้านเลขที่ / ชื่อ...">
+                    <select class="form-select form-select-sm" style="width:auto;">
+                        <option>ทุกหมู่</option>
+                        <option>หมู่ 1</option>
+                        <option>หมู่ 2</option>
+                        <option>หมู่ 3</option>
+                    </select>
+                    <select class="form-select form-select-sm" style="width:auto;">
+                        <option>ทุกประเภท</option>
+                        <option>บ้านเรือน</option>
+                        <option>ร้านค้า</option>
+                        <option>โรงงาน</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">บ้านเลขที่</th><th>ชื่อเจ้าบ้าน</th><th>ประเภท</th>
+                            <th class="text-end">ค่าธรรมเนียม</th><th>สถานะ</th><th>รอบล่าสุด</th><th class="pe-4">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="ps-4 fw-bold">12/1 ม.1</td><td>นายสมควร ขยัน</td>
+                            <td><span class="badge" style="background:#f0fdf4;color:#14532d;">บ้านเรือน</span></td>
+                            <td class="text-end fw-semibold">฿40/เดือน</td>
+                            <td><span class="badge bg-success">ชำระแล้ว</span></td>
+                            <td class="text-xs text-muted">เม.ย. 2026</td>
+                            <td class="pe-4">
+                                <button class="btn btn-xs btn-outline-secondary" onclick="showToast('พิมพ์ใบเสร็จ 12/1 หมู่ 1','info')"><i class="fa-solid fa-print"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4 fw-bold">12/2 ม.1</td><td>นางสมหญิง รักสะอาด</td>
+                            <td><span class="badge" style="background:#fef9c3;color:#713f12;">ร้านค้าเล็ก</span></td>
+                            <td class="text-end fw-semibold">฿120/เดือน</td>
+                            <td><span class="badge bg-danger">ค้าง 3 เดือน (฿360)</span></td>
+                            <td class="text-xs text-muted">ม.ค. 2026</td>
+                            <td class="pe-4">
+                                <button class="btn btn-xs btn-success" onclick="showToast('เปิดหน้ารับชำระ 12/2 หมู่ 1','info')">
+                                    <i class="fa-solid fa-hand-holding-dollar me-1"></i>รับชำระ
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4 fw-bold">15/5 ม.2</td><td>บจก. เจริญพาณิชย์</td>
+                            <td><span class="badge" style="background:#fef2f2;color:#991b1b;">โรงงาน</span></td>
+                            <td class="text-end fw-semibold">฿2,500/เดือน</td>
+                            <td><span class="badge bg-warning text-dark">รอยืนยันโอน</span></td>
+                            <td class="text-xs text-muted">มี.ค. 2026</td>
+                            <td class="pe-4">
+                                <button class="btn btn-xs btn-outline-primary" onclick="showToast('ตรวจสอบสลิปโอนเงิน','info')">
+                                    <i class="fa-solid fa-file-invoice"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4 fw-bold">33/1 ม.3</td><td>นางประนอม ใจบุญ</td>
+                            <td><span class="badge" style="background:#f0fdf4;color:#14532d;">บ้านเรือน</span></td>
+                            <td class="text-end fw-semibold">฿40/เดือน</td>
+                            <td><span class="badge bg-success">ชำระแล้ว</span></td>
+                            <td class="text-xs text-muted">เม.ย. 2026</td>
+                            <td class="pe-4">
+                                <button class="btn btn-xs btn-outline-secondary" onclick="showToast('พิมพ์ใบเสร็จ 33/1 หมู่ 3','info')"><i class="fa-solid fa-print"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-body border-top py-3 d-flex justify-content-between align-items-center">
+                <span class="text-xs text-muted">แสดง 4 จาก 4,210 รายการ</span>
+                <nav><ul class="pagination pagination-sm mb-0">
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                </ul></nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/app.js"></script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>

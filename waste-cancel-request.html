@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำขอยกเลิกบริการ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="คำขอยกเลิกค่าธรรมเนียมขยะ"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-user-minus text-danger me-2"></i>คำขอยกเลิกบริการ</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item"><a href="waste-dashboard.html" class="text-decoration-none">ค่าธรรมเนียมขยะ</a></li>
+                    <li class="breadcrumb-item active">คำขอยกเลิก</li>
+                </ol></nav>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-4"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">รอตรวจสอบ</div><div class="kpi-value text-warning" id="canPending">-</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-clock"></i></div></div></div></div>
+            <div class="col-6 col-lg-4"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">อนุมัติแล้ว</div><div class="kpi-value text-success" id="canApproved">-</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-check"></i></div></div></div></div>
+            <div class="col-6 col-lg-4"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ปฏิเสธ</div><div class="kpi-value text-danger" id="canRejected">-</div></div><div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-xmark"></i></div></div></div></div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+            <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-list text-danger me-2"></i>รายการคำขอยกเลิก</h6></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr>
+                            <th class="ps-4">เลขคำขอ</th><th>ชื่อ</th><th>บ้านเลขที่</th><th>เหตุผล</th>
+                            <th>วันที่ยื่น</th><th>สถานะ</th><th class="pe-4 text-center">จัดการ</th>
+                        </tr></thead>
+                        <tbody id="canTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/waste.js"></script>
+<script src="assets/js/responsive.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async function() { 
+    initWasteData(); 
+    if (typeof fetchCancelRequestsDB === 'function') await fetchCancelRequestsDB();
+    if (typeof fetchWasteCustomers === 'function') await fetchWasteCustomers();
+    renderCancelRequests(); 
+});
+
+function renderCancelRequests() {
+    const reqs = getCancelRequests();
+    document.getElementById('canPending').textContent = reqs.filter(r=>r.status==='pending').length;
+    document.getElementById('canApproved').textContent = reqs.filter(r=>r.status==='approved').length;
+    document.getElementById('canRejected').textContent = reqs.filter(r=>r.status==='rejected').length;
+
+    const reasonBadge = r => {
+        const colors = {'ย้ายออก':'bg-info','ไม่มีผู้อยู่อาศัย':'bg-secondary','รื้อถอนอาคาร':'bg-dark','อื่นๆ':'bg-light text-dark'};
+        return `<span class="badge ${colors[r]||'bg-light text-dark'}">${r}</span>`;
+    };
+
+    const tbody = document.getElementById('canTableBody');
+    tbody.innerHTML = reqs.map(r => `<tr>
+        <td class="ps-4 fw-semibold text-xs">${r.id}</td>
+        <td>${r.name}</td><td>${r.house_no}</td>
+        <td>${reasonBadge(r.reason)}</td>
+        <td class="text-xs text-muted">${r.date}</td>
+        <td><span class="badge ${r.status==='pending'?'bg-warning text-dark':r.status==='approved'?'bg-success':'bg-danger'}">${r.status==='pending'?'รอตรวจสอบ':r.status==='approved'?'อนุมัติแล้ว':'ปฏิเสธ'}</span></td>
+        <td class="pe-4 text-center">${r.status==='pending'?`
+            <button class="btn btn-xs btn-success me-1" onclick="approveCan('${r.id}')"><i class="fa-solid fa-check me-1"></i>อนุมัติ</button>
+            <button class="btn btn-xs btn-outline-danger" onclick="rejectCan('${r.id}')"><i class="fa-solid fa-xmark"></i></button>
+        `:'<span class="text-xs text-muted">ดำเนินการแล้ว</span>'}</td>
+    </tr>`).join('');
+}
+
+function approveCan(id) {
+    Swal.fire({title:'อนุมัติยกเลิก?',text:'ระบบจะเปลี่ยนสถานะลูกค้าเป็น "ยกเลิก"',icon:'warning',showCancelButton:true,confirmButtonText:'อนุมัติ',confirmButtonColor:'#c81e1e'}).then(async result => {
+        if (result.isConfirmed) {
+            const reqs = typeof getCancelRequests === 'function' ? getCancelRequests() : [];
+            const r = reqs.find(x => x.id === id);
+            if (!r) return;
+            r.status = 'approved';
+            if (typeof saveCancelRequestDB === 'function') await saveCancelRequestDB(r);
+            else saveCancelRequests(reqs);
+            
+            // Update customer status
+            const customers = typeof getWasteCustomers === 'function' ? getWasteCustomers() : [];
+            let targetCustomer = null;
+            if (r.customer_id) {
+                targetCustomer = customers.find(x => x.id === r.customer_id);
+            } else {
+                targetCustomer = customers.find(x => x.house_no === r.house_no && x.moo === r.moo);
+            }
+            if (targetCustomer) { 
+                targetCustomer.status = 'cancelled'; 
+                if (typeof saveWasteCustomerDB === 'function') await saveWasteCustomerDB(targetCustomer);
+                else saveWasteCustomers(customers); 
+            }
+            showToast('อนุมัติยกเลิกสำเร็จ','success');
+            renderCancelRequests();
+        }
+    });
+}
+
+function rejectCan(id) {
+    Swal.fire({title:'ปฏิเสธคำขอยกเลิก?',input:'text',inputPlaceholder:'เหตุผล...',showCancelButton:true,confirmButtonColor:'#c81e1e',confirmButtonText:'ปฏิเสธ'}).then(async result => {
+        if (result.isConfirmed) {
+            const reqs = typeof getCancelRequests === 'function' ? getCancelRequests() : [];
+            const req = reqs.find(x => x.id === id);
+            if (req) { 
+                req.status = 'rejected'; 
+                req.note = result.value||''; 
+                if (typeof saveCancelRequestDB === 'function') await saveCancelRequestDB(req);
+                else saveCancelRequests(reqs); 
+            }
+            showToast('ปฏิเสธคำขอแล้ว','warning');
+            renderCancelRequests();
+        }
+    });
+}
+</script>
+</body>
+</html>

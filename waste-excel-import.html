@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Excel Import - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="assets/css/waste-excel-import.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="Smart Excel Import — นำเข้าข้อมูลการชำระจาก Excel"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-file-excel text-success me-2"></i>Smart Excel Import</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item"><a href="waste-dashboard.html" class="text-decoration-none">ค่าธรรมเนียมขยะ</a></li>
+                    <li class="breadcrumb-item active">Smart Excel Import</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-success fw-semibold" onclick="exportImportTemplate()"><i class="fa-solid fa-download me-1"></i>โหลดแบบฟอร์มนำเข้า (จากฐานข้อมูล)</button>
+            </div>
+        </div>
+
+        <!-- Steps -->
+        <div class="import-steps" id="stepIndicator">
+            <div class="import-step active" id="step1"><span class="step-num">1</span> อัปโหลด</div>
+            <div class="import-step-line"></div>
+            <div class="import-step" id="step2"><span class="step-num">2</span> ตรวจสอบ</div>
+            <div class="import-step-line"></div>
+            <div class="import-step" id="step3"><span class="step-num">3</span> นำเข้า</div>
+            <div class="import-step-line"></div>
+            <div class="import-step" id="step4"><span class="step-num">4</span> ประวัติ</div>
+        </div>
+
+        <!-- Tab Nav -->
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item"><a class="nav-link active fw-semibold" data-bs-toggle="tab" href="#tabUpload"><i class="fa-solid fa-cloud-arrow-up me-1"></i>อัปโหลดไฟล์</a></li>
+            <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#tabPreview" id="tabPreviewLink"><i class="fa-solid fa-table me-1"></i>ตรวจสอบข้อมูล</a></li>
+            <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#tabHistory"><i class="fa-solid fa-clock-rotate-left me-1"></i>ประวัติการนำเข้า</a></li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Tab 1: Upload -->
+            <div class="tab-pane fade show active" id="tabUpload">
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <div class="card"><div class="card-body p-4">
+                            <div class="import-dropzone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileSelect(event)">
+                                <i class="fa-solid fa-cloud-arrow-up drop-icon d-block"></i>
+                                <div class="drop-text">ลากไฟล์มาวาง หรือ คลิกเพื่อเลือกไฟล์</div>
+                                <div class="drop-subtext">รองรับ .xlsx, .xls, .csv (สูงสุด 50MB)</div>
+                            </div>
+                            <div id="fileInfo" class="mt-3" style="display:none"></div>
+                        </div></div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card"><div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-cog text-primary me-2"></i>ตั้งค่าการนำเข้า</h6></div>
+                        <div class="card-body">
+                            <label class="form-label fw-semibold text-sm">ปีงบประมาณ</label>
+                            <select class="form-select form-select-sm mb-3" id="cfgYear"></select>
+                            <label class="form-label fw-semibold text-sm">หมู่บ้าน (ไม่ระบุ = ตรวจจับอัตโนมัติ)</label>
+                            <select class="form-select form-select-sm mb-3" id="cfgMoo"><option value="">อัตโนมัติ</option></select>
+                            <label class="form-label fw-semibold text-sm">เลือก Sheet</label>
+                            <div id="sheetSelector" class="sheet-tabs mb-3"><span class="text-muted text-xs">ยังไม่ได้เลือกไฟล์</span></div>
+                            <button class="btn btn-primary w-100 fw-semibold" id="btnAnalyze" disabled onclick="analyzeFile()"><i class="fa-solid fa-magnifying-glass-chart me-1"></i>วิเคราะห์ข้อมูล</button>
+                        </div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Preview -->
+            <div class="tab-pane fade" id="tabPreview">
+                <div class="row g-3 mb-4" id="validationSummary"></div>
+                <div class="card mb-3"><div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="badge confidence-high">● พร้อมนำเข้า</span>
+                            <span class="badge confidence-medium">● ต้องตรวจสอบ</span>
+                            <span class="badge confidence-none">● ไม่สามารถนำเข้า</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="downloadErrorReport()"><i class="fa-solid fa-download me-1"></i>Error Report</button>
+                            <button class="btn btn-sm btn-success fw-semibold" id="btnImport" onclick="startImport()"><i class="fa-solid fa-file-import me-1"></i>นำเข้าข้อมูล</button>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <label class="form-label mb-0 text-xs fw-semibold text-muted me-1">กรองสถานะ:</label>
+                            <select class="form-select form-select-sm" id="filterStatus" onchange="applyFilter()" style="width:auto;font-size:0.78rem">
+                                <option value="ALL">ทั้งหมด</option>
+                                <option value="SUCCESS">✓ พร้อมนำเข้า</option>
+                                <option value="WARNING">⚠ ต้องตรวจสอบ</option>
+                                <option value="ERROR">✗ ไม่สามารถนำเข้า</option>
+                            </select>
+                            <span class="text-xs text-muted ms-2" id="filterCount"></span>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <button class="btn btn-sm btn-outline-success" onclick="approveAllWarnings()" id="btnApproveAll" style="display:none"><i class="fa-solid fa-check-double me-1"></i>อนุมัติทั้งหมด <span class="badge bg-warning text-dark ms-1" id="warningCountBadge">0</span></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="unapproveAllWarnings()" id="btnUnapproveAll" style="display:none"><i class="fa-solid fa-xmark me-1"></i>ยกเลิกอนุมัติทั้งหมด</button>
+                            <span class="text-xs fw-semibold" id="approvedCount" style="display:none"><i class="fa-solid fa-circle-check text-success me-1"></i>อนุมัติแล้ว: <span id="approvedNum">0</span></span>
+                        </div>
+                    </div>
+                </div></div>
+                <div id="importProgressWrap" style="display:none" class="mb-3">
+                    <div class="d-flex justify-content-between mb-1"><span class="text-sm fw-semibold" id="progressLabel">กำลังนำเข้า...</span><span class="text-sm" id="progressPct">0%</span></div>
+                    <div class="import-progress-wrap"><div class="import-progress-bar" id="progressBar" style="width:0%"></div></div>
+                </div>
+                <div class="card"><div class="card-body p-0"><div class="table-responsive" style="max-height:500px;overflow-y:auto">
+                    <table class="table table-hover import-preview-table mb-0">
+                        <thead><tr>
+                            <th class="ps-2 text-center" style="width:36px"><input type="checkbox" id="chkAll" onchange="toggleAllChecks(this.checked)" title="เลือกทั้งหมด"></th>
+                            <th>แถว</th><th>บ้านเลขที่</th><th>ชื่อ (Excel)</th><th>ลูกค้าที่พบ</th><th>หมู่</th>
+                            <th>ต.ค.</th><th>พ.ย.</th><th>ธ.ค.</th><th>ม.ค.</th><th>ก.พ.</th><th>มี.ค.</th>
+                            <th>เม.ย.</th><th>พ.ค.</th><th>มิ.ย.</th><th>ก.ค.</th><th>ส.ค.</th><th>ก.ย.</th>
+                            <th>ความมั่นใจ</th><th>สถานะ</th><th>ปัญหา</th>
+                        </tr></thead>
+                        <tbody id="previewBody"><tr><td colspan="21" class="text-center py-4 text-muted">ยังไม่มีข้อมูล กรุณาอัปโหลดและวิเคราะห์ไฟล์ก่อน</td></tr></tbody>
+                    </table>
+                </div></div></div>
+            </div>
+
+            <!-- Tab 3: History -->
+            <div class="tab-pane fade" id="tabHistory">
+                <div class="card"><div class="card-body p-0"><div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr>
+                            <th class="ps-3">วันที่</th><th>ไฟล์</th><th>ผู้นำเข้า</th><th>ทั้งหมด</th>
+                            <th>สำเร็จ</th><th>ผิดพลาด</th><th>สถานะ</th><th class="pe-3 text-center">จัดการ</th>
+                        </tr></thead>
+                        <tbody id="historyBody"><tr><td colspan="8" class="text-center py-4 text-muted">ยังไม่มีประวัติ</td></tr></tbody>
+                    </table>
+                </div></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/waste.js"></script>
+<script src="assets/js/waste-excel-engine.js"></script>
+<script src="assets/js/responsive.js"></script>
+<script src="assets/js/waste-excel-import-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เจ้าหน้าที่รับชำระ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="ข้อมูลเจ้าหน้าที่รับชำระค่าธรรมเนียมขยะ"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-users-gear text-primary me-2"></i>เจ้าหน้าที่รับชำระ</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item"><a href="waste-dashboard.html" class="text-decoration-none">ค่าธรรมเนียมขยะ</a></li>
+                    <li class="breadcrumb-item active">เจ้าหน้าที่</li>
+                </ol></nav>
+            </div>
+            <button class="btn btn-sm btn-primary fw-semibold" onclick="openAddStaff()"><i class="fa-solid fa-plus me-1"></i>เพิ่มเจ้าหน้าที่</button>
+        </div>
+
+        <div class="row g-3" id="staffCards"></div>
+    </div>
+</div>
+
+<!-- Staff Modal -->
+<div class="modal fade" id="staffModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header border-bottom"><h5 class="modal-title fw-bold" id="staffModalTitle"><i class="fa-solid fa-user-plus text-primary me-2"></i>เพิ่มเจ้าหน้าที่</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body p-4">
+                <form id="staffForm" onsubmit="saveStaff(event)">
+                    <input type="hidden" id="sEditId">
+                    <div class="row g-3">
+                        <div class="col-12"><label class="form-label fw-semibold text-sm">ชื่อ-สกุล <span class="text-danger">*</span></label><input type="text" class="form-control" id="sName" required></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold text-sm">ตำแหน่ง</label><input type="text" class="form-control" id="sPosition"></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold text-sm">Username</label><input type="text" class="form-control" id="sUsername"></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold text-sm">สิทธิ์</label><select class="form-select" id="sRole"><option>Admin</option><option>Finance Officer</option><option>Collector</option></select></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold text-sm">เบอร์โทร</label><input type="text" class="form-control" id="sPhone"></div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-sm">รูปภาพประจำตัว</label>
+                            <input type="file" class="form-control form-control-sm" id="sProfileImage" accept="image/*" onchange="previewImage(this, 'profilePreview')">
+                            <div class="mt-2 text-center"><img id="profilePreview" src="" style="max-height: 100px; display: none; border-radius: 8px; border: 1px solid #ddd;"></div>
+                            <input type="hidden" id="sProfileImageUrl">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-sm">ภาพลายเซ็น</label>
+                            <input type="file" class="form-control form-control-sm" id="sSignatureImage" accept="image/*" onchange="previewImage(this, 'signaturePreview')">
+                            <div class="mt-2 text-center"><img id="signaturePreview" src="" style="max-height: 100px; display: none; border-radius: 8px; border: 1px solid #ddd;"></div>
+                            <input type="hidden" id="sSignatureImageUrl">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-save me-1"></i>บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/waste.js"></script>
+<script src="assets/js/responsive.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async function() { 
+    initWasteData(); 
+    await fetchWasteStaff();
+    renderStaff(); 
+});
+
+function renderStaff() {
+    const staff = getWasteStaff();
+    const roleBadge = r => r==='Admin'?'bg-danger':r==='Finance Officer'?'bg-primary':'bg-success';
+    document.getElementById('staffCards').innerHTML = staff.map(s => `
+        <div class="col-md-6 col-lg-4">
+            <div class="card hover-lift">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        ${s.profile_image_url 
+                            ? `<img src="${s.profile_image_url}" alt="Profile" style="width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb;">`
+                            : `<div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#1a56db,#3b82f6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;font-weight:700;">
+                                ${s.name.charAt(0)}
+                               </div>`
+                        }
+                        <div>
+                            <h6 class="fw-bold mb-0">${s.name}</h6>
+                            <span class="text-xs text-muted">${s.position||'-'}</span>
+                        </div>
+                    </div>
+                    <div class="mb-2"><span class="text-xs text-muted">Username:</span> <span class="text-sm fw-semibold">${s.username||'-'}</span></div>
+                    <div class="mb-2"><span class="text-xs text-muted">เบอร์โทร:</span> <span class="text-sm">${s.phone||'-'}</span></div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <span class="badge ${roleBadge(s.role)} me-1">${s.role}</span>
+                            <span class="badge ${s.status==='active'?'bg-success':'bg-secondary'}">${s.status==='active'?'ใช้งาน':'ปิดใช้งาน'}</span>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-xs btn-outline-primary" onclick="editStaff('${s.id}')" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+                            <button class="btn btn-xs btn-outline-warning" onclick="resetPassword('${s.id}')" title="Reset Password"><i class="fa-solid fa-key"></i></button>
+                            <button class="btn btn-xs btn-outline-${s.status==='active'?'danger':'success'}" onclick="toggleStaff('${s.id}')" title="${s.status==='active'?'ปิดใช้งาน':'เปิดใช้งาน'}">
+                                <i class="fa-solid fa-${s.status==='active'?'ban':'check'}"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function openAddStaff() {
+    document.getElementById('sEditId').value = '';
+    document.getElementById('staffModalTitle').innerHTML = '<i class="fa-solid fa-user-plus text-primary me-2"></i>เพิ่มเจ้าหน้าที่';
+    document.getElementById('staffForm').reset();
+    document.getElementById('profilePreview').style.display = 'none';
+    document.getElementById('profilePreview').src = '';
+    document.getElementById('sProfileImageUrl').value = '';
+    document.getElementById('signaturePreview').style.display = 'none';
+    document.getElementById('signaturePreview').src = '';
+    document.getElementById('sSignatureImageUrl').value = '';
+    new bootstrap.Modal(document.getElementById('staffModal')).show();
+}
+
+function editStaff(id) {
+    const s = getWasteStaff().find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('sEditId').value = s.id;
+    document.getElementById('staffModalTitle').innerHTML = '<i class="fa-solid fa-pen text-warning me-2"></i>แก้ไขเจ้าหน้าที่';
+    document.getElementById('sName').value = s.name;
+    document.getElementById('sPosition').value = s.position||'';
+    document.getElementById('sUsername').value = s.username||'';
+    document.getElementById('sRole').value = s.role;
+    document.getElementById('sPhone').value = s.phone||'';
+    
+    if (s.profile_image_url) {
+        document.getElementById('profilePreview').src = s.profile_image_url;
+        document.getElementById('profilePreview').style.display = 'inline-block';
+        document.getElementById('sProfileImageUrl').value = s.profile_image_url;
+    } else {
+        document.getElementById('profilePreview').style.display = 'none';
+        document.getElementById('sProfileImageUrl').value = '';
+    }
+    
+    if (s.signature_image_url) {
+        document.getElementById('signaturePreview').src = s.signature_image_url;
+        document.getElementById('signaturePreview').style.display = 'inline-block';
+        document.getElementById('sSignatureImageUrl').value = s.signature_image_url;
+    } else {
+        document.getElementById('signaturePreview').style.display = 'none';
+        document.getElementById('sSignatureImageUrl').value = '';
+    }
+    
+    new bootstrap.Modal(document.getElementById('staffModal')).show();
+}
+
+function getBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
+
+function previewImage(input, previewId) {
+    const preview = document.getElementById(previewId);
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'inline-block';
+        }
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.src = '';
+        preview.style.display = 'none';
+    }
+}
+
+async function saveStaff(e) {
+    e.preventDefault();
+    const staff = getWasteStaff();
+    const editId = document.getElementById('sEditId').value;
+    
+    let data = { 
+        name: document.getElementById('sName').value, 
+        position: document.getElementById('sPosition').value, 
+        username: document.getElementById('sUsername').value, 
+        role: document.getElementById('sRole').value, 
+        phone: document.getElementById('sPhone').value, 
+        status: 'active',
+        profile_image_url: document.getElementById('sProfileImageUrl').value,
+        signature_image_url: document.getElementById('sSignatureImageUrl').value
+    };
+    
+    if (editId) { 
+        const idx = staff.findIndex(s => s.id === editId); 
+        if(idx>=0) {
+            data.id = editId;
+            data.status = staff[idx].status;
+        } 
+    } else { 
+        data.id = 'WS' + String(staff.length+1).padStart(3,'0'); 
+    }
+
+    // Process Images
+    const profileFile = document.getElementById('sProfileImage').files[0];
+    const signatureFile = document.getElementById('sSignatureImage').files[0];
+    
+    if (profileFile || signatureFile) {
+        Swal.fire({title: 'กำลังบันทึกและอัปโหลดรูปภาพ...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+        
+        if (profileFile) {
+            const b64 = await getBase64(profileFile);
+            const url = await uploadWasteStaffImage(b64, data.id + "_profile.jpg");
+            if (url) data.profile_image_url = url;
+        }
+        if (signatureFile) {
+            const b64 = await getBase64(signatureFile);
+            const url = await uploadWasteStaffImage(b64, data.id + "_signature.jpg");
+            if (url) data.signature_image_url = url;
+        }
+    } else {
+        Swal.fire({title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    }
+
+    // Save to DB and Local
+    const success = await saveWasteStaffDB(data);
+    
+    if (success) {
+        bootstrap.Modal.getInstance(document.getElementById('staffModal')).hide();
+        Swal.close();
+        showToast('บันทึกข้อมูลเจ้าหน้าที่สำเร็จ','success');
+        renderStaff();
+    } else {
+        // ให้ error popup แสดงต่อไป
+        bootstrap.Modal.getInstance(document.getElementById('staffModal')).hide();
+    }
+}
+
+function resetPassword(id) { Swal.fire({title:'Reset Password?',icon:'question',showCancelButton:true,confirmButtonText:'Reset'}).then(r=>{if(r.isConfirmed)showToast('Reset Password สำเร็จ','success');}); }
+
+async function toggleStaff(id) {
+    const staff = getWasteStaff();
+    const s = staff.find(x => x.id === id);
+    if (!s) return;
+    s.status = s.status === 'active' ? 'inactive' : 'active';
+    Swal.fire({title: 'กำลังอัปเดต...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    await saveWasteStaffDB(s);
+    Swal.close();
+    showToast(`${s.status==='active'?'เปิด':'ปิด'}ใช้งาน ${s.name} แล้ว`,'success');
+    renderStaff();
+}
+</script>
+</body>
+</html>

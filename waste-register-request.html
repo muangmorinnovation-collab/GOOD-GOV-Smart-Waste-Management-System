@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำขอขึ้นทะเบียนใหม่ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="คำขอขึ้นทะเบียนลูกค้าใหม่"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-user-plus text-success me-2"></i>คำขอขึ้นทะเบียนใหม่</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item"><a href="waste-dashboard.html" class="text-decoration-none">ค่าธรรมเนียมขยะ</a></li>
+                    <li class="breadcrumb-item active">คำขอขึ้นทะเบียน</li>
+                </ol></nav>
+            </div>
+            <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="loadRegRequests()">
+                <i class="fa-solid fa-rotate-right me-1"></i>รีเฟรชข้อมูล
+            </button>
+        </div>
+
+        <!-- Summary -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-4"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">รอตรวจสอบ</div><div class="kpi-value text-warning" id="regPending">-</div></div><div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-clock"></i></div></div></div></div>
+            <div class="col-6 col-lg-4"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">อนุมัติแล้ว</div><div class="kpi-value text-success" id="regApproved">-</div></div><div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-check"></i></div></div></div></div>
+            <div class="col-6 col-lg-4"><div class="kpi-card"><div class="d-flex justify-content-between align-items-start"><div><div class="kpi-label mb-1">ปฏิเสธ</div><div class="kpi-value text-danger" id="regRejected">-</div></div><div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-xmark"></i></div></div></div></div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+            <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-list text-primary me-2"></i>รายการคำขอขึ้นทะเบียน</h6></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr>
+                            <th class="ps-4" style="width:60px;">#</th><th>ชื่อ</th><th>บ้านเลขที่</th><th>ประเภท</th>
+                            <th>เบอร์โทร</th><th>วันที่ยื่น</th><th>ข้อมูลแนบ</th><th>สถานะ</th><th class="pe-4 text-center">จัดการ</th>
+                        </tr></thead>
+                        <tbody id="regTableBody">
+                            <tr><td colspan="9" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div>กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="regDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-14 shadow-lg">
+            <div class="modal-header border-0 bg-light rounded-top-14">
+                <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-file-lines text-primary me-2"></i>รายละเอียดคำขอ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="regDetailBody">
+                <!-- Content will be inserted here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/waste.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="assets/js/responsive.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    initWasteData();
+    await loadRegRequests();
+});
+
+async function loadRegRequests() {
+    const reqs = await fetchRegisterRequestsDB();
+    renderRegRequests(reqs);
+}
+
+function renderRegRequests(reqs) {
+    if (!reqs) reqs = getRegisterRequests();
+    
+    document.getElementById('regPending').textContent = reqs.filter(r=>r.status==='pending').length;
+    document.getElementById('regApproved').textContent = reqs.filter(r=>r.status==='approved').length;
+    document.getElementById('regRejected').textContent = reqs.filter(r=>r.status==='rejected').length;
+
+    const tbody = document.getElementById('regTableBody');
+    
+    if (reqs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-5"><i class="fa-solid fa-inbox mb-2" style="font-size:2rem;opacity:.3;"></i><br>ยังไม่มีคำขอขึ้นทะเบียน</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = reqs.map((r, idx) => {
+        const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('th-TH', {day:'numeric',month:'short',year:'2-digit'}) : (r.date || '-');
+        const hasImage = r.image_url ? true : false;
+        const hasLocation = r.lat && r.lng ? true : false;
+        const statusBadge = r.status==='pending' ? 'bg-warning text-dark' : r.status==='approved' ? 'bg-success' : 'bg-danger';
+        const statusText = r.status==='pending' ? 'รอตรวจสอบ' : r.status==='approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธ';
+        const idDisplay = r.id ? (typeof r.id === 'string' && r.id.length > 8 ? r.id.substring(0,8)+'...' : r.id) : (idx+1);
+
+        return `<tr>
+        <td class="ps-4 fw-semibold text-xs">${idx+1}</td>
+        <td>${r.name || '-'}</td>
+        <td>${r.house_no || '-'} ม.${r.moo || '-'}</td>
+        <td><span class="badge bg-light text-dark">${r.type || '-'}</span></td>
+        <td class="text-xs">${r.phone||'-'}</td>
+        <td class="text-xs text-muted">${dateStr}</td>
+        <td>
+            ${hasImage ? `<button class="btn btn-xs btn-outline-info me-1" onclick="viewRegDetail('${r.id}')" title="ดูรูปภาพ"><i class="fa-solid fa-image"></i></button>` : ''}
+            ${hasLocation ? `<button class="btn btn-xs btn-outline-primary" onclick="viewRegDetail('${r.id}')" title="ดูแผนที่"><i class="fa-solid fa-map-location-dot"></i></button>` : ''}
+            ${!hasImage && !hasLocation ? '<span class="text-xs text-muted">-</span>' : ''}
+        </td>
+        <td><span class="badge ${statusBadge}">${statusText}</span></td>
+        <td class="pe-4 text-center">${r.status==='pending'?`
+            <button class="btn btn-xs btn-outline-info me-1" onclick="viewRegDetail('${r.id}')"><i class="fa-solid fa-pen-to-square me-1"></i>ดู/แก้ไข</button>
+            <button class="btn btn-xs btn-success me-1" onclick="approveReg('${r.id}')"><i class="fa-solid fa-check me-1"></i>อนุมัติ</button>
+            <button class="btn btn-xs btn-outline-danger" onclick="rejectReg('${r.id}')"><i class="fa-solid fa-xmark"></i></button>
+        `:'<span class="text-xs text-muted">ดำเนินการแล้ว</span>'}</td>
+    </tr>`;
+    }).join('');
+}
+
+let detailMap = null;
+
+function viewRegDetail(id) {
+    const reqs = getRegisterRequests();
+    const r = reqs.find(x => String(x.id) === String(id));
+    if (!r) return;
+
+    const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('th-TH', {day:'numeric',month:'long',year:'numeric'}) : (r.date || '-');
+    const statusBadge = r.status==='pending' ? 'bg-warning text-dark' : r.status==='approved' ? 'bg-success' : 'bg-danger';
+    const statusText = r.status==='pending' ? 'รอตรวจสอบ' : r.status==='approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธ';
+
+    let imageHtml = '';
+    if (r.image_url) {
+        const driveId = r.image_url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        const imgSrc = driveId ? `https://drive.google.com/thumbnail?id=${driveId[1]}&sz=w800` : r.image_url;
+        imageHtml = `
+        <div class="mb-3">
+            <label class="form-label fw-semibold text-sm"><i class="fa-solid fa-image text-info me-1"></i>รูปภาพสถานที่</label>
+            <div class="text-center">
+                <img src="${imgSrc}" class="img-fluid rounded shadow-sm" style="max-height:300px;cursor:pointer;" onclick="window.open('${r.image_url}','_blank')" onerror="this.src='https://via.placeholder.com/400x200?text=ไม่สามารถแสดงรูปภาพได้'">
+                <div class="mt-2"><a href="${r.image_url}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>เปิดใน Google Drive</a></div>
+            </div>
+        </div>`;
+    }
+
+    let mapHtml = '';
+    if (r.lat && r.lng) {
+        mapHtml = `
+        <div class="mb-3">
+            <label class="form-label fw-semibold text-sm"><i class="fa-solid fa-map-location-dot text-primary me-1"></i>พิกัดตำแหน่ง (${Number(r.lat).toFixed(5)}, ${Number(r.lng).toFixed(5)})</label>
+            <div id="detailMap" style="height:220px;width:100%;border-radius:10px;border:1px solid #dee2e6;"></div>
+            <div class="mt-2"><a href="https://www.google.com/maps?q=${r.lat},${r.lng}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill"><i class="fa-solid fa-diamond-turn-right me-1"></i>เปิดใน Google Maps</a></div>
+        </div>`;
+    }
+
+    let infoHtml = '';
+    if (r.status === 'pending') {
+        const feeTypes = getWasteFeeTypes();
+        const typeOptions = feeTypes.map(f => `<option value="${f.type}" ${r.type===f.type?'selected':''}>${f.type}</option>`).join('');
+        
+        infoHtml = `
+            <table class="table table-sm table-borderless text-sm mb-0">
+                <tr><td class="text-muted align-middle" style="width:120px;"><i class="fa-solid fa-user me-1"></i>ชื่อ</td>
+                    <td><input type="text" id="editRegName" class="form-control form-control-sm" value="${r.name || ''}"></td></tr>
+                <tr><td class="text-muted align-middle"><i class="fa-solid fa-house me-1"></i>บ้านเลขที่</td>
+                    <td><div class="input-group input-group-sm"><input type="text" id="editRegHouseNo" class="form-control" value="${r.house_no || ''}"><span class="input-group-text">ม.</span><input type="text" id="editRegMoo" class="form-control" value="${r.moo || ''}"></div></td></tr>
+                <tr><td class="text-muted align-middle"><i class="fa-solid fa-building me-1"></i>ประเภท</td>
+                    <td><select id="editRegType" class="form-select form-select-sm"><option value="">เลือกประเภท...</option>${typeOptions}</select></td></tr>
+                <tr><td class="text-muted align-middle"><i class="fa-solid fa-phone me-1"></i>โทรศัพท์</td>
+                    <td><input type="text" id="editRegPhone" class="form-control form-control-sm" value="${r.phone || ''}"></td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-calendar me-1"></i>วันที่ยื่น</td><td class="align-middle">${dateStr}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>สถานะ</td><td class="align-middle"><span class="badge ${statusBadge}">${statusText}</span></td></tr>
+            </table>
+            <div class="mt-4 pt-3 border-top text-end">
+                <button class="btn btn-sm btn-success px-4 rounded-pill shadow-sm" onclick="saveAndApproveReg('${r.id}')"><i class="fa-solid fa-check me-2"></i>บันทึกและอนุมัติ</button>
+            </div>
+        `;
+    } else {
+        infoHtml = `
+            <table class="table table-sm table-borderless text-sm mb-0">
+                <tr><td class="text-muted" style="width:120px;"><i class="fa-solid fa-user me-1"></i>ชื่อ</td><td class="fw-semibold">${r.name || '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-house me-1"></i>บ้านเลขที่</td><td class="fw-semibold">${r.house_no || '-'} หมู่ ${r.moo || '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-building me-1"></i>ประเภท</td><td><span class="badge bg-light text-dark">${r.type || '-'}</span></td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-phone me-1"></i>โทรศัพท์</td><td>${r.phone || '-'}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-calendar me-1"></i>วันที่ยื่น</td><td>${dateStr}</td></tr>
+                <tr><td class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>สถานะ</td><td><span class="badge ${statusBadge}">${statusText}</span></td></tr>
+            </table>
+        `;
+    }
+
+    document.getElementById('regDetailBody').innerHTML = `
+    <div class="row g-3">
+        <div class="col-md-6">
+            ${infoHtml}
+        </div>
+        <div class="col-md-6">
+            ${imageHtml}
+            ${mapHtml}
+            ${!imageHtml && !mapHtml ? '<div class="text-center text-muted py-4"><i class="fa-solid fa-file-circle-xmark" style="font-size:2rem;opacity:.3;"></i><br><span class="text-sm">ไม่มีข้อมูลแนบ</span></div>' : ''}
+        </div>
+    </div>`;
+
+    const modal = new bootstrap.Modal(document.getElementById('regDetailModal'));
+    modal.show();
+
+    // Initialize map after modal is shown
+    if (r.lat && r.lng) {
+        document.getElementById('regDetailModal').addEventListener('shown.bs.modal', function initMapOnce() {
+            if (detailMap) { detailMap.remove(); detailMap = null; }
+            detailMap = L.map('detailMap').setView([r.lat, r.lng], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(detailMap);
+            L.marker([r.lat, r.lng]).addTo(detailMap).bindPopup(`<strong>${r.name}</strong><br>${r.house_no} ม.${r.moo}`).openPopup();
+            document.getElementById('regDetailModal').removeEventListener('shown.bs.modal', initMapOnce);
+        });
+    }
+}
+
+async function saveAndApproveReg(id) {
+    const result = await Swal.fire({title:'ยืนยันการแก้ไขและอนุมัติ?',text:'ระบบจะอัปเดตข้อมูลและสร้างทะเบียนลูกค้าใหม่อัตโนมัติ',icon:'question',showCancelButton:true,confirmButtonText:'บันทึกและอนุมัติ',cancelButtonText:'ยกเลิก',confirmButtonColor:'#057a55'});
+    if (!result.isConfirmed) return;
+
+    Swal.fire({title:'กำลังดำเนินการ...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()});
+
+    try {
+        const reqs = getRegisterRequests();
+        const r = reqs.find(x => String(x.id) === String(id));
+        if (!r) { Swal.fire('ไม่พบข้อมูล','','error'); return; }
+
+        // Update with new values from form
+        r.name = document.getElementById('editRegName').value || r.name;
+        r.house_no = document.getElementById('editRegHouseNo').value || r.house_no;
+        r.moo = document.getElementById('editRegMoo').value || r.moo;
+        r.type = document.getElementById('editRegType').value || r.type;
+        r.phone = document.getElementById('editRegPhone').value || r.phone;
+        
+        r.status = 'approved';
+
+        // Update status in Supabase
+        await saveRegisterRequestDB(r);
+
+        // Get fee from fee types 
+        const feeTypes = getWasteFeeTypes();
+        const matchedFee = feeTypes.find(f => f.type === r.type);
+        const fee = matchedFee ? matchedFee.fee : 40;
+
+        // Create new customer
+        const newCustomer = {
+            id: generateCustomerId(),
+            house_no: r.house_no,
+            moo: r.moo,
+            name: r.name,
+            id_card: '',
+            phone: r.phone || '',
+            type: r.type,
+            fee: fee,
+            start_date: new Date().toISOString().split('T')[0],
+            status: 'active',
+            lat: r.lat || null,
+            lng: r.lng || null,
+            note: 'สร้างจากคำขอขึ้นทะเบียน'
+        };
+
+        await saveWasteCustomerDB(newCustomer);
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('regDetailModal'));
+        if(modal) modal.hide();
+
+        Swal.fire({title:'อนุมัติสำเร็จ!',text:'แก้ไขข้อมูลและสร้างทะเบียนลูกค้าใหม่เรียบร้อย',icon:'success',confirmButtonColor:'#057a55'});
+        await loadRegRequests();
+    } catch(err) {
+        console.error(err);
+        Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถดำเนินการได้', 'error');
+    }
+}
+
+async function approveReg(id) {
+    const result = await Swal.fire({title:'อนุมัติคำขอ?',text:'ระบบจะสร้างทะเบียนลูกค้าใหม่อัตโนมัติ',icon:'question',showCancelButton:true,confirmButtonText:'อนุมัติ',cancelButtonText:'ยกเลิก',confirmButtonColor:'#057a55'});
+    if (!result.isConfirmed) return;
+
+    Swal.fire({title:'กำลังดำเนินการ...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()});
+
+    try {
+        const reqs = getRegisterRequests();
+        const r = reqs.find(x => String(x.id) === String(id));
+        if (!r) { Swal.fire('ไม่พบข้อมูล','','error'); return; }
+
+        r.status = 'approved';
+
+        // Update status in Supabase
+        await saveRegisterRequestDB(r);
+
+        // Get fee from fee types 
+        const feeTypes = getWasteFeeTypes();
+        const matchedFee = feeTypes.find(f => f.type === r.type);
+        const fee = matchedFee ? matchedFee.fee : 40;
+
+        // Create new customer
+        const newCustomer = {
+            id: generateCustomerId(),
+            house_no: r.house_no,
+            moo: r.moo,
+            name: r.name,
+            id_card: '',
+            phone: r.phone || '',
+            type: r.type,
+            fee: fee,
+            start_date: new Date().toISOString().split('T')[0],
+            status: 'active',
+            lat: r.lat || null,
+            lng: r.lng || null,
+            note: 'สร้างจากคำขอขึ้นทะเบียน'
+        };
+
+        await saveWasteCustomerDB(newCustomer);
+        
+        Swal.fire({title:'อนุมัติสำเร็จ!',text:'สร้างทะเบียนลูกค้าใหม่เรียบร้อย',icon:'success',confirmButtonColor:'#057a55'});
+        await loadRegRequests();
+    } catch(err) {
+        console.error(err);
+        Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถดำเนินการได้', 'error');
+    }
+}
+
+async function rejectReg(id) {
+    const result = await Swal.fire({title:'ปฏิเสธคำขอ?',input:'text',inputPlaceholder:'ระบุเหตุผล...',showCancelButton:true,cancelButtonText:'ยกเลิก',confirmButtonColor:'#c81e1e',confirmButtonText:'ปฏิเสธ'});
+    if (!result.isConfirmed) return;
+
+    Swal.fire({title:'กำลังดำเนินการ...',allowOutsideClick:false,didOpen:()=>Swal.showLoading()});
+
+    try {
+        const reqs = getRegisterRequests();
+        const r = reqs.find(x => String(x.id) === String(id));
+        if (!r) { Swal.fire('ไม่พบข้อมูล','','error'); return; }
+
+        r.status = 'rejected';
+        r.note = result.value || 'ปฏิเสธ';
+
+        await saveRegisterRequestDB(r);
+        
+        Swal.fire({title:'ปฏิเสธคำขอแล้ว',icon:'warning',confirmButtonColor:'#c81e1e'});
+        await loadRegRequests();
+    } catch(err) {
+        console.error(err);
+        Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถดำเนินการได้', 'error');
+    }
+}
+</script>
+</body>
+</html>
