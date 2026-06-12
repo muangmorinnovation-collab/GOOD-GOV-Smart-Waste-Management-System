@@ -584,7 +584,8 @@ function selectCustomer(id, year = null) {
             const isExempted = status[mk] === 'exempted';
             // oct(0), nov(1), dec(2) belong to the previous calendar year
             const calYear = i < 3 ? String(fyNum - 1) : selectedYear;
-            unpaidMonths.push({key:mk, label:WASTE_MONTHS[i], yearSuffix: calYear.substring(2), isExempted: isExempted});
+            const monthFee = typeof getFeeForMonth === 'function' ? getFeeForMonth(selectedCustomer.id, mk, selectedYear) : selectedCustomer.fee;
+            unpaidMonths.push({key:mk, label:WASTE_MONTHS[i], yearSuffix: calYear.substring(2), isExempted: isExempted, fee: monthFee});
         }
     });
 
@@ -617,8 +618,8 @@ function selectCustomer(id, year = null) {
         
         <div class="row g-2 mb-3" id="monthCheckboxes">
             ${unpaidMonths.map(m => `<div class="col-4 col-md-3"><div class="form-check">
-                <input class="form-check-input" type="checkbox" value="${m.label} ${m.yearSuffix}" data-key="${m.key}" id="chk_${m.key}" onchange="calcTotal()" ${m.isExempted ? 'disabled' : ''}>
-                <label class="form-check-label text-sm ${m.isExempted ? 'text-decoration-line-through text-danger' : ''}" for="chk_${m.key}" ${m.isExempted ? 'title="ยกเว้นชำระ"' : ''}>${m.label} ${m.yearSuffix}</label>
+                <input class="form-check-input" type="checkbox" value="${m.label} ${m.yearSuffix}" data-key="${m.key}" data-fee="${m.fee}" id="chk_${m.key}" onchange="calcTotal()" ${m.isExempted ? 'disabled' : ''}>
+                <label class="form-check-label text-sm ${m.isExempted ? 'text-decoration-line-through text-danger' : ''}" for="chk_${m.key}" ${m.isExempted ? 'title="ยกเว้นชำระ"' : ''}>${m.label} ${m.yearSuffix} <span class="text-muted text-nowrap">(฿${m.fee})</span></label>
             </div></div>`).join('') || '<div class="col-12 text-success fw-semibold"><i class="fa-solid fa-check-circle me-1"></i>ชำระครบทุกเดือนแล้วในปีนี้</div>'}
         </div>
         <div class="row g-3 mb-3 border-top pt-3">
@@ -647,7 +648,11 @@ function selectAllMonths() {
 function calcTotal() {
     if (!selectedCustomer) return;
     const checked = document.querySelectorAll('#monthCheckboxes input:checked');
-    document.getElementById('totalAmount').value = formatMoneyDecimal(checked.length * selectedCustomer.fee);
+    let total = 0;
+    checked.forEach(cb => {
+        total += parseFloat(cb.getAttribute('data-fee')) || 0;
+    });
+    document.getElementById('totalAmount').value = formatMoneyDecimal(total);
 }
 
 async function submitWalkIn() {
