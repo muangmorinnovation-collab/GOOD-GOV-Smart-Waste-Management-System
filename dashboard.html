@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GOOD GOV - Global Smart Governance Dashboard แสดงภาพรวมข้อมูลทั้งระบบแบบ Real-time">
+    <title>Global Dashboard - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        .live-dot{width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;animation:livePulse 1.5s infinite}
+        @keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(16,185,129,0)}}
+        .kpi-card{cursor:pointer}.kpi-card .kpi-mini{font-size:.7rem;color:#6b7280;margin-top:4px}
+        .section-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:#6b7280;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}
+        .section-label i{font-size:.8rem}
+        .mini-kpi{background:#fff;border-radius:12px;padding:.85rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.06);display:flex;align-items:center;gap:.75rem;transition:transform .15s}
+        .mini-kpi:hover{transform:translateY(-2px)}
+        .mini-kpi .mini-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+        .mini-kpi .mini-val{font-size:1.3rem;font-weight:700;line-height:1.1}
+        .mini-kpi .mini-label{font-size:.72rem;color:#6b7280}
+        .filter-bar{background:#fff;border-radius:12px;padding:.6rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+        .filter-bar .form-select,.filter-bar .form-control{font-size:.78rem;padding:.3rem .6rem;border-radius:8px;max-width:160px}
+        #dashboardMap{height:380px;border-radius:12px;z-index:1}
+        .cctv-item{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:.7rem .85rem;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.7rem}
+        .cctv-item:hover{background:#eff6ff;border-color:#93c5fd;transform:translateX(3px)}
+        .cctv-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+        .cctv-dot.online{background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.15)}
+        .cctv-dot.offline{background:#ef4444}
+
+    </style>
+    <link rel="stylesheet" href="assets/css/responsive.css">
+</head>
+
+<body>
+    <nav id="sidebar"></nav>
+    <div id="content">
+        <div id="top-navbar" class="top-navbar" data-title="แดชบอร์ดภาพรวม"></div>
+        <div class="page-content">
+
+            <!-- Page Header + Filter -->
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="fa-solid fa-globe text-primary me-2"></i>Global Smart Governance Dashboard</h4>
+                    <span class="text-sm text-muted"><i class="fa-regular fa-calendar me-1"></i><span id="current-date"></span>
+                        <span class="ms-2"><span class="live-dot"></span> <span class="text-success fw-semibold ms-1">LIVE</span></span>
+                        <span class="text-muted ms-2" id="lastRefresh" style="font-size:.7rem;"></span>
+                    </span>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="refreshAllData()"><i class="fa-solid fa-arrows-rotate me-1"></i>รีเฟรช</button>
+                    <button class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-file-export me-1"></i>Export PDF</button>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar mb-4">
+                <i class="fa-solid fa-filter text-muted"></i>
+                <select class="form-select" id="filterStatus" onchange="refreshAllData()">
+                    <option value="">สถานะทั้งหมด</option>
+                    <option value="pending">รอดำเนินการ</option>
+                    <option value="accepted">รับเรื่องแล้ว</option>
+                    <option value="in_progress">กำลังดำเนินการ</option>
+                    <option value="completed">เสร็จสิ้น</option>
+                </select>
+                <select class="form-select" id="filterPeriod" onchange="refreshAllData()">
+                    <option value="all">ทุกช่วงเวลา</option>
+                    <option value="today">วันนี้</option>
+                    <option value="week">สัปดาห์นี้</option>
+                    <option value="month" selected>เดือนนี้</option>
+                    <option value="year">ปีนี้</option>
+                </select>
+                <span class="text-muted ms-auto" style="font-size:.72rem;"><i class="fa-solid fa-clock me-1"></i>อัพเดทอัตโนมัติทุก 30 วินาที</span>
+            </div>
+
+            <!-- ═══ SECTION 1: Master Data KPIs ═══ -->
+            <div class="section-label"><i class="fa-solid fa-database text-primary"></i> ข้อมูลฐาน (Master Data)</div>
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-xl-3 fade-in-up stagger-1">
+                    <div class="kpi-card" onclick="drillDown('population')">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="kpi-label mb-1">จำนวนประชากร</div>
+                                <div class="kpi-value" id="kpi-population"><span class="spinner-border spinner-border-sm"></span></div>
+                                <div class="kpi-mini" id="kpi-population-sub">กำลังโหลด...</div>
+                            </div>
+                            <div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-users"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-xl-3 fade-in-up stagger-2">
+                    <div class="kpi-card" onclick="drillDown('household')">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="kpi-label mb-1">จำนวนครัวเรือน</div>
+                                <div class="kpi-value" id="kpi-household"><span class="spinner-border spinner-border-sm"></span></div>
+                                <div class="kpi-mini" id="kpi-household-sub">กำลังโหลด...</div>
+                            </div>
+                            <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-house-chimney"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-xl-3 fade-in-up stagger-3">
+                    <div class="kpi-card" onclick="drillDown('staff')">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="kpi-label mb-1">จำนวนบุคลากร</div>
+                                <div class="kpi-value" id="kpi-staff"><span class="spinner-border spinner-border-sm"></span></div>
+                                <div class="kpi-mini" id="kpi-staff-sub">กำลังโหลด...</div>
+                            </div>
+                            <div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-user-tie"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-xl-3 fade-in-up stagger-4">
+                    <div class="kpi-card" onclick="drillDown('department')">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="kpi-label mb-1">หน่วยงาน / กอง</div>
+                                <div class="kpi-value" id="kpi-dept"><span class="spinner-border spinner-border-sm"></span></div>
+                                <div class="kpi-mini" id="kpi-dept-sub">กำลังโหลด...</div>
+                            </div>
+                            <div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-building"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ SECTION 2: Service Data ═══ -->
+            <div class="section-label"><i class="fa-solid fa-chart-line text-success"></i> ข้อมูลบริการ (Service Data)</div>
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-xl-3"><div class="mini-kpi"><div class="mini-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-coins"></i></div><div><div class="mini-val" id="svc-revenue">—</div><div class="mini-label">รายได้รวม (ปี)</div></div></div></div>
+                <div class="col-6 col-xl-3"><div class="mini-kpi"><div class="mini-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-file-lines"></i></div><div><div class="mini-val" id="svc-total">—</div><div class="mini-label">คำร้องทั้งหมด</div></div></div></div>
+                <div class="col-6 col-xl-3"><div class="mini-kpi"><div class="mini-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-circle-check"></i></div><div><div class="mini-val" id="svc-completed">—</div><div class="mini-label">งานเสร็จแล้ว</div></div></div></div>
+                <div class="col-6 col-xl-3"><div class="mini-kpi"><div class="mini-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-hourglass-half"></i></div><div><div class="mini-val" id="svc-pending">—</div><div class="mini-label">งานคงค้าง</div></div></div></div>
+            </div>
+
+            <!-- ═══ SECTION 3: Interactive Map + CCTV ═══ -->
+            <div class="section-label"><i class="fa-solid fa-map-location-dot text-danger"></i> คำร้อง + CCTV (Interactive Monitoring)</div>
+            <div class="row g-3 mb-4">
+                <div class="col-lg-8 fade-in-up">
+                    <div class="card h-100">
+                        <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0"><i class="fa-solid fa-location-dot text-danger me-2"></i>แผนที่ตำแหน่งคำร้อง</h6>
+                            <div id="mapMarkerCount" class="text-sm text-muted"></div>
+                        </div>
+                        <div class="card-body p-2"><div id="dashboardMap"></div></div>
+                    </div>
+                </div>
+                <div class="col-lg-4 fade-in-up stagger-1">
+                    <div class="card h-100">
+                        <div class="card-header border-0"><h6 class="fw-bold mb-0"><i class="fa-solid fa-video text-info me-2"></i>CCTV Monitoring</h6></div>
+                        <div class="card-body pt-1">
+                            <div class="d-flex flex-column gap-2" id="cctvList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ SECTION 4: Recent Activity ═══ -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-4 fade-in-up">
+                    <div class="card h-100">
+                        <div class="card-header border-0"><h6 class="fw-bold mb-0">เข้าสู่โมดูลด่วน</h6></div>
+                        <div class="card-body pt-1">
+                            <div class="row g-2">
+                                <div class="col-6"><a href="tax-map.html" class="module-tile d-flex flex-column align-items-center" style="background:linear-gradient(135deg,#1a56db,#3b82f6);"><i class="fa-solid fa-map-location-dot fs-2 mb-2"></i><span class="fw-semibold" style="font-size:.8rem;">แผนที่ภาษี</span></a></div>
+                                <div class="col-6"><a href="publicworks.html" class="module-tile d-flex flex-column align-items-center" style="background:linear-gradient(135deg,#d97706,#fbbf24);"><i class="fa-solid fa-hard-hat fs-2 mb-2"></i><span class="fw-semibold" style="font-size:.8rem;">กองช่าง</span></a></div>
+                                <div class="col-6"><a href="publicworks-electric.html" class="module-tile d-flex flex-column align-items-center" style="background:linear-gradient(135deg,#dc2626,#f87171);"><i class="fa-solid fa-bolt fs-2 mb-2"></i><span class="fw-semibold" style="font-size:.8rem;">ซ่อมไฟฟ้า</span></a></div>
+                                <div class="col-6"><a href="citizen-portal.html" class="module-tile d-flex flex-column align-items-center" style="background:linear-gradient(135deg,#057a55,#10b981);"><i class="fa-solid fa-users fs-2 mb-2"></i><span class="fw-semibold" style="font-size:.8rem;">บริการประชาชน</span></a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-8 fade-in-up stagger-1">
+                    <div class="card h-100">
+                        <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0">รายการล่าสุด (Real-time Activities)</h6>
+                            <span class="badge bg-primary bg-opacity-10 text-primary" id="activityCount">—</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-hover mb-0">
+                                <thead><tr><th class="ps-4">เลขคำร้อง</th><th>ผู้แจ้ง</th><th>สาเหตุ</th><th>วันที่</th><th class="pe-4">สถานะ</th></tr></thead>
+                                <tbody id="activityBody"><tr><td colspan="5" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span> กำลังโหลด...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- CCTV Modal -->
+    <div class="modal fade" id="cctvModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+            <div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold" id="cctvModalTitle"><i class="fa-solid fa-video text-info me-2"></i>CCTV</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="ratio ratio-16x9 rounded-3 overflow-hidden bg-dark mb-3" id="cctvVideoContainer"><div class="d-flex align-items-center justify-content-center h-100 text-white"><i class="fa-solid fa-video-slash fa-2x"></i></div></div>
+                <div class="d-flex justify-content-between text-sm"><span id="cctvModalLocation" class="text-muted"></span><span id="cctvModalStatus"></span></div>
+            </div>
+        </div>
+    </div></div>
+
+    <!-- Drill-down Modal -->
+    <div class="modal fade" id="drillDownModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;">
+            <div class="modal-header border-0"><h5 class="modal-title fw-bold" id="drillDownTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body" id="drillDownBody"><div class="text-center py-4"><span class="spinner-border text-primary"></span></div></div>
+        </div>
+    </div></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="assets/js/app.js"></script>
+    <script src="assets/js/dashboard-engine.js"></script>
+    <script src="assets/js/responsive.js"></script>
+</body>
+</html>
