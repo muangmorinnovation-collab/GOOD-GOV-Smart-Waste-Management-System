@@ -182,9 +182,10 @@ const LineAuth = (() => {
                         return data.profile;
                     }
                 } else {
-                    console.warn("Vercel API failed:", res.status);
+                    const errorData = await res.json().catch(() => ({}));
+                    console.warn("Vercel API failed:", res.status, errorData);
                     if (window.location.hostname.includes('vercel.app')) {
-                        alert("เกิดข้อผิดพลาดในการยืนยันตัวตนกับ LINE (Vercel API Error)");
+                        alert("เกิดข้อผิดพลาด: " + (errorData.description || errorData.details || errorData.error || `HTTP ${res.status}`));
                         return null;
                     }
                 }
