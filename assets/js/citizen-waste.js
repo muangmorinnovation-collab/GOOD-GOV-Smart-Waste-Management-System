@@ -373,21 +373,55 @@ async function loadMonthlyStatus(noAnimate = false) {
     let pendingMonths = [];
     try {
         if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            // Fetch ALL pending transactions for this citizen to prevent skipping years
             const { data } = await supabaseClient
                 .from('garbage_payment_transactions')
-                .select('paid_months')
+                .select('fiscal_year, paid_months')
                 .eq('citizen_id', selectedCustomer.id)
-                .eq('fiscal_year', year)
                 .eq('status', 'pending');
-            if (data) data.forEach(r => { pendingMonths = pendingMonths.concat(r.paid_months); });
+            if (data) {
+                data.forEach(r => {
+                    if (!window.pendingTxMap) window.pendingTxMap = {};
+                    if (!window.pendingTxMap[r.fiscal_year]) window.pendingTxMap[r.fiscal_year] = [];
+                    window.pendingTxMap[r.fiscal_year] = window.pendingTxMap[r.fiscal_year].concat(r.paid_months);
+                });
+            }
         }
     } catch (e) { console.warn('Pending check failed', e); }
+    
+    pendingMonths = (window.pendingTxMap || {})[year] || [];
     currentPendingMonths = pendingMonths;
 
     let html = '';
     let totalDebt = 0;
     let unpaidCount = 0;
     let firstUnpaidIdx = -1;
+    
+    // Check if there are unpaid months in PRIOR fiscal years
+    let blockingYear = null;
+    const availableYears = Object.keys(allStatus[selectedCustomer.id] || {}).map(Number).sort((a,b)=>a-b);
+    const selectedYearNum = Number(year);
+    
+    for (let y of availableYears) {
+        if (y >= selectedYearNum) continue;
+        const yStatus = allStatus[selectedCustomer.id][y];
+        const yPending = (window.pendingTxMap || {})[y] || [];
+        let hasUnpaid = false;
+        for (let k of CW_MONTH_KEYS) {
+            let s = yStatus[k] || 'unpaid';
+            if (yPending.includes(k)) s = 'pending';
+            if (s !== 'paid' && s !== 'exempted' && s !== 'pending') {
+                hasUnpaid = true;
+                break;
+            }
+        }
+        if (hasUnpaid) {
+            blockingYear = y;
+            break;
+        }
+    }
+    
+    window.currentBlockingYear = blockingYear;
 
     CW_MONTH_KEYS.forEach((key, i) => {
         let status = customerStatus[key] || 'unpaid';
@@ -401,7 +435,14 @@ async function loadMonthlyStatus(noAnimate = false) {
         if (isUnpaid && firstUnpaidIdx === -1) firstUnpaidIdx = i;
 
         // A month is selectable if: unpaid AND (it IS the first unpaid OR all months before it up to firstUnpaid are selected)
-        const isLocked = isUnpaid && firstUnpaidIdx !== -1 && i > firstUnpaidIdx && !allPreviousSelected(i, firstUnpaidIdx, customerStatus, pendingMonths);
+        let isLocked = isUnpaid && firstUnpaidIdx !== -1 && i > firstUnpaidIdx && !allPreviousSelected(i, firstUnpaidIdx, customerStatus, pendingMonths);
+        let lockedReason = 'รอชำระเดือนก่อนหน้า';
+        
+        if (isUnpaid && blockingYear) {
+            isLocked = true;
+            lockedReason = `กรุณาชำระปีงบฯ ${blockingYear} ให้ครบก่อน`;
+        }
+        
         const isSelectable = isUnpaid && !isLocked;
         const isSelected = selectedMonthKeys.includes(key);
 
@@ -417,7 +458,7 @@ async function loadMonthlyStatus(noAnimate = false) {
         else if (isExempted) { rowClass = 'locked'; iconClass = 'fa-minus'; label = 'ยกเว้นชำระ'; }
         else if (isPending) { rowClass = 'pending'; iconClass = 'fa-clock'; label = 'รอตรวจสอบ'; }
         else if (isSelected) { rowClass = 'selected selectable'; iconClass = 'fa-check'; label = 'เลือกแล้ว'; }
-        else if (isLocked) { rowClass = 'locked'; iconClass = 'fa-lock'; label = 'รอชำระเดือนก่อนหน้า'; }
+        else if (isLocked) { rowClass = 'locked'; iconClass = 'fa-lock'; label = lockedReason; }
         else { rowClass = 'unpaid selectable'; iconClass = 'fa-circle-xmark'; label = 'ค้างชำระ'; }
 
         const clickHandler = isSelectable || isSelected ? `onclick="toggleMonth('${key}')"` : '';
@@ -490,6 +531,11 @@ function toggleAllMonths() {
     
     const pendingMonths = currentPendingMonths;
     const allSelectable = [];
+    
+    if (window.currentBlockingYear) {
+        cwToast(`กรุณาชำระปีงบฯ ${window.currentBlockingYear} ให้ครบก่อน`, 'warning');
+        return;
+    }
     
     let firstUnpaidIdx = -1;
     for (let i = 0; i < CW_MONTH_KEYS.length; i++) {
