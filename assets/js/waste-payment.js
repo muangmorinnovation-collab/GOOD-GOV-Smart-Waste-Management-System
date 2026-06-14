@@ -465,17 +465,21 @@ async function cancelWastePayment(paymentId, reason) {
 
     // 2. Revert monthly status
     const months = Array.isArray(p.months_paid) ? p.months_paid : [p.months_paid];
-    const fiscalYear = p.fiscal_year || getCurrentFiscalYear();
-    
     for (const ml of months) {
         if (!ml) continue;
-        let idx = WASTE_MONTHS.indexOf(ml);
-        if (idx === -1) {
-            idx = WASTE_MONTHS.findIndex(m => ml.startsWith(m));
+        const parts = ml.split(' ');
+        const mName = parts[0];
+        
+        let idx = WASTE_MONTHS.indexOf(mName);
+        if (idx === -1) idx = WASTE_MONTHS.findIndex(m => mName.startsWith(m));
+        if (idx === -1) continue;
+
+        let monthFiscalYear = p.fiscal_year || getCurrentFiscalYear();
+        if (parts.length >= 2) {
+            const calYear = 2500 + parseInt(parts[1], 10);
+            monthFiscalYear = (idx < 3) ? (calYear + 1).toString() : calYear.toString();
         }
-        if (idx >= 0) {
-            await saveMonthlyStatusDB(p.customer_id, fiscalYear, WASTE_MONTH_KEYS[idx], 'unpaid', null);
-        }
+        await saveMonthlyStatusDB(p.customer_id, monthFiscalYear, WASTE_MONTH_KEYS[idx], 'unpaid', null);
     }
     return p;
 }
@@ -485,18 +489,15 @@ async function deleteWastePayment(paymentId) {
     const p = payments.find(x => x.id === paymentId);
     if (!p) return false;
 
-    // 1. Revert monthly status FIRST
-    const months = Array.isArray(p.months_paid) ? p.months_paid : [p.months_paid];
-    const fiscalYear = p.fiscal_year || getCurrentFiscalYear();
-    
-    for (const ml of months) {
-        if (!ml) continue;
-        let idx = WASTE_MONTHS.indexOf(ml);
-        if (idx === -1) {
-            idx = WASTE_MONTHS.findIndex(m => ml.startsWith(m));
-        }
-        if (idx >= 0) {
-            await saveMonthlyStatusDB(p.customer_id, fiscalYear, WASTE_MONTH_KEYS[idx], 'unpaid', null);
+    // 1. Revert monthly status in Supabase first (to fix foreign key constraint)
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        const { error: updErr } = await supabaseClient
+            .from('waste_monthly_status')
+            .update({ payment_id: null, status: 'unpaid' })
+            .eq('payment_id', paymentId);
+        if (updErr) {
+            console.error('Error updating monthly status in Supabase:', updErr);
+            return false;
         }
     }
 
@@ -512,7 +513,32 @@ async function deleteWastePayment(paymentId) {
         }
     }
 
-    // 3. Delete from local cache
+    // 3. Revert monthly status in local cache
+    const months = Array.isArray(p.months_paid) ? p.months_paid : [p.months_paid];
+    for (const ml of months) {
+        if (!ml) continue;
+        const parts = ml.split(' ');
+        const mName = parts[0];
+        
+        let idx = WASTE_MONTHS.indexOf(mName);
+        if (idx === -1) idx = WASTE_MONTHS.findIndex(m => mName.startsWith(m));
+        if (idx === -1) continue;
+
+        let monthFiscalYear = p.fiscal_year || getCurrentFiscalYear();
+        if (parts.length >= 2) {
+            const calYear = 2500 + parseInt(parts[1], 10);
+            monthFiscalYear = (idx < 3) ? (calYear + 1).toString() : calYear.toString();
+        }
+
+        // Just update local cache directly since Supabase is already updated
+        const ms = getMonthlyStatus();
+        if (!ms[p.customer_id]) ms[p.customer_id] = {};
+        if (!ms[p.customer_id][monthFiscalYear]) ms[p.customer_id][monthFiscalYear] = {};
+        ms[p.customer_id][monthFiscalYear][WASTE_MONTH_KEYS[idx]] = 'unpaid';
+        saveMonthlyStatus(ms);
+    }
+
+    // 4. Delete from local cache
     const updatedPayments = payments.filter(x => x.id !== paymentId);
     saveWastePayments(updatedPayments);
 
