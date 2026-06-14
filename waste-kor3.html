@@ -18,7 +18,7 @@
             font-size: 0.72rem;
             font-weight: 600;
             padding: 6px 4px !important;
-            transition: all 0.15s;
+            transition: opacity 0.1s ease-in-out, background-color 0.1s ease-in-out;
         }
 
         .month-paid {
@@ -42,8 +42,8 @@
         }
 
         .month-cell:hover {
-            filter: brightness(0.88);
-            transform: scale(1.05);
+            opacity: 0.75;
+            background-color: #e2e8f0;
         }
 
         .kor3-summary-card {
@@ -211,6 +211,13 @@
                             <tfoot id="kor3Foot"></tfoot>
                         </table>
                     </div>
+                    <!-- Pagination Controls -->
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3 border-top bg-light">
+                        <div id="kor3PageInfo" class="text-muted mb-2 mb-md-0" style="font-size:0.85rem;"></div>
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-sm mb-0" id="kor3Pagination"></ul>
+                        </nav>
+                    </div>
                 </div>
             </div>
         </div>
@@ -224,6 +231,8 @@
     <script src="assets/js/responsive.js"></script>
     <script>
         let kor3SelectedYear = '';
+        let kor3CurrentPage = 1;
+        const kor3ItemsPerPage = 50; // Optimized for performance
 
         document.addEventListener('DOMContentLoaded', async function () {
             Swal.fire({
@@ -371,6 +380,14 @@
         </div></div>
     `;
 
+            // Pagination Logic
+            const totalItems = customers.length;
+            const totalPages = Math.ceil(totalItems / kor3ItemsPerPage) || 1;
+            if (kor3CurrentPage > totalPages) kor3CurrentPage = totalPages;
+            
+            const startIdx = (kor3CurrentPage - 1) * kor3ItemsPerPage;
+            const paginatedCustomers = customers.slice(startIdx, startIdx + kor3ItemsPerPage);
+
             // Render table
             const tbody = document.getElementById('kor3Body');
             const fyNum = parseInt(year);
@@ -380,7 +397,19 @@
             const monthTotalCounts = new Array(12).fill(0);
             const monthRevenue = new Array(12).fill(0);
 
-            tbody.innerHTML = customers.map((c, idx) => {
+            // Note: We use paginatedCustomers for the table view, but the footer can show summary for the current page OR all.
+            // Usually footer in enterprise shows summary for ALL filtered data. We will compute footer based on ALL filtered customers.
+            customers.forEach(c => {
+                const yearData = (ms[c.id] || {})[year] || {};
+                const monthFees = WASTE_MONTH_KEYS.map(mk => getFeeForMonth(c.id, mk, year));
+                WASTE_MONTH_KEYS.forEach((mk, mi) => {
+                    const val = yearData[mk] || 'unpaid';
+                    monthTotalCounts[mi]++;
+                    if (val === 'paid') { monthPaidCounts[mi]++; monthRevenue[mi] += monthFees[mi]; }
+                });
+            });
+
+            tbody.innerHTML = paginatedCustomers.map((c, idx) => {
                 const yearData = (ms[c.id] || {})[year] || {};
                 const customerHistory = getFeeHistory(c.id);
                 const hasHistory = customerHistory && customerHistory.length > 0;
@@ -398,8 +427,6 @@
                     const cls = val === 'paid' ? 'month-paid' : val === 'pending' ? 'month-pending' : val === 'exempted' ? 'month-exempted' : 'month-unpaid';
                     const icon = val === 'paid' ? '✓' : val === 'pending' ? '◷' : val === 'exempted' ? '-' : '✗';
                     const calYear = mi < 3 ? String(fyNum - 1) : year;
-                    monthTotalCounts[mi]++;
-                    if (val === 'paid') { monthPaidCounts[mi]++; monthRevenue[mi] += monthFees[mi]; }
                     const titleText = val === 'paid' ? 'ชำระแล้ว' : val === 'pending' ? 'รออนุมัติ' : val === 'exempted' ? 'ยกเว้นชำระ' : 'ค้างชำระ';
                     const feeText = `฿${monthFees[mi]}`;
                     // Highlight fee change month
@@ -417,10 +444,10 @@
                     }
                 }
 
-                return `<tr><td class="ps-3 text-muted">${idx + 1}</td><td class="fw-semibold">${c.name}</td><td>${c.house_no} ม.${c.moo}</td><td class="text-end fw-semibold text-primary" style="font-size:0.78rem;">${feeDisplay}</td>${monthCells}</tr>`;
+                return `<tr><td class="ps-3 text-muted">${startIdx + idx + 1}</td><td class="fw-semibold">${c.name}</td><td>${c.house_no} ม.${c.moo}</td><td class="text-end fw-semibold text-primary" style="font-size:0.78rem;">${feeDisplay}</td>${monthCells}</tr>`;
             }).join('') || '<tr><td colspan="16" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';
 
-            // Render footer with monthly summary
+            // Render footer with monthly summary (All filtered data)
             const foot = document.getElementById('kor3Foot');
             const footCells = monthPaidCounts.map((paid, mi) => {
                 const total = monthTotalCounts[mi];
@@ -429,7 +456,68 @@
                 const color = pct >= 80 ? '#166534' : pct >= 50 ? '#854d0e' : '#991b1b';
                 return `<td class="month-cell" style="background:${bg};color:${color};font-size:0.7rem;">${paid}/${total}<br><span style="font-size:0.65rem;">(${pct}%)</span></td>`;
             }).join('');
-            foot.innerHTML = `<tr style="border-top:2px solid #d1d5db;"><td class="ps-3" colspan="4" style="font-size:0.75rem;font-weight:700;background:#f8fafc;">สรุปจำนวนชำระ/ทั้งหมด</td>${footCells}</tr>`;
+            foot.innerHTML = `<tr style="border-top:2px solid #d1d5db;"><td class="ps-3" colspan="4" style="font-size:0.75rem;font-weight:700;background:#f8fafc;">สรุปจำนวนชำระ/ทั้งหมด (ทุกหน้า)</td>${footCells}</tr>`;
+            
+            renderKor3Pagination(totalItems, totalPages);
+        }
+
+        function renderKor3Pagination(totalItems, totalPages) {
+            const pageInfo = document.getElementById('kor3PageInfo');
+            const pagination = document.getElementById('kor3Pagination');
+            
+            if (totalItems === 0) {
+                pageInfo.innerHTML = 'ไม่พบข้อมูล';
+                pagination.innerHTML = '';
+                return;
+            }
+
+            const startItem = ((kor3CurrentPage - 1) * kor3ItemsPerPage) + 1;
+            const endItem = Math.min(kor3CurrentPage * kor3ItemsPerPage, totalItems);
+            pageInfo.innerHTML = `แสดง ${startItem} ถึง ${endItem} จากทั้งหมด <span class="fw-bold">${totalItems}</span> รายการ`;
+
+            let paginationHtml = '';
+            
+            // Previous Button
+            paginationHtml += `<li class="page-item ${kor3CurrentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changeKor3Page(${kor3CurrentPage - 1}); return false;">ก่อนหน้า</a>
+            </li>`;
+
+            // Calculate page range to show (max 5 pages)
+            let startPage = Math.max(1, kor3CurrentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+
+            if (startPage > 1) {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="changeKor3Page(1); return false;">1</a></li>`;
+                if (startPage > 2) paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHtml += `<li class="page-item ${i === kor3CurrentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changeKor3Page(${i}); return false;">${i}</a>
+                </li>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="changeKor3Page(${totalPages}); return false;">${totalPages}</a></li>`;
+            }
+
+            // Next Button
+            paginationHtml += `<li class="page-item ${kor3CurrentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changeKor3Page(${kor3CurrentPage + 1}); return false;">ถัดไป</a>
+            </li>`;
+
+            pagination.innerHTML = paginationHtml;
+        }
+
+        function changeKor3Page(page) {
+            kor3CurrentPage = page;
+            renderKor3();
+            // Scroll to top of table
+            document.querySelector('.table-responsive').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function showMonthDetail(customerId, monthKey, monthLabel, status, fiscalYear, calYear) {
