@@ -352,6 +352,68 @@ async function selectCustomer(id) {
 
     document.getElementById('stickyAction').style.display = 'block';
     updateActionButton();
+    
+    // Auto-select oldest unpaid year
+    try {
+        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+            const { data } = await supabaseClient
+                .from('garbage_payment_transactions')
+                .select('fiscal_year, paid_months')
+                .eq('citizen_id', selectedCustomer.id)
+                .eq('status', 'pending');
+            window.pendingTxMap = {};
+            if (data) {
+                data.forEach(r => {
+                    if (!window.pendingTxMap[r.fiscal_year]) window.pendingTxMap[r.fiscal_year] = [];
+                    window.pendingTxMap[r.fiscal_year] = window.pendingTxMap[r.fiscal_year].concat(r.paid_months);
+                });
+            }
+        }
+    } catch (e) { console.warn('Pending check failed', e); }
+
+    const allStatus = typeof getMonthlyStatus === 'function' ? getMonthlyStatus() : {};
+    const cStatus = allStatus[selectedCustomer.id] || {};
+    let oldestUnpaidYear = null;
+    const availableYears = Object.keys(cStatus).map(Number).sort((a,b)=>a-b);
+    
+    for (let y of availableYears) {
+        let hasUnpaid = false;
+        const yPending = (window.pendingTxMap || {})[y] || [];
+        for (let k of CW_MONTH_KEYS) {
+            let s = cStatus[y][k] || 'unpaid';
+            if (yPending.includes(k)) s = 'pending';
+            if (s !== 'paid' && s !== 'exempted' && s !== 'pending') {
+                hasUnpaid = true;
+                break;
+            }
+        }
+        if (hasUnpaid) {
+            oldestUnpaidYear = y;
+            break;
+        }
+    }
+    
+    const sel = document.getElementById('fiscalYearSelect');
+    if (sel) {
+        if (oldestUnpaidYear) {
+            for(let i=0; i<sel.options.length; i++) {
+                if(sel.options[i].value == oldestUnpaidYear) {
+                    sel.value = oldestUnpaidYear;
+                    break;
+                }
+            }
+        } else {
+            const now = new Date();
+            const currentFY = String(now.getMonth() >= 9 ? now.getFullYear() + 544 : now.getFullYear() + 543);
+            for(let i=0; i<sel.options.length; i++) {
+                if(sel.options[i].value == currentFY) {
+                    sel.value = currentFY;
+                    break;
+                }
+            }
+        }
+    }
+
     await loadMonthlyStatus();
 }
 
@@ -369,27 +431,8 @@ async function loadMonthlyStatus(noAnimate = false) {
     const allStatus = typeof getMonthlyStatus === 'function' ? getMonthlyStatus() : {};
     const customerStatus = (allStatus[selectedCustomer.id] || {})[year] || {};
 
-    // Check pending online transactions
-    let pendingMonths = [];
-    try {
-        if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-            // Fetch ALL pending transactions for this citizen to prevent skipping years
-            const { data } = await supabaseClient
-                .from('garbage_payment_transactions')
-                .select('fiscal_year, paid_months')
-                .eq('citizen_id', selectedCustomer.id)
-                .eq('status', 'pending');
-            if (data) {
-                data.forEach(r => {
-                    if (!window.pendingTxMap) window.pendingTxMap = {};
-                    if (!window.pendingTxMap[r.fiscal_year]) window.pendingTxMap[r.fiscal_year] = [];
-                    window.pendingTxMap[r.fiscal_year] = window.pendingTxMap[r.fiscal_year].concat(r.paid_months);
-                });
-            }
-        }
-    } catch (e) { console.warn('Pending check failed', e); }
-    
-    pendingMonths = (window.pendingTxMap || {})[year] || [];
+    // Use cached pending map from selectCustomer
+    let pendingMonths = (window.pendingTxMap || {})[year] || [];
     currentPendingMonths = pendingMonths;
 
     let html = '';
