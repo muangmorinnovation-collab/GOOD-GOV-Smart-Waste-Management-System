@@ -470,7 +470,7 @@
             try {
                 if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
                     // Fetch Waste Payments
-                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*').order('payment_datetime', { ascending: false }).limit(10);
+                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*').limit(20);
                     if (session && session.houseNo && userName) {
                         qWaste = qWaste.or(`house_no.ilike."%${session.houseNo}%",payer_name.eq."${userName}"`);
                     } else if (session && session.houseNo) {
@@ -746,7 +746,7 @@
             let allRequests = [];
             try {
                 if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
-                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*').order('payment_datetime', { ascending: false });
+                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*');
                     if (session && session.houseNo && userName) {
                         qWaste = qWaste.or(`house_no.ilike."%${session.houseNo}%",payer_name.eq."${userName}"`);
                     } else if (session && session.houseNo) {

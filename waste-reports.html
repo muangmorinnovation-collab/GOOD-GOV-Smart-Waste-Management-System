@@ -56,11 +56,14 @@
                         </div>
                         <input type="text" id="searchReceipt" class="form-control form-control-sm" style="width: 130px;" placeholder="ค้นหาเลขใบเสร็จ" onkeyup="renderReports()">
                         <input type="text" id="searchPayer" class="form-control form-control-sm" style="width: 130px;" placeholder="ค้นหาผู้ชำระ" onkeyup="renderReports()">
+                        <select id="staffFilter" class="form-select form-select-sm" style="width: 150px;" onchange="renderReports()">
+                            <option value="">ทุกเจ้าหน้าที่</option>
+                        </select>
                         <label class="form-label mb-0 text-muted" style="white-space: nowrap;">ตั้งแต่วันที่:</label>
                         <input type="date" id="allStartDate" class="form-control form-control-sm" style="width: 140px;" onchange="renderReports()">
                         <label class="form-label mb-0 text-muted" style="white-space: nowrap;">ถึง:</label>
                         <input type="date" id="allEndDate" class="form-control form-control-sm" style="width: 140px;" onchange="renderReports()">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('allStartDate').value=''; document.getElementById('allEndDate').value=''; document.getElementById('searchReceipt').value=''; document.getElementById('searchPayer').value=''; setAllYearFilter('all', document.querySelector('#yearFilterGroup button'));">ดูทั้งหมด</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('allStartDate').value=''; document.getElementById('allEndDate').value=''; document.getElementById('searchReceipt').value=''; document.getElementById('searchPayer').value=''; document.getElementById('staffFilter').value=''; setAllYearFilter('all', document.querySelector('#yearFilterGroup button'));">ดูทั้งหมด</button>
                         <button class="btn btn-sm btn-danger ms-2" onclick="exportAllPDF()" title="พิมพ์ PDF ทั้งหมด"><i class="fa-solid fa-file-pdf me-1"></i>PDF</button>
                     </div>
                 </div>
@@ -235,16 +238,29 @@ function renderReports() {
     var msData = typeof getMonthlyStatus === 'function' ? getMonthlyStatus() : {};
     var customers = typeof getWasteCustomers === 'function' ? getWasteCustomers() : [];
     
-    // 0. All Revenue Report
+    // Populate staffFilter if empty
+    var staffFilterSelect = document.getElementById('staffFilter');
+    if (staffFilterSelect && staffFilterSelect.options.length === 1 && payments.length > 0) {
+        var uniqueStaffs = new Set();
+        payments.forEach(function(p) { if (p.staff) uniqueStaffs.add(p.staff); });
+        Array.from(uniqueStaffs).sort().forEach(function(staff) {
+            var opt = document.createElement('option');
+            opt.value = staff;
+            opt.text = staff;
+            staffFilterSelect.appendChild(opt);
+        });
+    }
+
     var startDate = document.getElementById('allStartDate').value;
     var endDate = document.getElementById('allEndDate').value;
     var searchReceiptInput = document.getElementById('searchReceipt');
     var searchPayerInput = document.getElementById('searchPayer');
     var searchReceipt = searchReceiptInput ? searchReceiptInput.value.toLowerCase() : '';
     var searchPayer = searchPayerInput ? searchPayerInput.value.toLowerCase() : '';
+    var searchStaff = staffFilterSelect ? staffFilterSelect.value : '';
     
     var filteredAllPayments = payments;
-    var isSpecificSearch = (startDate || endDate || searchReceipt || searchPayer);
+    var isSpecificSearch = (startDate || endDate || searchReceipt || searchPayer || searchStaff);
     
     if (isSpecificSearch || currentAllYearFilter !== 'all') {
         filteredAllPayments = payments.filter(function(p) {
@@ -253,12 +269,14 @@ function renderReports() {
             if (endDate && p.date > endDate) pass = false;
             if (searchReceipt && (!p.receipt_no || !p.receipt_no.toLowerCase().includes(searchReceipt))) pass = false;
             if (searchPayer && (!p.customer_name || !p.customer_name.toLowerCase().includes(searchPayer))) pass = false;
+            if (searchStaff && p.staff !== searchStaff) pass = false;
             if (currentAllYearFilter !== 'all' && p.fiscal_year !== currentAllYearFilter) pass = false;
             return pass;
         });
     }
 
     var activePayments = filteredAllPayments.filter(function(p){ return p.status !== 'cancelled'; });
+    window.currentFilteredAllPayments = activePayments; // Save globally for exportAllPDF
     
     if (isSpecificSearch) {
         var rangeTotal = activePayments.reduce(function(s,p){return s+p.amount;},0);

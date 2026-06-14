@@ -60,10 +60,17 @@
 <script src="assets/js/responsive.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() { 
-    initWasteData(); 
-    if (typeof fetchCancelRequestsDB === 'function') await fetchCancelRequestsDB();
-    if (typeof fetchWasteCustomers === 'function') await fetchWasteCustomers();
-    renderCancelRequests(); 
+    Swal.fire({title: 'กำลังโหลดข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    try {
+        initWasteData(); 
+        if (typeof fetchCancelRequestsDB === 'function') await fetchCancelRequestsDB();
+        if (typeof fetchWasteCustomers === 'function') await fetchWasteCustomers();
+        renderCancelRequests(); 
+        Swal.close();
+    } catch(e) {
+        console.error(e);
+        Swal.close();
+    }
 });
 
 function renderCancelRequests() {

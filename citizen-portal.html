@@ -626,7 +626,7 @@
                     if (dElec) dElec.forEach(r => allRequests.push({ type: 'electric', date: r.created_at, data: r }));
 
                     // 2. Fetch Waste Payments
-                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*').order('payment_datetime', { ascending: false }).limit(5);
+                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*').limit(20);
                     if (session && session.houseNo && userName) {
                         qWaste = qWaste.or(`house_no.ilike."%${session.houseNo}%",payer_name.eq."${userName}"`);
                     } else if (session && session.houseNo) {
@@ -769,7 +769,7 @@
                     const { data: dElec } = await qElec;
                     if (dElec) dElec.forEach(r => allRequests.push({ type: 'electric', date: r.created_at, data: r }));
 
-                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*').order('payment_datetime', { ascending: false });
+                    let qWaste = supabaseClient.from('garbage_payment_transactions').select('*');
                     if (session && session.houseNo && userName) {
                         qWaste = qWaste.or(`house_no.ilike."%${session.houseNo}%",payer_name.eq."${userName}"`);
                     } else if (session && session.houseNo) {

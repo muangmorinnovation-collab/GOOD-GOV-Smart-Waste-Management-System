@@ -183,6 +183,12 @@
 const GAS_RECEIPT_URL = 'https://script.google.com/macros/s/AKfycby_bjxYrtQnhoEzPvIFqG11CjOhkwEFC_AC5OsxJKE-A08FZ6mBxY_0AHGy_R-ii1sOqQ/exec';
 
 document.addEventListener('DOMContentLoaded', async function() {
+    Swal.fire({
+        title: 'กำลังโหลดข้อมูล...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
     initWasteData();
     
     // 1. Initial Render immediately using local storage data for speed
@@ -200,9 +206,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             refreshOnlinePayments(true) // Pass true to avoid re-rendering immediately if we just want to sync
         ];
         
-        await Promise.all(fetchTasks);
+        await Promise.allSettled(fetchTasks);
         
-        // 3. Re-render once fresh data arrives silently
+        // 3. Re-render once fresh data arrives
         onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
         renderOnlinePayments();
         
@@ -210,8 +216,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (document.getElementById('walkInSearch').value) {
             searchWalkIn();
         }
+        Swal.close();
     } catch(e) {
         console.error(e);
+        Swal.close();
     }
 });
 
@@ -227,11 +235,20 @@ async function refreshOnlinePayments(silent = false) {
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
         const { data, error } = await supabaseClient
             .from('garbage_payment_transactions')
-            .select('*')
-            .order('created_at', { ascending: false });
+            .select('*');
+            
         if (!error && data) {
+            data.sort((a, b) => {
+                const dA = new Date(a.payment_datetime || a.created_at || 0).getTime();
+                const dB = new Date(b.payment_datetime || b.created_at || 0).getTime();
+                return dB - dA;
+            });
             onlineTransactions = data;
             localStorage.setItem('garbage_payment_transactions', JSON.stringify(data));
+        } else if (error) {
+            console.error('Supabase fetch error for garbage_payment_transactions:', error);
+            // Fallback to local storage if table doesn't exist or RLS blocks
+            onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
         }
     } else {
         onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
@@ -247,11 +264,20 @@ function renderOnlinePayments() {
     }
 
     tbody.innerHTML = onlineTransactions.map(t => {
-        const date = new Date(t.payment_datetime).toLocaleString('th-TH', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
-        const months = t.paid_months.map(m => {
-            const idx = WASTE_MONTH_KEYS.indexOf(m);
-            return idx >= 0 ? WASTE_MONTHS[idx] : m;
-        }).join(', ');
+        const dStr = t.payment_datetime || t.created_at || new Date().toISOString();
+        const date = new Date(dStr).toLocaleString('th-TH', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
+        
+        let pm = t.paid_months;
+        if (typeof pm === 'string') {
+            try { pm = JSON.parse(pm); } catch(e) { pm = pm.split(','); }
+        }
+        if (!Array.isArray(pm)) pm = [];
+        
+        const months = pm.map(m => {
+            if (!m) return '';
+            const idx = WASTE_MONTH_KEYS.indexOf(m.trim());
+            return idx >= 0 ? WASTE_MONTHS[idx] : m.trim();
+        }).filter(Boolean).join(', ');
 
         return `<tr>
             <td class="ps-4 text-xs">${date}</td>
@@ -374,8 +400,9 @@ function loadOnlineToForm(id) {
             } else {
                 cb.checked = false;
             }
+            toggleWalkInMonth(cb);
         });
-        calcTotal();
+        // calcTotal() is already called inside toggleWalkInMonth
         
         const methodSelect = document.getElementById('payMethod');
         if (t.payment_method) {
@@ -455,6 +482,24 @@ function getCurrentFiscalYear() {
 }
 
 let selectedYear = getCurrentFiscalYear();
+let selectedWalkInMonths = {};
+
+function toggleWalkInMonth(cb) {
+    const key = cb.getAttribute('data-key');
+    const year = cb.getAttribute('data-year');
+    const uniqueKey = `${key}-${year}`;
+    if (cb.checked) {
+        selectedWalkInMonths[uniqueKey] = {
+            key: key,
+            year: year,
+            fee: parseFloat(cb.getAttribute('data-fee')),
+            label: cb.value
+        };
+    } else {
+        delete selectedWalkInMonths[uniqueKey];
+    }
+    calcTotal();
+}
 
 function setPaymentMode(mode) {
     paymentMode = mode;
@@ -522,6 +567,7 @@ function searchWalkIn() {
 function selectCustomer(id, year = null) {
     if (selectedCustomer && selectedCustomer.id !== id) {
         pendingOnlineTransactionId = null;
+        selectedWalkInMonths = {};
     }
     selectedCustomer = getWasteCustomers().find(c => c.id === id);
     if (!selectedCustomer) return;
@@ -577,17 +623,39 @@ function selectCustomer(id, year = null) {
     const yearOptions = availableYears.map(y => `<option value="${y}" ${y === selectedYear ? 'selected' : ''}>ปีงบประมาณ ${y}</option>`).join('');
 
     const status = customerStatus[selectedYear] || {};
-    const unpaidMonths = [];
+    const allMonths = [];
     const fyNum = parseInt(selectedYear);
     WASTE_MONTH_KEYS.forEach((mk, i) => {
-        if (status[mk] !== 'paid') {
-            const isExempted = status[mk] === 'exempted';
-            // oct(0), nov(1), dec(2) belong to the previous calendar year
-            const calYear = i < 3 ? String(fyNum - 1) : selectedYear;
-            const monthFee = typeof getFeeForMonth === 'function' ? getFeeForMonth(selectedCustomer.id, mk, selectedYear) : selectedCustomer.fee;
-            unpaidMonths.push({key:mk, label:WASTE_MONTHS[i], yearSuffix: calYear.substring(2), isExempted: isExempted, fee: monthFee});
-        }
+        const isPaid = status[mk] === 'paid';
+        const isExempted = status[mk] === 'exempted';
+        // oct(0), nov(1), dec(2) belong to the previous calendar year
+        const calYear = i < 3 ? String(fyNum - 1) : selectedYear;
+        const monthFee = typeof getFeeForMonth === 'function' ? getFeeForMonth(selectedCustomer.id, mk, selectedYear) : selectedCustomer.fee;
+        allMonths.push({key:mk, label:WASTE_MONTHS[i], yearSuffix: calYear.substring(2), isPaid: isPaid, isExempted: isExempted, fee: monthFee});
     });
+
+    const cyNum = parseInt(cyStr);
+    let hasUnpaidPast = false;
+    let hasPastHistory = false;
+    const allYearsWithStatus = Object.keys(customerStatus).filter(y => parseInt(y) < cyNum);
+    if (allYearsWithStatus.length > 0) {
+        hasPastHistory = true;
+        allYearsWithStatus.forEach(y => {
+            const statusObj = customerStatus[y];
+            WASTE_MONTH_KEYS.forEach(mk => {
+                if (statusObj[mk] !== 'paid' && statusObj[mk] !== 'exempted') {
+                    hasUnpaidPast = true;
+                }
+            });
+        });
+    }
+
+    let pastTabHtml = 'ชำระย้อนหลัง';
+    if (hasUnpaidPast) {
+        pastTabHtml = '<i class="fa-solid fa-circle-exclamation text-danger me-1"></i><span class="text-danger fw-bold">ชำระย้อนหลัง</span>';
+    } else if (hasPastHistory && !hasUnpaidPast) {
+        pastTabHtml = '<i class="fa-solid fa-circle-check text-success me-1"></i><span class="text-success fw-bold">ชำระย้อนหลัง</span>';
+    }
 
     document.getElementById('paymentFormArea').innerHTML = `
         <div class="alert alert-custom mb-3" style="background:#f0f5ff;"><i class="fa-solid fa-user text-primary fa-lg"></i>
@@ -596,7 +664,7 @@ function selectCustomer(id, year = null) {
         
         <div class="btn-group w-100 mb-4" role="group">
             <input type="radio" class="btn-check" name="payMode" id="modePast" ${paymentMode==='past'?'checked':''} onchange="setPaymentMode('past')">
-            <label class="btn btn-outline-secondary btn-sm" for="modePast">ชำระย้อนหลัง</label>
+            <label class="btn btn-outline-secondary btn-sm" for="modePast">${pastTabHtml}</label>
             <input type="radio" class="btn-check" name="payMode" id="modeReg" ${paymentMode==='regular'?'checked':''} onchange="setPaymentMode('regular')">
             <label class="btn btn-outline-primary btn-sm" for="modeReg">ชำระปกติ</label>
             <input type="radio" class="btn-check" name="payMode" id="modeAdv" ${paymentMode==='advance'?'checked':''} onchange="setPaymentMode('advance')">
@@ -606,7 +674,7 @@ function selectCustomer(id, year = null) {
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="d-flex align-items-center gap-2">
                 <h6 class="fw-bold mb-0">เลือกเดือนที่ชำระ:</h6>
-                ${unpaidMonths.length > 0 ? `<button class="btn btn-sm btn-light py-0 px-2 text-primary fw-semibold" style="font-size:0.75rem;" onclick="selectAllMonths()">เลือกทั้งหมด</button>` : ''}
+                ${allMonths.some(m => !m.isPaid && !m.isExempted) ? `<button class="btn btn-sm btn-light py-0 px-2 text-primary fw-semibold" style="font-size:0.75rem;" onclick="selectAllMonths()">เลือกทั้งหมด</button>` : ''}
             </div>
             <div class="d-flex gap-2">
                 <select class="form-select form-select-sm w-auto fw-semibold" id="fiscalYearSelect" onchange="selectCustomer('${id}', this.value)" ${paymentMode==='regular'?'disabled':''}>
@@ -617,10 +685,45 @@ function selectCustomer(id, year = null) {
         </div>
         
         <div class="row g-2 mb-3" id="monthCheckboxes">
-            ${unpaidMonths.map(m => `<div class="col-4 col-md-3"><div class="form-check">
-                <input class="form-check-input" type="checkbox" value="${m.label} ${m.yearSuffix}" data-key="${m.key}" data-fee="${m.fee}" id="chk_${m.key}" onchange="calcTotal()" ${m.isExempted ? 'disabled' : ''}>
-                <label class="form-check-label text-sm ${m.isExempted ? 'text-decoration-line-through text-danger' : ''}" for="chk_${m.key}" ${m.isExempted ? 'title="ยกเว้นชำระ"' : ''}>${m.label} ${m.yearSuffix} <span class="text-muted text-nowrap">(฿${m.fee})</span></label>
-            </div></div>`).join('') || '<div class="col-12 text-success fw-semibold"><i class="fa-solid fa-check-circle me-1"></i>ชำระครบทุกเดือนแล้วในปีนี้</div>'}
+            ${allMonths.map(m => {
+                const uniqueKey = `${m.key}-${selectedYear}`;
+                const isChecked = m.isPaid || !!selectedWalkInMonths[uniqueKey];
+                
+                let disabledAttr = '';
+                let labelStyle = '';
+                let titleAttr = '';
+                
+                if (m.isPaid) {
+                    disabledAttr = 'disabled';
+                    labelStyle = 'text-success fw-bold';
+                    titleAttr = 'title="ชำระแล้ว"';
+                } else if (m.isExempted) {
+                    disabledAttr = 'disabled';
+                    labelStyle = 'text-decoration-line-through text-danger';
+                    titleAttr = 'title="ยกเว้นชำระ"';
+                } else {
+                    labelStyle = 'fw-bold'; // Will use inline style for dark red
+                }
+                
+                let cardStyle = '';
+                if (m.isPaid) {
+                    cardStyle = 'border-success bg-success bg-opacity-10';
+                } else if (m.isExempted) {
+                    cardStyle = 'border-secondary bg-light opacity-75';
+                } else {
+                    cardStyle = 'border-danger bg-white shadow-sm';
+                    if (isChecked) cardStyle += ' bg-danger bg-opacity-10'; // optional subtle highlight if checked
+                }
+
+                return `<div class="col-6 col-md-4 col-lg-3">
+                <label class="w-100 p-2 border rounded d-flex align-items-center gap-2 ${cardStyle}" style="cursor: ${m.isPaid||m.isExempted ? 'not-allowed' : 'pointer'}; transition: all 0.2s;">
+                    <input class="form-check-input m-0 flex-shrink-0" style="width: 1.4em; height: 1.4em; ${m.isPaid||m.isExempted ? '' : 'cursor: pointer;'}" type="checkbox" value="${m.label} ${m.yearSuffix}" data-key="${m.key}" data-fee="${m.fee}" data-year="${selectedYear}" id="chk_${m.key}" onchange="toggleWalkInMonth(this)" ${disabledAttr} ${isChecked ? 'checked' : ''}>
+                    <div class="d-flex flex-column lh-sm">
+                        <span class="${labelStyle}" ${titleAttr} ${!m.isPaid && !m.isExempted ? 'style="color: #991b1b; font-size: 1rem;"' : 'style="font-size: 1rem;"'}>${m.label} ${m.yearSuffix}</span>
+                        <span class="${!m.isPaid && !m.isExempted ? 'text-danger' : 'text-muted'}" style="font-size: 0.85rem;">฿${m.fee}</span>
+                    </div>
+                </label>
+            </div>`}).join('')}
         </div>
         <div class="row g-3 mb-3 border-top pt-3">
             <div class="col-md-6"><label class="form-label fw-semibold text-sm">วิธีชำระ</label>
@@ -635,33 +738,41 @@ function selectCustomer(id, year = null) {
             <button class="btn btn-warning px-4 fw-semibold text-white" onclick="exemptPayment()"><i class="fa-solid fa-ban me-1"></i>ยกเว้นชำระ</button>
             <button class="btn btn-success px-4 fw-semibold" onclick="submitWalkIn()"><i class="fa-solid fa-check me-1"></i>รับชำระ</button>
         </div>`;
+        
+    calcTotal();
 }
 
 function selectAllMonths() {
-    const checkboxes = document.querySelectorAll('#monthCheckboxes input[type="checkbox"]');
-    checkboxes.forEach(cb => cb.checked = true);
-    calcTotal();
+    const checkboxes = document.querySelectorAll('#monthCheckboxes input[type="checkbox"]:not(:disabled)');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+        toggleWalkInMonth(cb);
+    });
 }
 
 
 
 function calcTotal() {
     if (!selectedCustomer) return;
-    const checked = document.querySelectorAll('#monthCheckboxes input:checked');
     let total = 0;
-    checked.forEach(cb => {
-        total += parseFloat(cb.getAttribute('data-fee')) || 0;
+    Object.values(selectedWalkInMonths).forEach(m => {
+        total += m.fee;
     });
     document.getElementById('totalAmount').value = formatMoneyDecimal(total);
 }
 
 async function submitWalkIn() {
     if (!selectedCustomer) return;
-    const checkboxes = Array.from(document.querySelectorAll('#monthCheckboxes input:checked'));
-    if (!checkboxes.length) { Swal.fire('กรุณาเลือกเดือน','เลือกอย่างน้อย 1 เดือน','warning'); return; }
+    let selectedVals = Object.values(selectedWalkInMonths);
+    if (!selectedVals.length) { Swal.fire('กรุณาเลือกเดือน','เลือกอย่างน้อย 1 เดือน','warning'); return; }
     
-    const checkedLabels = checkboxes.map(cb => cb.value);
-    const checkedKeys = checkboxes.map(cb => cb.getAttribute('data-key'));
+    selectedVals.sort((a, b) => {
+        if (a.year !== b.year) return parseInt(a.year) - parseInt(b.year);
+        return WASTE_MONTH_KEYS.indexOf(a.key) - WASTE_MONTH_KEYS.indexOf(b.key);
+    });
+    
+    const checkedLabels = selectedVals.map(m => m.label);
     
     const method = document.getElementById('payMethod').value;
     const staffName = document.getElementById('payStaff').value;
@@ -675,8 +786,8 @@ async function submitWalkIn() {
         html:`
             <div style="text-align: left; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px;">
                 <b>ชื่อลูกค้า:</b> ${selectedCustomer.name}<br>
-                <b>เดือนที่ชำระ:</b> ${checkedLabels.join(', ')}<br>
-                <b>ยอดรวม:</b> ฿${formatMoneyDecimal(checkboxes.length*selectedCustomer.fee)}<br>
+                <b>เดือนที่ชำระ:</b><br>${formatMonthsGroupedByYear(checkedLabels, true)}
+                <b>ยอดรวม:</b> ฿${formatMoneyDecimal(selectedVals.reduce((sum,m)=>sum+m.fee, 0))}<br>
                 <b>ช่องทาง:</b> ${method}
             </div>
             <div style="text-align: left;">
@@ -710,7 +821,7 @@ async function submitWalkIn() {
     if (r.isConfirmed) {
         const finalReceiptNo = r.value;
         Swal.fire({title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
-        const payment = await processWalkInPayment(selectedCustomer.id, checkedLabels, checkedKeys, selectedYear, method, staffName, finalReceiptNo);
+        const payment = await processWalkInPayment(selectedCustomer.id, selectedVals, method, staffName, finalReceiptNo);
         
         if (payment) {
             Swal.fire({title: 'กำลังสร้างและบันทึกใบเสร็จ...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
@@ -879,6 +990,7 @@ async function generateAndUploadReceipt(p, txId) {
 function clearPayment() { 
     selectedCustomer = null; 
     pendingOnlineTransactionId = null;
+    selectedWalkInMonths = {};
     document.getElementById('paymentFormArea').innerHTML = '<div class="text-center text-muted py-5"><i class="fa-solid fa-arrow-left fa-2x mb-3 d-block opacity-50"></i>กรุณาเลือกลูกค้าจากรายการค้นหา</div>'; 
 }
 </script>
@@ -886,7 +998,7 @@ function clearPayment() {
     .admin-chat-fab {
         position: fixed;
         bottom: 20px;
-        right: 20px;
+        left: 20px;
         width: 60px;
         height: 60px;
         border-radius: 50%;
@@ -896,19 +1008,96 @@ function clearPayment() {
         align-items: center;
         justify-content: center;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        cursor: pointer;
+        cursor: grab;
         z-index: 1050;
-        transition: all 0.3s ease;
+        transition: transform 0.3s ease, background-color 0.3s ease;
+        user-select: none;
+        touch-action: none;
+    }
+    .admin-chat-fab:active {
+        cursor: grabbing;
     }
     .admin-chat-fab:hover {
         transform: scale(1.05);
         background-color: #0b5ed7;
     }
 </style>
-<div class="admin-chat-fab" onclick="const tab = new bootstrap.Tab(document.querySelector('a[href=\'#tabChat\']')); tab.show();">
+
+<div class="admin-chat-fab" id="adminChatFab">
     <i class="fa-solid fa-comments fa-2x"></i>
     <span class="badge bg-danger rounded-pill position-absolute" id="adminFabUnreadBadge" style="top:0;right:0;transform:translate(30%,-30%);display:none;">0</span>
 </div>
+
+<script>
+    const fab = document.getElementById('adminChatFab');
+    let isDragging = false;
+    let hasMoved = false;
+    let startX, startY, initialLeft, initialTop;
+
+    fab.addEventListener('mousedown', dragStart);
+    fab.addEventListener('touchstart', dragStart, {passive: false});
+
+    function dragStart(e) {
+        if (e.type === 'touchstart') e = e.touches[0];
+        if (e.target.closest('#adminFabUnreadBadge')) return;
+        isDragging = true;
+        hasMoved = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        
+        const rect = fab.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        
+        fab.style.bottom = 'auto';
+        fab.style.right = 'auto';
+        fab.style.left = initialLeft + 'px';
+        fab.style.top = initialTop + 'px';
+        fab.style.transition = 'none';
+
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', drag, {passive: false});
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('touchend', dragEnd);
+    }
+
+    function drag(e) {
+        if (!isDragging) return;
+        const touch = e.type === 'touchmove' ? e.touches[0] : e;
+        
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            hasMoved = true;
+        }
+
+        let newLeft = initialLeft + dx;
+        let newTop = initialTop + dy;
+
+        newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - 60));
+        newTop = Math.max(0, Math.min(newTop, window.innerHeight - 60));
+
+        fab.style.left = newLeft + 'px';
+        fab.style.top = newTop + 'px';
+    }
+
+    function dragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        fab.style.transition = 'transform 0.3s ease, background-color 0.3s ease';
+        
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('touchmove', drag);
+        document.removeEventListener('mouseup', dragEnd);
+        document.removeEventListener('touchend', dragEnd);
+        
+        if (!hasMoved) {
+            const tab = new bootstrap.Tab(document.querySelector('a[href=\'#tabChat\']')); 
+            tab.show();
+        }
+    }
+</script>
 
 </body>
 </html>

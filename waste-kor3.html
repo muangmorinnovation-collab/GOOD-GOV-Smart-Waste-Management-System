@@ -114,7 +114,7 @@
                     <button class="btn btn-sm btn-outline-success"
                         onclick="showToast('Export Excel สำเร็จ','success')"><i
                             class="fa-solid fa-file-excel me-1"></i>Export</button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i
+                    <button class="btn btn-sm btn-outline-secondary" onclick="printKor3Report()"><i
                             class="fa-solid fa-print me-1"></i>พิมพ์</button>
                 </div>
             </div>
@@ -512,6 +512,120 @@
                     window.location.href = 'waste-payments.html';
                 }
             });
+        }
+
+        function printKor3Report() {
+            const year = kor3SelectedYear || getCurrentFiscalYear();
+            let customers = getWasteCustomers().filter(c => c.status === 'active');
+            const ms = getMonthlyStatus();
+            
+            // Apply current filters so printed data matches screen
+            const q = (document.getElementById('kor3Search').value || '').toLowerCase();
+            const moo = document.getElementById('kor3Moo').value;
+            const statusFilter = document.getElementById('kor3Status').value;
+            
+            if (q) customers = customers.filter(c => c.name.toLowerCase().includes(q) || c.house_no.includes(q));
+            if (moo) customers = customers.filter(c => c.moo === moo);
+            
+            if (statusFilter === 'has_unpaid') customers = customers.filter(c => {
+                const yearData = (ms[c.id] || {})[year] || {};
+                return WASTE_MONTH_KEYS.some(mk => yearData[mk] !== 'paid');
+            });
+            if (statusFilter === 'all_paid') customers = customers.filter(c => {
+                const yearData = (ms[c.id] || {})[year] || {};
+                return WASTE_MONTH_KEYS.every(mk => yearData[mk] === 'paid');
+            });
+
+            const monthSumsFee = new Array(12).fill(0);
+            const monthSumsPaid = new Array(12).fill(0);
+
+            let tbodyHtml = customers.map((c, idx) => {
+                const yearData = (ms[c.id] || {})[year] || {};
+                let rowHtml = `<tr>
+                    <td style="text-align:center;">${idx + 1}</td>
+                    <td>${c.name}</td>
+                    <td style="text-align:center;">${c.house_no}</td>`;
+                    
+                WASTE_MONTH_KEYS.forEach((mk, i) => {
+                    const monthFee = getFeeForMonth(c.id, mk, year);
+                    const val = yearData[mk] || 'unpaid';
+                    let paidAmt = 0;
+                    if (val === 'paid') paidAmt = monthFee;
+                    
+                    monthSumsFee[i] += monthFee;
+                    monthSumsPaid[i] += paidAmt;
+                    
+                    rowHtml += `<td style="text-align:center;">${monthFee}</td>
+                                <td style="text-align:center;">${paidAmt}</td>`;
+                });
+                rowHtml += '</tr>';
+                return rowHtml;
+            }).join('');
+
+            let tfootHtml = `<tr style="font-weight:bold; background-color:#f1f5f9;">
+                <td colspan="3" style="text-align:right; padding-right:10px;">รวมทั้งหมด</td>`;
+            WASTE_MONTH_KEYS.forEach((mk, i) => {
+                tfootHtml += `<td style="text-align:center;">${monthSumsFee[i]}</td>
+                              <td style="text-align:center;">${monthSumsPaid[i]}</td>`;
+            });
+            tfootHtml += '</tr>';
+
+            const localSettings = JSON.parse(localStorage.getItem('waste_settings') || '{}');
+            const orgName = localSettings.org_name || 'เทศบาลตำบลเหมืองหม้อ';
+
+            let html = `<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>พิมพ์ กค.3 ประจำปีงบประมาณ ${year}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; padding: 20px; font-size: 12px; color: #000; background: #fff; }
+        @media print { 
+            @page { size: A4 landscape; margin: 10mm; } 
+            body { padding: 0; }
+            .print-btn { display: none; }
+        }
+        h3 { text-align: center; margin-bottom: 20px; font-size: 18px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 4px 6px; }
+        th { background-color: #e2e8f0; font-weight: bold; text-align: center; font-size: 12px; }
+        .print-btn { position: fixed; top: 10px; right: 10px; padding: 8px 16px; background: #1a56db; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-family: 'Sarabun', sans-serif; }
+    </style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">พิมพ์ / PDF</button>
+    <h3>กค.3 ประจำปีงบประมาณ ${year}<br><span style="font-size: 14px; font-weight: normal;">${orgName}</span></h3>
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2" style="width: 40px;">ลำดับ</th>
+                <th rowspan="2" style="min-width: 120px;">ชื่อลูกค้าขยะ</th>
+                <th rowspan="2" style="width: 70px;">บ้านเลขที่</th>
+                ${WASTE_MONTHS.map(m => `<th colspan="2">${m}</th>`).join('')}
+            </tr>
+            <tr>
+                ${WASTE_MONTHS.map(m => `<th style="font-size: 10px; font-weight: normal; background-color: #f8fafc;">ค่าขยะ ${m}</th><th style="font-size: 10px; font-weight: normal; background-color: #f8fafc;">ชำระ ${m}</th>`).join('')}
+            </tr>
+        </thead>
+        <tbody>
+            ${tbodyHtml}
+        </tbody>
+        <tfoot>
+            ${tfootHtml}
+        </tfoot>
+    </table>
+    <script>
+        window.onload = function() {
+            setTimeout(function() { window.print(); }, 500);
+        }
+    <\/script>
+</body>
+</html>`;
+
+            const win = window.open('', '_blank');
+            win.document.write(html);
+            win.document.close();
         }
     </script>
 </body>

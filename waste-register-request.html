@@ -82,8 +82,15 @@
 <script src="assets/js/responsive.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
-    initWasteData();
-    await loadRegRequests();
+    Swal.fire({title: 'กำลังโหลดข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    try {
+        initWasteData();
+        await loadRegRequests();
+        Swal.close();
+    } catch(e) {
+        console.error(e);
+        Swal.close();
+    }
 });
 
 async function loadRegRequests() {

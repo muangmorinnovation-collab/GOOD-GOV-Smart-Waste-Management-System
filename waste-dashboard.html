@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         ];
         if (typeof fetchRegisterRequestsDB === 'function') fetchTasks.push(fetchRegisterRequestsDB());
         if (typeof fetchCancelRequestsDB === 'function') fetchTasks.push(fetchCancelRequestsDB());
-        const fetchPromise = Promise.all(fetchTasks);
+        const fetchPromise = Promise.allSettled(fetchTasks);
 
         let revChartInstance = null;
         let debtChartInstance = null;

@@ -56,8 +56,40 @@
         <div class="card mb-4">
             <div class="card-body py-3">
                 <div class="row g-2 align-items-center">
-                    <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="debtSearch" placeholder="ค้นหาชื่อ / บ้านเลขที่..." oninput="renderDebtors()"></div>
-                    <div class="col-md-3"><select class="form-select form-select-sm" id="debtFilter" onchange="renderDebtors()"><option value="">ทุกระดับ</option><option value="1-2">ค้าง 1-2 เดือน</option><option value="3-6">ค้าง 3-6 เดือน</option><option value="6+">เกิน 6 เดือน</option></select></div>
+                    <div class="col-md-3"><input type="text" class="form-control form-control-sm" id="debtSearch" placeholder="ค้นหาชื่อ / บ้านเลขที่..." oninput="renderDebtors()"></div>
+                    <div class="col-md-2"><select class="form-select form-select-sm" id="debtFilter" onchange="renderDebtors()"><option value="">ทุกระดับ</option><option value="1-2">ค้าง 1-2 เดือน</option><option value="3-6">ค้าง 3-6 เดือน</option><option value="6+">เกิน 6 เดือน</option></select></div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" id="debtStartMonth" onchange="renderDebtors()">
+                            <option value="0">ตั้งแต่ ต.ค.</option>
+                            <option value="1">ตั้งแต่ พ.ย.</option>
+                            <option value="2">ตั้งแต่ ธ.ค.</option>
+                            <option value="3">ตั้งแต่ ม.ค.</option>
+                            <option value="4">ตั้งแต่ ก.พ.</option>
+                            <option value="5">ตั้งแต่ มี.ค.</option>
+                            <option value="6">ตั้งแต่ เม.ย.</option>
+                            <option value="7">ตั้งแต่ พ.ค.</option>
+                            <option value="8">ตั้งแต่ มิ.ย.</option>
+                            <option value="9">ตั้งแต่ ก.ค.</option>
+                            <option value="10">ตั้งแต่ ส.ค.</option>
+                            <option value="11">ตั้งแต่ ก.ย.</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" id="debtEndMonth" onchange="renderDebtors()">
+                            <option value="0">ถึง ต.ค.</option>
+                            <option value="1">ถึง พ.ย.</option>
+                            <option value="2">ถึง ธ.ค.</option>
+                            <option value="3">ถึง ม.ค.</option>
+                            <option value="4">ถึง ก.พ.</option>
+                            <option value="5">ถึง มี.ค.</option>
+                            <option value="6">ถึง เม.ย.</option>
+                            <option value="7">ถึง พ.ค.</option>
+                            <option value="8">ถึง มิ.ย.</option>
+                            <option value="9">ถึง ก.ค.</option>
+                            <option value="10">ถึง ส.ค.</option>
+                            <option value="11" selected>ถึง ก.ย.</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -149,7 +181,24 @@ function selectYear(year, btn) {
 
 function renderDebtors() {
     const year = debtorSelectedYear || getCurrentFiscalYear();
-    let debtors = calculateDebtors(year);
+    
+    // Get month range
+    let startIdx = 0;
+    let endIdx = 11;
+    const startSelect = document.getElementById('debtStartMonth');
+    const endSelect = document.getElementById('debtEndMonth');
+    if (startSelect && endSelect) {
+        startIdx = parseInt(startSelect.value);
+        endIdx = parseInt(endSelect.value);
+        // Ensure start <= end
+        if (startIdx > endIdx) {
+            const temp = startIdx;
+            startIdx = endIdx;
+            endIdx = temp;
+        }
+    }
+    
+    let debtors = calculateDebtors(year, startIdx, endIdx);
     const q = (document.getElementById('debtSearch').value||'').toLowerCase();
     const f = document.getElementById('debtFilter').value;
     if (q) debtors = debtors.filter(d => d.name.toLowerCase().includes(q) || d.house_no.includes(q));
@@ -176,6 +225,9 @@ function renderDebtors() {
             <button class="btn btn-xs btn-outline-secondary" onclick="printDebtLetter('${d.id}')" title="พิมพ์ทวงหนี้"><i class="fa-solid fa-print"></i></button>
         </td>
     </tr>`).join('') : '<tr><td colspan="8" class="text-center py-4 text-muted">ไม่มีลูกหนี้ค้างชำระ</td></tr>';
+    
+    // Store globally for printAllDebtLetters
+    window.currentFilteredDebtors = debtors;
 }
 </script>
 <script src="assets/js/waste-debt-letter.js"></script>
