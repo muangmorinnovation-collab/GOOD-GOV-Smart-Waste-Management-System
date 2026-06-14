@@ -202,21 +202,28 @@ let stateCancelReqs = null;
 // Helper for fetching more than 1000 rows
 async function fetchAllFromSupabase(table, orderCol = 'id', ascending = true) {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) return { data: null, error: 'No client' };
-    let allData = [];
-    let from = 0;
-    let limit = 1000;
-    let fetchMore = true;
-    while (fetchMore) {
-        const { data, error } = await supabaseClient.from(table).select('*').order(orderCol, { ascending: ascending }).range(from, from + limit - 1);
-        if (error) return { data: null, error };
-        if (data && data.length > 0) {
-            allData = allData.concat(data);
-            from += limit;
-            if (data.length < limit) fetchMore = false;
-        } else {
-            fetchMore = false;
-        }
+    
+    // First, get the total count for parallel fetching
+    const { count, error: countError } = await supabaseClient.from(table).select('*', { count: 'exact', head: true });
+    if (countError) return { data: null, error: countError };
+    
+    if (count === 0) return { data: [], error: null };
+    
+    const limit = 1000;
+    const promises = [];
+    for (let from = 0; from < count; from += limit) {
+        promises.push(
+            supabaseClient.from(table).select('*').order(orderCol, { ascending: ascending }).range(from, from + limit - 1)
+        );
     }
+    
+    const results = await Promise.all(promises);
+    let allData = [];
+    for (const res of results) {
+        if (res.error) return { data: null, error: res.error };
+        if (res.data) allData = allData.concat(res.data);
+    }
+    
     return { data: allData, error: null };
 }
 
@@ -257,10 +264,14 @@ function saveWasteFeeTypes(d) { saveWasteFeeTypesDB(d); }
 // Fallback logic for Customers
 async function fetchWasteCustomers() {
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-        if (typeof fetchWasteFeeHistory === 'function') await fetchWasteFeeHistory();
-        if (typeof fetchWasteSettings === 'function') await fetchWasteSettings();
+        const promises = [
+            fetchAllFromSupabase('waste_customers', 'id', true)
+        ];
+        if (typeof fetchWasteFeeHistory === 'function') promises.push(fetchWasteFeeHistory());
+        if (typeof fetchWasteSettings === 'function') promises.push(fetchWasteSettings());
         
-        const { data, error } = await fetchAllFromSupabase('waste_customers', 'id', true);
+        const results = await Promise.allSettled(promises);
+        const { data, error } = results[0].value || {};
 
         if (!error && data) {
             stateCustomers = data;
@@ -506,7 +517,13 @@ function saveWastePayments(d) { saveWasteData('payments', d); statePayments = d;
 async function fetchMonthlyStatus() {
     let ms = {};
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-        const { data, error } = await fetchAllFromSupabase('waste_monthly_status', 'id', true);
+        const fetchStatusPromise = fetchAllFromSupabase('waste_monthly_status', 'id', true);
+        const fetchExemptionsPromise = typeof fetchWasteExemptions === 'function' ? fetchWasteExemptions() : Promise.resolve(getWasteExemptions());
+        
+        const [statusResult, exemptionsResult] = await Promise.allSettled([fetchStatusPromise, fetchExemptionsPromise]);
+        const { data, error } = statusResult.value || {};
+        const exemptions = exemptionsResult.status === 'fulfilled' ? exemptionsResult.value : getWasteExemptions();
+        
         if (!error && data) {
             // Convert flat rows → nested object: { WC001: { '2568': { oct:'paid', ... } } }
             data.forEach(row => {
@@ -518,21 +535,34 @@ async function fetchMonthlyStatus() {
             console.warn('Supabase fetch monthly status error, falling back to localStorage', error);
             ms = getMonthlyStatusLocal();
         }
-    } else {
-        ms = getMonthlyStatusLocal();
-    }
-    
-    // Merge exemptions into ms
-    const exemptions = typeof fetchWasteExemptions === 'function' ? await fetchWasteExemptions() : getWasteExemptions();
-    exemptions.forEach(ex => {
-        if (!ms[ex.customer_id]) ms[ex.customer_id] = {};
-        if (!ms[ex.customer_id][ex.fiscal_year]) ms[ex.customer_id][ex.fiscal_year] = {};
-        if (Array.isArray(ex.month_keys)) {
-            ex.month_keys.forEach(k => {
-                ms[ex.customer_id][ex.fiscal_year][k] = 'exempted';
+        
+        // Merge exemptions into ms
+        if (Array.isArray(exemptions)) {
+            exemptions.forEach(ex => {
+                if (!ms[ex.customer_id]) ms[ex.customer_id] = {};
+                if (!ms[ex.customer_id][ex.fiscal_year]) ms[ex.customer_id][ex.fiscal_year] = {};
+                if (Array.isArray(ex.month_keys)) {
+                    ex.month_keys.forEach(k => {
+                        ms[ex.customer_id][ex.fiscal_year][k] = 'exempted';
+                    });
+                }
             });
         }
-    });
+    } else {
+        ms = getMonthlyStatusLocal();
+        const exemptions = getWasteExemptions();
+        if (Array.isArray(exemptions)) {
+            exemptions.forEach(ex => {
+                if (!ms[ex.customer_id]) ms[ex.customer_id] = {};
+                if (!ms[ex.customer_id][ex.fiscal_year]) ms[ex.customer_id][ex.fiscal_year] = {};
+                if (Array.isArray(ex.month_keys)) {
+                    ex.month_keys.forEach(k => {
+                        ms[ex.customer_id][ex.fiscal_year][k] = 'exempted';
+                    });
+                }
+            });
+        }
+    }
 
     stateMonthlyStatus = ms;
     saveMonthlyStatus(ms); // backup
@@ -884,7 +914,7 @@ function getCurrentFiscalYear() {
     return String(now.getMonth() >= 9 ? now.getFullYear() + 543 + 1 : now.getFullYear() + 543);
 }
 
-function calculateDebtors(year = null) {
+function calculateDebtors(year = null, startMonthIdx = 0, endMonthIdx = 11) {
     const targetYear = year || getCurrentFiscalYear();
     const customers = getWasteCustomers().filter(c => c.status === 'active');
     const ms = getMonthlyStatus();
@@ -897,10 +927,12 @@ function calculateDebtors(year = null) {
         let totalDebt = 0;
 
         WASTE_MONTH_KEYS.forEach((mk, i) => {
-            if (yearData[mk] !== 'paid') {
-                const calYear = i < 3 ? String(fyNum - 1) : targetYear;
-                unpaidMonths.push(`${WASTE_MONTHS[i]} ${calYear.substring(2)}`);
-                totalDebt += c.fee;
+            if (i >= startMonthIdx && i <= endMonthIdx) {
+                if (yearData[mk] !== 'paid') {
+                    const calYear = i < 3 ? String(fyNum - 1) : targetYear;
+                    unpaidMonths.push(`${WASTE_MONTHS[i]} ${calYear.substring(2)}`);
+                    totalDebt += c.fee;
+                }
             }
         });
 

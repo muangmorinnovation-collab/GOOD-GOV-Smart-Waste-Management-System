@@ -230,7 +230,7 @@ function exportMonthlyPDF() {
 function exportAllPDF() {
     var payments = getWastePayments();
     var customers = getWasteCustomers();
-    var allPayments = payments.filter(function(p) { return p.status === 'completed'; });
+    var allPayments = window.currentFilteredAllPayments || payments.filter(function(p) { return p.status === 'completed'; });
 
     var totalAmount = allPayments.reduce(function(s,p){ return s + p.amount; }, 0);
 

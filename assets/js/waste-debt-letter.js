@@ -254,7 +254,7 @@ function buildDebtLetterPages(d, year) {
 // พิมพ์ทวงหนี้รายบุคคล
 function printDebtLetter(customerId) {
     var year = (typeof debtorSelectedYear !== 'undefined' && debtorSelectedYear) ? debtorSelectedYear : getCurrentFiscalYear();
-    var debtors = calculateDebtors(year);
+    var debtors = window.currentFilteredDebtors || calculateDebtors(year);
     var d = debtors.find(function(x){ return x.id === customerId; });
     if (!d) { showToast('ไม่พบข้อมูลลูกหนี้','error'); return; }
 
@@ -271,7 +271,7 @@ function printDebtLetter(customerId) {
 // พิมพ์ทวงหนี้ทั้งหมด
 function printAllDebtLetters() {
     var year = (typeof debtorSelectedYear !== 'undefined' && debtorSelectedYear) ? debtorSelectedYear : getCurrentFiscalYear();
-    var debtors = calculateDebtors(year);
+    var debtors = window.currentFilteredDebtors || calculateDebtors(year);
 
     if (debtors.length === 0) {
         showToast('ไม่มีลูกหนี้ค้างชำระในปีนี้','warning');

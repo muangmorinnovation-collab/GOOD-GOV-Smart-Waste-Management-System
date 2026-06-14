@@ -6,6 +6,51 @@
 // ============================================
 // RECEIPT PRINTING
 // ============================================
+
+function formatMonthsGroupedByYear(months_paid, isSlip = false) {
+    let pm = months_paid;
+    if (typeof pm === 'string') {
+        try { pm = JSON.parse(pm); } catch(e) { pm = pm.split(','); }
+    }
+    if (!Array.isArray(pm)) pm = [];
+    
+    pm = pm.map(m => m ? m.trim() : '').filter(Boolean);
+    if (pm.length === 0) return '-';
+    
+    const groups = {};
+    pm.forEach(label => {
+        const parts = label.split(' ');
+        if (parts.length >= 2) {
+            const mName = parts[0];
+            const ySuffix = parts[1];
+            const calYear = 2500 + parseInt(ySuffix, 10);
+            let fy = calYear;
+            if (['ต.ค.', 'พ.ย.', 'ธ.ค.'].includes(mName)) {
+                fy += 1;
+            }
+            if (!groups[fy]) groups[fy] = [];
+            groups[fy].push(label);
+        } else {
+            if (!groups['อื่น ๆ']) groups['อื่น ๆ'] = [];
+            groups['อื่น ๆ'].push(label);
+        }
+    });
+    
+    const fyKeys = Object.keys(groups).sort();
+    if (fyKeys.length === 0) return pm.join(', ');
+    
+    let html = '';
+    fyKeys.forEach(fy => {
+        const title = fy !== 'อื่น ๆ' ? `ปีงบประมาณ ${fy}` : fy;
+        if (isSlip) {
+            html += `<div style="margin-bottom:1px"><span style="font-weight:600;">${title}:</span><br>${groups[fy].join(', ')}</div>`;
+        } else {
+            html += `<div style="margin-bottom:3px;"><strong style="color:#1a56db;font-size:0.95em;">${title}</strong><br>${groups[fy].join(', ')}</div>`;
+        }
+    });
+    return html;
+}
+
 async function printReceiptA4(payment) {
     const w = window.open('', '_blank', 'width=800,height=900');
     if (!w) {
@@ -62,7 +107,7 @@ async function printReceiptA4(payment) {
             <div class="info-item"><div class="info-label">วันที่</div><div class="info-value">${formatThaiDateFull(payment.date)}</div></div>
             <div class="info-item"><div class="info-label">ชื่อผู้ชำระ</div><div class="info-value">${payment.customer_name}</div></div>
             <div class="info-item"><div class="info-label">บ้านเลขที่</div><div class="info-value">${payment.house_no}</div></div>
-            <div class="info-item"><div class="info-label">เดือนที่ชำระ</div><div class="info-value">${Array.isArray(payment.months_paid) ? payment.months_paid.join(', ') : payment.months_paid}</div></div>
+            <div class="info-item"><div class="info-label">เดือนที่ชำระ</div><div class="info-value" style="font-size:12px;">${formatMonthsGroupedByYear(payment.months_paid)}</div></div>
             <div class="info-item"><div class="info-label">ช่องทางชำระ</div><div class="info-value">${payment.method}</div></div>
         </div>
         <div class="total">ยอดชำระ: ฿${formatMoneyDecimal(payment.amount)}</div>
@@ -72,10 +117,7 @@ async function printReceiptA4(payment) {
                 ${staffSignatureHTML}
                 <div class="info-value" style="font-size:11px;">( ${payment.staff || '-'} )<br><span style="font-weight:400;font-size:10px;">เจ้าหน้าที่ผู้รับเงิน</span></div>
             </div>
-            <div class="info-item">
-                <div class="info-label">เวลา</div>
-                <div class="info-value" style="display:flex;align-items:center;height:100%;">${payment.time || ''}</div>
-            </div>
+            <div></div>
         </div>
         <div class="footer"><p>เอกสารนี้ออกโดยระบบ GOOD GOV &mdash; ${orgName}</p></div>
     </div>
@@ -128,7 +170,7 @@ function printReceiptSlip(payment) {
     <div class="row"><span>วันที่:</span><span>${payment.date}</span></div><hr>
     <div class="row"><span>ชื่อ:</span><span>${payment.customer_name}</span></div>
     <div class="row"><span>บ้านเลขที่:</span><span>${payment.house_no}</span></div>
-    <div class="row"><span>เดือน:</span><span>${Array.isArray(payment.months_paid)?payment.months_paid.join(','):payment.months_paid}</span></div>
+    <div class="row" style="align-items:flex-start;"><span>เดือน:</span><span style="text-align:right;">${formatMonthsGroupedByYear(payment.months_paid, true)}</span></div>
     <div class="row"><span>ช่องทาง:</span><span>${payment.method}</span></div><hr>
     <div class="total">฿${formatMoneyDecimal(payment.amount)}</div><hr>
     <div class="row"><span>เจ้าหน้าที่:</span><span>${payment.staff||'-'}</span></div>
@@ -141,12 +183,14 @@ function printReceiptSlip(payment) {
 // ============================================
 // WALK-IN PAYMENT PROCESSING (Async + Supabase)
 // ============================================
-async function processWalkInPayment(customerId, selectedLabels, selectedKeys, selectedYear, method, staffName, customReceiptNo) {
+async function processWalkInPayment(customerId, selectedMonths, method, staffName, customReceiptNo) {
     const customers = getWasteCustomers();
     const customer = customers.find(c => c.id === customerId);
     if (!customer) return null;
 
-    const amount = selectedLabels.length * customer.fee;
+    const amount = selectedMonths.reduce((sum, m) => sum + m.fee, 0);
+    const selectedLabels = selectedMonths.map(m => m.label);
+    const primaryYear = selectedMonths[0]?.year || new Date().getFullYear().toString();
     const now = new Date();
     const receiptNo = customReceiptNo || generateReceiptNumber();
     
@@ -158,7 +202,7 @@ async function processWalkInPayment(customerId, selectedLabels, selectedKeys, se
         house_no: customer.house_no + ' ม.' + customer.moo,
         amount: amount,
         months_paid: selectedLabels, // e.g. ["ต.ค. 68"]
-        fiscal_year: selectedYear,
+        fiscal_year: primaryYear,
         method: method,
         date: now.toISOString().split('T')[0],
         time: now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
@@ -170,9 +214,9 @@ async function processWalkInPayment(customerId, selectedLabels, selectedKeys, se
     // Save payment to Supabase + localStorage
     await saveWastePaymentDB(payment);
 
-    // Update monthly status in Supabase + localStorage
-    for (const key of selectedKeys) {
-        await saveMonthlyStatusDB(customerId, selectedYear, key, 'paid', payment.id);
+    // Update monthly status to 'exempted' in Supabase + localStorage
+    for (const m of selectedMonths) {
+        await saveMonthlyStatusDB(customerId, m.year, m.key, 'paid', payment.id);
     }
 
     // Auto-save receipt to Google Drive
@@ -188,12 +232,15 @@ async function processWalkInPayment(customerId, selectedLabels, selectedKeys, se
 // ============================================
 // EXEMPT PAYMENT PROCESSING (Async + Supabase)
 // ============================================
-async function processExemptPayment(customerId, selectedLabels, selectedKeys, selectedYear, reason, staffName) {
+async function processExemptPayment(customerId, selectedMonths, reason, staffName) {
     const customers = getWasteCustomers();
     const customer = customers.find(c => c.id === customerId);
     if (!customer) return null;
 
     const now = new Date();
+    const primaryYear = selectedMonths[0]?.year || new Date().getFullYear().toString();
+    const selectedLabels = selectedMonths.map(m => m.label);
+    const selectedKeys = selectedMonths.map(m => m.key);
     
     const exemption = {
         id: 'EX' + Date.now().toString().slice(-6),
@@ -202,7 +249,7 @@ async function processExemptPayment(customerId, selectedLabels, selectedKeys, se
         house_no: customer.house_no + ' ม.' + customer.moo,
         months_exempted: selectedLabels,
         month_keys: selectedKeys,
-        fiscal_year: selectedYear,
+        fiscal_year: primaryYear,
         reject_reason: reason,
         date: now.toISOString().split('T')[0],
         time: now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
@@ -222,11 +269,27 @@ async function processExemptPayment(customerId, selectedLabels, selectedKeys, se
 
 async function exemptPayment() {
     if (!selectedCustomer) return;
-    const checkboxes = Array.from(document.querySelectorAll('#monthCheckboxes input:checked'));
-    if (!checkboxes.length) { Swal.fire('กรุณาเลือกเดือน','เลือกอย่างน้อย 1 เดือน','warning'); return; }
+    let selectedVals = [];
+    if (typeof selectedWalkInMonths !== 'undefined' && Object.keys(selectedWalkInMonths).length > 0) {
+        selectedVals = Object.values(selectedWalkInMonths);
+    } else {
+        const checkboxes = Array.from(document.querySelectorAll('#monthCheckboxes input:checked'));
+        selectedVals = checkboxes.map(cb => ({
+            key: cb.getAttribute('data-key'),
+            year: cb.getAttribute('data-year') || selectedYear,
+            fee: parseFloat(cb.getAttribute('data-fee')),
+            label: cb.value
+        }));
+    }
     
-    const checkedLabels = checkboxes.map(cb => cb.value);
-    const checkedKeys = checkboxes.map(cb => cb.getAttribute('data-key'));
+    if (!selectedVals.length) { Swal.fire('กรุณาเลือกเดือน','เลือกอย่างน้อย 1 เดือน','warning'); return; }
+    
+    selectedVals.sort((a, b) => {
+        if (a.year !== b.year) return parseInt(a.year) - parseInt(b.year);
+        return WASTE_MONTH_KEYS.indexOf(a.key) - WASTE_MONTH_KEYS.indexOf(b.key);
+    });
+    
+    const checkedLabels = selectedVals.map(m => m.label);
     
     const staffName = document.getElementById('payStaff').value;
     if (!staffName) { Swal.fire('กรุณาเลือกเจ้าหน้าที่','เลือกเจ้าหน้าที่รับชำระก่อนดำเนินการ','warning'); return; }
@@ -251,7 +314,7 @@ async function exemptPayment() {
 
     if (r.isConfirmed) {
         Swal.fire({title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
-        const payment = await processExemptPayment(selectedCustomer.id, checkedLabels, checkedKeys, selectedYear, r.value, staffName);
+        const payment = await processExemptPayment(selectedCustomer.id, selectedVals, r.value, staffName);
         
         Swal.close();
         if (payment) {
@@ -307,6 +370,17 @@ async function processOnlineApproval(transaction) {
     const now = new Date();
     const receiptNo = generateReceiptNumber();
     
+    let pm = transaction.paid_months;
+    if (typeof pm === 'string') {
+        try { pm = JSON.parse(pm); } catch(e) { pm = pm.split(','); }
+    }
+    if (!Array.isArray(pm)) pm = [];
+    pm = pm.map(k => k ? k.trim() : '').filter(Boolean);
+
+    pm.sort((a, b) => {
+        return WASTE_MONTH_KEYS.indexOf(a) - WASTE_MONTH_KEYS.indexOf(b);
+    });
+
     // 1. Create main payment record
     const payment = {
         id: 'PAY' + Date.now().toString().slice(-6),
@@ -316,9 +390,9 @@ async function processOnlineApproval(transaction) {
         house_no: transaction.house_no,
         amount: transaction.amount,
         // Convert keys to labels for display
-        months_paid: transaction.paid_months.map(k => {
+        months_paid: pm.map(k => {
             const idx = WASTE_MONTH_KEYS.indexOf(k);
-            return idx >= 0 ? WASTE_MONTHS[idx] : k;
+            return idx >= 0 ? `${WASTE_MONTHS[idx]} ${String(transaction.fiscal_year).substring(2)}` : k;
         }),
         fiscal_year: transaction.fiscal_year,
         method: transaction.payment_method,
