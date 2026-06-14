@@ -528,7 +528,11 @@ async function promptDeletePayment(paymentId) {
     if (res.isConfirmed) {
         Swal.fire({title: 'กำลังลบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
         try {
-            await deleteWastePayment(paymentId);
+            const success = await deleteWastePayment(paymentId);
+            if (!success) {
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่พบข้อมูลหรือลบข้อมูลไม่สำเร็จ', 'error');
+                return;
+            }
             // Refresh data
             await fetchWastePayments();
             await fetchMonthlyStatus();
