@@ -16,7 +16,8 @@ var DEBT_LETTER_CONFIG = {
     postCode: '40000',
     postOfficeName: 'ไปรษณีย์ขอนแก่น 40000',
     garudaUrl: (function(){ var b = window.location.href; return b.substring(0, b.lastIndexOf('/')+1) + 'assets/img/garuda.png'; })(),
-    bylawName: 'ข้อบัญญัติองค์การบริหารส่วนตำบลเหมืองหม้อ'
+    bylawName: 'ข้อบัญญัติองค์การบริหารส่วนตำบลเหมืองหม้อ',
+    orgTel: ''
 };
 
 function buildDebtLetterCSS() {
@@ -95,12 +96,32 @@ function buildDebtLetterPages(d, year) {
     var cfg = DEBT_LETTER_CONFIG;
     var orgName = settings.org_name || cfg.orgName;
     var orgAddr = settings.org_address || cfg.orgAddr;
-    var orgTel = settings.org_phone || cfg.orgTel;
+    var orgTel = settings.org_phone || cfg.orgTel || '';
     var signerName = settings.mayor_name || cfg.signerName;
     var signerTitle = settings.mayor_title || cfg.signerTitle;
     var postOfficeName = settings.env_post_office || cfg.postOfficeName;
     var garudaUrl = cfg.garudaUrl;
     var bylawName = 'เทศบัญญัติ' + orgName;
+
+    // Extract address details from orgAddr
+    var parsedTambon = cfg.tambon;
+    var parsedAmphoe = cfg.amphoe;
+    var parsedProvince = cfg.province;
+    var parsedPostCode = cfg.postCode;
+
+    if (orgAddr) {
+        var mTambon = orgAddr.match(/ต\.\s*(.+?)(?=\s+อ\.|\s+จ\.|\s+\d|$)/);
+        if(mTambon) parsedTambon = 'ตำบล' + mTambon[1].replace(/,/, '').trim();
+        
+        var mAmphoe = orgAddr.match(/อ\.\s*(.+?)(?=\s+จ\.|\s+\d|$)/);
+        if(mAmphoe) parsedAmphoe = 'อำเภอ' + mAmphoe[1].replace(/,/, '').trim();
+        
+        var mProvince = orgAddr.match(/จ\.\s*(.+?)(?=\s+\d|$)/);
+        if(mProvince) parsedProvince = 'จังหวัด' + mProvince[1].replace(/,/, '').trim();
+
+        var mPostCode = orgAddr.match(/(\d{5})/);
+        if(mPostCode) parsedPostCode = mPostCode[1];
+    }
 
     var now = new Date();
     var thaiMonthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
@@ -224,7 +245,7 @@ function buildDebtLetterPages(d, year) {
             '<div class="envelope-org">' +
                 '<div>' + orgName + '</div>' +
                 '<div>' + orgAddr + '</div>' +
-                '<div>' + orgTel + '</div>' +
+                (orgTel ? '<div>' + orgTel + '</div>' : '') +
             '</div>' +
         '</div>' +
 
@@ -241,8 +262,8 @@ function buildDebtLetterPages(d, year) {
             '<div class="addr">' +
                 'เรียน ' + d.name + '<br>' +
                 'ที่อยู่ ' + d.house_no + ' หมู่ที่ ' + d.moo + '<br>' +
-                cfg.tambon + ' ' + cfg.amphoe + '<br>' +
-                cfg.province + ' รหัสไปรษณีย์ ' + cfg.postCode +
+                parsedTambon + ' ' + parsedAmphoe + '<br>' +
+                parsedProvince + ' รหัสไปรษณีย์ ' + parsedPostCode +
             '</div>' +
         '</div>' +
 
