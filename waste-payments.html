@@ -727,9 +727,11 @@ function selectCustomer(id, year = null) {
             </div>`}).join('')}
         </div>
         <div class="row g-3 mb-3 border-top pt-3">
-            <div class="col-md-6"><label class="form-label fw-semibold text-sm">วิธีชำระ</label>
+            <div class="col-md-4"><label class="form-label fw-semibold text-sm">วันที่ชำระ</label>
+                <input type="date" class="form-control" id="payDate" value="${new Date().toISOString().split('T')[0]}"></div>
+            <div class="col-md-4"><label class="form-label fw-semibold text-sm">วิธีชำระ</label>
                 <select class="form-select" id="payMethod"><option>เงินสด</option><option>โอน</option><option>QR PromptPay</option></select></div>
-            <div class="col-md-6"><label class="form-label fw-semibold text-sm">เจ้าหน้าที่รับชำระ</label>
+            <div class="col-md-4"><label class="form-label fw-semibold text-sm">เจ้าหน้าที่รับชำระ</label>
                 <select class="form-select" id="payStaff">${getStaffOptions()}</select></div>
             <div class="col-12"><label class="form-label fw-semibold text-sm">ยอดรวม</label>
                 <div class="input-group"><span class="input-group-text">฿</span><input type="text" class="form-control fw-bold fs-4 text-success" id="totalAmount" value="0" readonly></div></div>
