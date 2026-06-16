@@ -402,7 +402,10 @@ function autoFee() {
 function initModalMap(lat, lng) {
     if (!modalMap) {
         modalMap = L.map('modalMap').setView([14.890, 102.020], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(modalMap);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
+            maxZoom: 20, 
+            attribution: '© Google' 
+        }).addTo(modalMap);
         modalMarker = L.marker([14.890, 102.020], {draggable: true}).addTo(modalMap);
         modalMarker.on('dragend', function(e) {
             const pos = modalMarker.getLatLng();
@@ -487,19 +490,19 @@ async function saveCustomer(e) {
     const editId = document.getElementById('editId').value;
     const data = {
         id: document.getElementById('fId').value,
-        house_no: document.getElementById('fHouseNo').value,
-        moo: document.getElementById('fMoo').value,
-        subdistrict: document.getElementById('fSubdistrict').value,
-        name: document.getElementById('fName').value,
-        id_card: document.getElementById('fIdCard').value,
-        phone: document.getElementById('fPhone').value,
-        type: document.getElementById('fType').value,
-        fee: parseInt(document.getElementById('fFee').value)||40,
-        start_date: document.getElementById('fStartDate').value,
+        house_no: document.getElementById('fHouseNo').value || '-',
+        moo: document.getElementById('fMoo').value || '-',
+        subdistrict: document.getElementById('fSubdistrict').value || 'เหมืองหม้อ',
+        name: document.getElementById('fName').value || '-',
+        id_card: document.getElementById('fIdCard').value || null,
+        phone: document.getElementById('fPhone').value || null,
+        type: document.getElementById('fType').value || '-',
+        fee: parseInt(document.getElementById('fFee').value)||0,
+        start_date: document.getElementById('fStartDate').value || null,
         status: 'active',
         lat: parseFloat(document.getElementById('fLat').value)||null,
         lng: parseFloat(document.getElementById('fLng').value)||null,
-        note: document.getElementById('fNote').value
+        note: document.getElementById('fNote').value || null
     };
     
     if (editId) {

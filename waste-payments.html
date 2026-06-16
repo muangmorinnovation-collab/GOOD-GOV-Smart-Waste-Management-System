@@ -630,7 +630,8 @@ function selectCustomer(id, year = null) {
         const isExempted = status[mk] === 'exempted';
         // oct(0), nov(1), dec(2) belong to the previous calendar year
         const calYear = i < 3 ? String(fyNum - 1) : selectedYear;
-        const monthFee = typeof getFeeForMonth === 'function' ? getFeeForMonth(selectedCustomer.id, mk, selectedYear) : selectedCustomer.fee;
+        let monthFee = typeof getFeeForMonth === 'function' ? getFeeForMonth(selectedCustomer.id, mk, selectedYear) : selectedCustomer.fee;
+        if (isExempted) monthFee = 0;
         allMonths.push({key:mk, label:WASTE_MONTHS[i], yearSuffix: calYear.substring(2), isPaid: isPaid, isExempted: isExempted, fee: monthFee});
     });
 
