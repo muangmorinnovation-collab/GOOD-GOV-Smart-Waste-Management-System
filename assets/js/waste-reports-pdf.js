@@ -21,6 +21,15 @@ function fmtMoneyPDF(n) {
 // ============================================
 // SHARED STYLES FOR PDF PRINT
 // ============================================
+function getOrgNamePDF() {
+    try {
+        const settings = getWasteData('settings') || {};
+        return settings.org_name || 'องค์การบริหารส่วนตำบลเหมืองหม้อ';
+    } catch(e) {
+        return 'องค์การบริหารส่วนตำบลเหมืองหม้อ';
+    }
+}
+
 function getPrintStyles() {
     return '<style>' +
         '@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap");' +
@@ -57,6 +66,7 @@ function getPrintStyles() {
 // DAILY PDF REPORT
 // ============================================
 function exportDailyPDF() {
+    const orgName = getOrgNamePDF();
     var filterDate = document.getElementById('filterDate').value;
     if (!filterDate) { Swal.fire('กรุณาเลือกวันที่', '', 'warning'); return; }
 
@@ -130,9 +140,9 @@ function exportDailyPDF() {
         '<th>รับชำระลูก<br>หนี้</th><th>รับปกติ</th><th>รับล่วงหน้า</th><th>รวม</th>' +
         '</tr></thead>' +
         '<tbody>' + rowsHtml + '</tbody>' +
-        '</table>' +
-        '<div class="report-footer">เอกสารนี้สร้างโดยระบบ GOOD GOV — องค์การบริหารส่วนตำบลเหมืองหม้อ</div>' +
-        '</body></html>';
+        `</table>` +
+        `<div class="report-footer">เอกสารนี้สร้างโดยระบบ GOOD GOV &mdash; ${orgName}</div>` +
+        `</body></html>`;
 
     var w = window.open('', '_blank', 'width=1000,height=700');
     w.document.write(html);
@@ -147,6 +157,7 @@ function exportDailyPDF() {
 // MONTHLY PDF REPORT
 // ============================================
 function exportMonthlyPDF() {
+    const orgName = getOrgNamePDF();
     var filterYear = document.getElementById('filterYear').value;
     if (!filterYear) { Swal.fire('กรุณาเลือกปีงบประมาณ', '', 'warning'); return; }
 
@@ -212,9 +223,9 @@ function exportMonthlyPDF() {
         '<th>ยอดรวม (บาท)</th>' +
         '</tr></thead>' +
         '<tbody>' + rowsHtml + '</tbody>' +
-        '</table>' +
-        '<div class="report-footer">เอกสารนี้สร้างโดยระบบ GOOD GOV — องค์การบริหารส่วนตำบลเหมืองหม้อ</div>' +
-        '</body></html>';
+        `</table>` +
+        `<div class="report-footer">เอกสารนี้สร้างโดยระบบ GOOD GOV &mdash; ${orgName}</div>` +
+        `</body></html>`;
 
     var w = window.open('', '_blank', 'width=900,height=700');
     w.document.write(html);
@@ -228,6 +239,7 @@ function exportMonthlyPDF() {
 // ALL REVENUE PDF REPORT
 // ============================================
 function exportAllPDF() {
+    const orgName = getOrgNamePDF();
     var payments = getWastePayments();
     var customers = getWasteCustomers();
     var allPayments = window.currentFilteredAllPayments || payments.filter(function(p) { return p.status === 'completed'; });
@@ -298,9 +310,9 @@ function exportAllPDF() {
         '<th>รับชำระลูก<br>หนี้</th><th>รับปกติ</th><th>รับล่วงหน้า</th><th>รวม</th>' +
         '</tr></thead>' +
         '<tbody>' + rowsHtml + '</tbody>' +
-        '</table>' +
-        '<div class="report-footer">เอกสารนี้สร้างโดยระบบ GOOD GOV — องค์การบริหารส่วนตำบลเหมืองหม้อ</div>' +
-        '</body></html>';
+        `</table>` +
+        `<div class="report-footer">เอกสารนี้สร้างโดยระบบ GOOD GOV &mdash; ${orgName}</div>` +
+        `</body></html>`;
 
     var w = window.open('', '_blank', 'width=1000,height=700');
     w.document.write(html);
