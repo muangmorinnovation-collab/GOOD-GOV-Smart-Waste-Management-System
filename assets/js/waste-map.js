@@ -12,9 +12,9 @@ function initWasteMap(containerId) {
     
     wasteMap = L.map(containerId).setView([14.890, 102.020], 14);
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19
+    L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        attribution: '&copy; Google',
+        maxZoom: 20
     }).addTo(wasteMap);
 
     wasteMarkerLayer = L.layerGroup().addTo(wasteMap);

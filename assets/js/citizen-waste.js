@@ -489,7 +489,8 @@ async function loadMonthlyStatus(noAnimate = false) {
         const isSelectable = isUnpaid && !isLocked;
         const isSelected = selectedMonthKeys.includes(key);
 
-        const mFee = getFeeForMonth(selectedCustomer.id, key, year);
+        let mFee = getFeeForMonth(selectedCustomer.id, key, year);
+        if (isExempted) mFee = 0;
 
         if (isUnpaid) { totalDebt += mFee; unpaidCount++; }
 

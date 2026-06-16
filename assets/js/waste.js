@@ -50,6 +50,50 @@ const WASTE_DEFAULT_CUSTOMERS = [
 const WASTE_MONTHS = ['ต.ค.','พ.ย.','ธ.ค.','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.'];
 const WASTE_MONTH_KEYS = ['oct','nov','dec','jan','feb','mar','apr','may','jun','jul','aug','sep'];
 
+function applyStartDateExemptions(ms) {
+    const customers = typeof getWasteCustomers === 'function' ? getWasteCustomers() : [];
+    const now = new Date();
+    const currentFy = now.getMonth() >= 9 ? now.getFullYear() + 544 : now.getFullYear() + 543;
+    
+    customers.forEach(c => {
+        if (!c.start_date || c.start_date === '') return;
+        
+        const d = new Date(c.start_date);
+        if (isNaN(d.getTime())) return;
+        
+        const startYear = d.getFullYear(); 
+        const startMonth = d.getMonth(); 
+        const startFy = startMonth >= 9 ? startYear + 544 : startYear + 543;
+        
+        if (!ms[c.id]) ms[c.id] = {};
+        
+        for (let fy = 2567; fy <= currentFy + 2; fy++) {
+            if (!ms[c.id][fy]) ms[c.id][fy] = {};
+            
+            WASTE_MONTH_KEYS.forEach((mk, i) => {
+                if (ms[c.id][fy][mk] === 'paid' || ms[c.id][fy][mk] === 'pending') return;
+                
+                if (fy < startFy) {
+                    ms[c.id][fy][mk] = 'exempted';
+                } else if (fy === startFy) {
+                    const keyMonth = i < 3 ? i + 9 : i - 3;
+                    
+                    if (startMonth >= 9) {
+                        if (keyMonth >= 9 && keyMonth < startMonth) {
+                            ms[c.id][fy][mk] = 'exempted';
+                        }
+                    } else {
+                        if (keyMonth >= 9 || keyMonth < startMonth) {
+                            ms[c.id][fy][mk] = 'exempted';
+                        }
+                    }
+                }
+            });
+        }
+    });
+    return ms;
+}
+
 // Generate monthly status for each customer with Fiscal Year support
 function generateDefaultMonthlyStatus() {
     const statuses = {};
@@ -563,6 +607,8 @@ async function fetchMonthlyStatus() {
             });
         }
     }
+    
+    ms = applyStartDateExemptions(ms);
 
     stateMonthlyStatus = ms;
     saveMonthlyStatus(ms); // backup
@@ -588,15 +634,19 @@ function getMonthlyStatusLocal() {
         
         // Merge exemptions locally
         const exemptions = getWasteExemptions();
-        exemptions.forEach(ex => {
-            if (!ms[ex.customer_id]) ms[ex.customer_id] = {};
-            if (!ms[ex.customer_id][ex.fiscal_year]) ms[ex.customer_id][ex.fiscal_year] = {};
-            if (Array.isArray(ex.month_keys)) {
-                ex.month_keys.forEach(k => {
-                    ms[ex.customer_id][ex.fiscal_year][k] = 'exempted';
-                });
-            }
-        });
+        if (Array.isArray(exemptions)) {
+            exemptions.forEach(ex => {
+                if (!ms[ex.customer_id]) ms[ex.customer_id] = {};
+                if (!ms[ex.customer_id][ex.fiscal_year]) ms[ex.customer_id][ex.fiscal_year] = {};
+                if (Array.isArray(ex.month_keys)) {
+                    ex.month_keys.forEach(k => {
+                        ms[ex.customer_id][ex.fiscal_year][k] = 'exempted';
+                    });
+                }
+            });
+        }
+        
+        ms = applyStartDateExemptions(ms);
 
         return ms;
     } catch(e) { return {}; } 
