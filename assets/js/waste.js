@@ -443,6 +443,15 @@ function getFeeForMonth(customerId, monthKey, fiscalYear) {
         }
     }
 
+    // If month is before the customer even started, ignore the history (which might be a mistake during creation)
+    if (customer.start_date) {
+        const startDate = new Date(customer.start_date);
+        const startMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        if (monthStart < startMonth) {
+            return customer.fee;
+        }
+    }
+
     return effectiveFee;
 }
 
