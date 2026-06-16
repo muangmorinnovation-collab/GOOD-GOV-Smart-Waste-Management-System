@@ -27,7 +27,7 @@
                 </ol></nav>
             </div>
             <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-outline-success" onclick="showToast('Export Excel สำเร็จ','success')"><i class="fa-solid fa-file-excel me-1"></i>Excel</button>
+                <button class="btn btn-sm btn-outline-success" onclick="exportCurrentTabExcel()"><i class="fa-solid fa-file-excel me-1"></i>Excel</button>
                 <button class="btn btn-sm btn-outline-danger" onclick="exportCurrentTabPDF()"><i class="fa-solid fa-file-pdf me-1"></i>PDF</button>
             </div>
         </div>
@@ -168,6 +168,8 @@
 <script src="assets/js/responsive.js"></script>
 <script src="assets/js/waste-receipt.js"></script>
 <script src="assets/js/waste-reports-pdf.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="assets/js/waste-reports-excel.js"></script>
 <script>
 var monthlyChartInstance = null;
 var yearlyChartInstance = null;
