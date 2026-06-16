@@ -428,7 +428,7 @@
                     const icon = val === 'paid' ? '✓' : val === 'pending' ? '◷' : val === 'exempted' ? '-' : '✗';
                     const calYear = mi < 3 ? String(fyNum - 1) : year;
                     const titleText = val === 'paid' ? 'ชำระแล้ว' : val === 'pending' ? 'รออนุมัติ' : val === 'exempted' ? 'ยกเว้นชำระ' : 'ค้างชำระ';
-                    const feeText = `฿${monthFees[mi]}`;
+                    const feeText = val === 'exempted' ? '฿0' : `฿${monthFees[mi]}`;
                     // Highlight fee change month
                     const isChangeMonth = feeChangeMonths.includes(mi);
                     const changeStyle = isChangeMonth ? 'border-left: 3px solid #f59e0b !important;' : '';
