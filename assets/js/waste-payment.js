@@ -183,7 +183,7 @@ function printReceiptSlip(payment) {
 // ============================================
 // WALK-IN PAYMENT PROCESSING (Async + Supabase)
 // ============================================
-async function processWalkInPayment(customerId, selectedMonths, method, staffName, customReceiptNo) {
+async function processWalkInPayment(customerId, selectedMonths, method, staffName, customReceiptNo, payDate = null) {
     const customers = getWasteCustomers();
     const customer = customers.find(c => c.id === customerId);
     if (!customer) return null;
@@ -193,6 +193,9 @@ async function processWalkInPayment(customerId, selectedMonths, method, staffNam
     const primaryYear = selectedMonths[0]?.year || new Date().getFullYear().toString();
     const now = new Date();
     const receiptNo = customReceiptNo || generateReceiptNumber();
+    
+    // If payDate is provided, use it, otherwise fallback to today's date
+    const actualPayDate = payDate ? payDate : now.toISOString().split('T')[0];
     
     const payment = {
         id: 'PAY' + Date.now().toString().slice(-6),
@@ -204,7 +207,7 @@ async function processWalkInPayment(customerId, selectedMonths, method, staffNam
         months_paid: selectedLabels, // e.g. ["ต.ค. 68"]
         fiscal_year: primaryYear,
         method: method,
-        date: now.toISOString().split('T')[0],
+        date: actualPayDate,
         time: now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
         status: 'completed',
         staff: staffName,
