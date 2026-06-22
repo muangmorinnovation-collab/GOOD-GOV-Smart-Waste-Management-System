@@ -47,7 +47,7 @@ function buildReceiptHTML(p) {
         '</style></head><body>' +
         '<div class="no-print">' +
         '   <button class="btn-print-action danger" onclick="window.close()">ปิดหน้านี้</button>' +
-        '   <button class="btn-print-action primary" onclick="window.print()">พิมพ์ใบเสร็จ</button>' +
+        '   <button class="btn-print-action primary" onclick="window.print()">พิมพ์อีกครั้ง</button>' +
         '</div>' +
         '<div class="receipt">' +
         '<div class="header">' +

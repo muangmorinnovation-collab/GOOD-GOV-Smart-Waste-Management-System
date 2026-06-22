@@ -56,8 +56,8 @@ function getPrintStyles() {
         '.print-actions button { padding: 10px 28px; margin: 0 8px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: "Sarabun", sans-serif; }' +
         '.btn-print { background: #1a56db; color: #fff; }' +
         '.btn-print:hover { background: #1544a8; }' +
-        '.btn-close-win { background: #e5e7eb; color: #333; }' +
-        '.btn-close-win:hover { background: #d1d5db; }' +
+        '.btn-close-win { background: #dc2626; color: #fff; }' +
+        '.btn-close-win:hover { background: #b91c1c; }' +
         '@media print { .print-actions { display: none; } }' +
         '</style>';
 }
@@ -131,8 +131,8 @@ function exportDailyPDF() {
         '<p class="total-highlight">จำนวนเงินที่ชำระ ' + fmtMoneyPDF(totalAmount) + ' บาท</p>' +
         '</div>' +
         '<div class="print-actions">' +
-        '<button class="btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> พิมพ์ / บันทึก PDF</button>' +
-        '<button class="btn-close-win" onclick="window.close()">ปิด</button>' +
+        '<button class="btn-close-win" onclick="window.close()">ปิดหน้านี้</button>' +
+        '<button class="btn-print" onclick="window.print()">พิมพ์อีกครั้ง</button>' +
         '</div>' +
         '<table>' +
         '<thead><tr>' +
@@ -214,8 +214,8 @@ function exportMonthlyPDF() {
         '<p class="total-highlight">ยอดรวมทั้งปี ' + fmtMoneyPDF(totalSum) + ' บาท</p>' +
         '</div>' +
         '<div class="print-actions">' +
-        '<button class="btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> พิมพ์ / บันทึก PDF</button>' +
-        '<button class="btn-close-win" onclick="window.close()">ปิด</button>' +
+        '<button class="btn-close-win" onclick="window.close()">ปิดหน้านี้</button>' +
+        '<button class="btn-print" onclick="window.print()">พิมพ์อีกครั้ง</button>' +
         '</div>' +
         '<table>' +
         '<thead><tr>' +
@@ -301,8 +301,8 @@ function exportAllPDF() {
         '<p class="total-highlight">จำนวนเงินที่ชำระทั้งหมด ' + fmtMoneyPDF(totalAmount) + ' บาท</p>' +
         '</div>' +
         '<div class="print-actions">' +
-        '<button class="btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> พิมพ์ / บันทึก PDF</button>' +
-        '<button class="btn-close-win" onclick="window.close()">ปิด</button>' +
+        '<button class="btn-close-win" onclick="window.close()">ปิดหน้านี้</button>' +
+        '<button class="btn-print" onclick="window.print()">พิมพ์อีกครั้ง</button>' +
         '</div>' +
         '<table>' +
         '<thead><tr>' +

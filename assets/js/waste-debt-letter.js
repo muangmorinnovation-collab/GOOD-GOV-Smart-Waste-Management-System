@@ -85,9 +85,13 @@ function buildDebtLetterCSS() {
 
         // === PRINT ===
         "@media print {",
+        "  .no-print { display: none !important; }",
         "  body { background: #fff; }",
         "  .page, .page2 { margin: 0; box-shadow: none; }",
-        "}"
+        "}",
+        ".no-print { display: flex; gap: 10px; justify-content: center; padding: 15px; background: #f3f4f6; margin-bottom: 20px; font-family: 'Sarabun', sans-serif; }",
+        ".btn-print-action { border: none; padding: 10px 20px; border-radius: 6px; font-family: 'Sarabun', sans-serif; font-size: 16px; cursor: pointer; color: #fff; font-weight: 600; }",
+        ".btn-print-action.primary { background: #1a56db; } .btn-print-action.danger { background: #dc2626; }"
     ].join('\n');
 }
 
@@ -281,7 +285,8 @@ function printDebtLetter(customerId) {
 
     var css = buildDebtLetterCSS();
     var pages = buildDebtLetterPages(d, year);
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + css + '</style></head><body>' + pages + '</body></html>';
+    var noPrintDiv = '<div class="no-print"><button class="btn-print-action danger" onclick="window.close()">ปิดหน้านี้</button><button class="btn-print-action primary" onclick="window.print()">พิมพ์อีกครั้ง</button></div>';
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>' + css + '</style></head><body>' + noPrintDiv + pages + '</body></html>';
 
     var w = window.open('', '_blank', 'width=900,height=1200');
     w.document.write(html);
@@ -314,7 +319,8 @@ function printAllDebtLetters() {
             debtors.forEach(function(d) {
                 allPages += buildDebtLetterPages(d, year);
             });
-            var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + css + '</style></head><body>' + allPages + '</body></html>';
+            var noPrintDiv = '<div class="no-print"><button class="btn-print-action danger" onclick="window.close()">ปิดหน้านี้</button><button class="btn-print-action primary" onclick="window.print()">พิมพ์อีกครั้ง</button></div>';
+            var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>' + css + '</style></head><body>' + noPrintDiv + allPages + '</body></html>';
 
             var w = window.open('', '_blank', 'width=900,height=1200');
             w.document.write(html);

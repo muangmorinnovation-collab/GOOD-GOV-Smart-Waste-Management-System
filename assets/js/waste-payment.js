@@ -124,6 +124,7 @@ async function printReceiptA4(payment) {
     `;
 
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
     body{font-family:'Prompt',sans-serif;margin:0;padding:0;color:#333;background:#fff;line-height:1.3;}
     .page { width: 210mm; height: 296mm; padding: 10mm 15mm 5mm 15mm; box-sizing: border-box; margin: 0 auto; display: flex; flex-direction: column; overflow: hidden; }
@@ -139,14 +140,22 @@ async function printReceiptA4(payment) {
     .info-value{font-size:14px;font-weight:600}
     .total{text-align:right;font-size:18px;font-weight:700;color:#057a55;margin:6px 0;padding:6px 12px;background:#f0fdf4;border-radius:6px}
     .footer{text-align:center;margin-top:auto;font-size:11px;color:#9ca3af;border-top:1px dashed #d1d5db;padding-top:6px}
+    .no-print { display: flex; gap: 10px; justify-content: center; padding: 15px; background: #f3f4f6; margin-bottom: 20px; }
+    .btn { border: none; padding: 10px 20px; border-radius: 6px; font-family: 'Prompt', sans-serif; font-size: 16px; cursor: pointer; color: #fff; font-weight: 600; }
+    .btn-primary { background: #1a56db; } .btn-danger { background: #dc2626; }
     @media print{
+        .no-print { display: none !important; }
         body { background: none; }
         @page { size: A4; margin: 0; }
         .page { padding: 10mm 15mm 5mm 15mm; width: 210mm; height: 296mm; page-break-after: avoid; }
     }
     </style></head><body>
+    <div class="no-print">
+        <button class="btn btn-danger" onclick="window.close()">ปิดหน้านี้</button>
+        <button class="btn btn-primary" onclick="window.print()">พิมพ์อีกครั้ง</button>
+    </div>
     <div class="page">
-        ${createHalf('ใบเสร็จรับเงินค่าธรรมเนียมขยะมูลฝอย')}
+        ${createHalf('ต้นฉบับ ใบเสร็จรับเงินค่าธรรมเนียมขยะมูลฝอย')}
         <div class="cut-line"></div>
         ${createHalf('สำเนาใบเสร็จรับเงินค่าธรรมเนียมขยะมูลฝอย')}
     </div>
