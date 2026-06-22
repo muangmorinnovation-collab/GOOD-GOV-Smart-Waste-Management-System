@@ -97,14 +97,19 @@
                 "icons": [
                     {
                         "src": orgLogo,
-                        "sizes": "192x192 512x512",
+                        "sizes": "192x192",
+                        "type": "image/png",
+                        "purpose": "any maskable"
+                    },
+                    {
+                        "src": orgLogo,
+                        "sizes": "512x512",
                         "type": "image/png",
                         "purpose": "any maskable"
                     }
                 ]
             });
-            const manifestBlob = new Blob([manifestStr], { type: 'application/json' });
-            const manifestUrl = URL.createObjectURL(manifestBlob);
+            const manifestUrl = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(manifestStr);
 
             let manifestLink = document.querySelector('link[rel="manifest"]');
             if (!manifestLink) {
@@ -113,6 +118,14 @@
                 document.head.appendChild(manifestLink);
             }
             manifestLink.href = manifestUrl;
+
+            let stdIcon = document.querySelector('link[rel="icon"]');
+            if (!stdIcon) {
+                stdIcon = document.createElement('link');
+                stdIcon.rel = 'icon';
+                document.head.appendChild(stdIcon);
+            }
+            stdIcon.href = orgLogo;
 
             let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
             if (!appleIcon) {
