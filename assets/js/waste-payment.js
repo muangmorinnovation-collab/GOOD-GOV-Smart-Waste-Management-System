@@ -167,7 +167,7 @@ async function printReceiptA4(payment) {
 async function printReceiptSlip(payment) {
     const settings = JSON.parse(localStorage.getItem('waste_settings') || '{}');
     const orgName = settings.org_name || 'เทศบาลตำบล GOOD GOV';
-    const orgLogo = settings.org_logo ? `<img src="${settings.org_logo}" style="max-width:50px; margin-bottom:5px;">` : '';
+    const orgLogo = settings.org_logo ? `<img src="${settings.org_logo}" class="org-logo-img">` : '';
     
     let staffSignatureHTML = '<div style="height:25px;"></div><div>(ลายมือชื่อ) ..........................................</div>';
     if (payment.staff && typeof supabaseClient !== 'undefined') {
@@ -178,7 +178,7 @@ async function printReceiptSlip(payment) {
                 .limit(1);
             
             if (data && data.length > 0 && data[0].signature_image_url) {
-                staffSignatureHTML = `<img src="${data[0].signature_image_url}" style="height:35px;display:block;margin:0 auto;">`;
+                staffSignatureHTML = `<img src="${data[0].signature_image_url}" class="staff-sign">`;
             }
         } catch (e) {
             console.error('Failed to load staff signature', e);
@@ -190,24 +190,27 @@ async function printReceiptSlip(payment) {
     const dObj = new Date(payment.date);
     const dateFormatted = `${dObj.getDate()} ${thMonths[dObj.getMonth()]} ${dObj.getFullYear() + 543}`;
 
-    const w = window.open('', '_blank', 'width=350,height=500');
+    const w = window.open('', '_blank', 'width=800,height=900');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap');
-    body{font-family:'Prompt',sans-serif;padding:15px;font-size:12px;width:280px;margin:0 auto}
-    .center{text-align:center} h3{margin:5px 0;font-size:14px} hr{border:none;border-top:1px dashed #ccc;margin:8px 0}
-    .row{display:flex;justify-content:space-between;margin:3px 0} .total{font-size:18px;font-weight:700;color:#057a55;text-align:center;margin:10px 0}
-    .no-print { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; background: #f3f4f6; padding: 10px; border-radius: 6px; }
-    .btn { border: none; padding: 8px 12px; border-radius: 4px; font-family: 'Prompt', sans-serif; font-size: 12px; cursor: pointer; color: #fff; font-weight: 600; flex: 1; }
+    body{font-family:'Prompt',sans-serif;padding:15px 40px;font-size:24px;max-width:800px;margin:0 auto; line-height: 1.3;}
+    .center{text-align:center} h3{margin:10px 0;font-size:36px} hr{border:none;border-top:2px dashed #ccc;margin:10px 0}
+    .row{display:flex;justify-content:space-between;margin:5px 0;font-size:24px;} 
+    .total{font-size:46px;font-weight:700;color:#057a55;text-align:center;margin:15px 0}
+    .no-print { display: flex; gap: 15px; justify-content: center; margin-bottom: 25px; background: #f3f4f6; padding: 15px; border-radius: 8px; }
+    .btn { border: none; padding: 12px 24px; border-radius: 6px; font-family: 'Prompt', sans-serif; font-size: 18px; cursor: pointer; color: #fff; font-weight: 600; flex: 1; max-width: 250px;}
     .btn-print { background: #1a56db; }
     .btn-close { background: #dc2626; }
-    @media print { .no-print { display: none !important; } body { padding: 0; } }
+    .staff-sign { height:80px; display:block; margin:15px auto; }
+    .org-logo-img { max-width: 120px; margin-bottom: 15px; }
+    @media print { .no-print { display: none !important; } @page { size: A4 portrait; margin: 15mm; } body { padding: 0; } }
     </style></head><body>
     <div class="no-print">
         <button class="btn btn-close" onclick="window.close()">ปิดหน้านี้</button>
         <button class="btn btn-print" onclick="window.print()">พิมพ์อีกครั้ง</button>
     </div>
-    <div class="center">${orgLogo}<h3>ใบเสร็จค่าขยะมูลฝอย</h3><p style="margin:2px 0;font-size:11px">${orgName}</p></div><hr>
+    <div class="center">${orgLogo}<h3>ใบเสร็จค่าขยะมูลฝอย</h3><p style="margin:5px 0;font-size:20px">${orgName}</p></div><hr>
     <div class="row"><span>เลขที่:</span><span>${payment.receipt_no}</span></div>
     <div class="row"><span>วันที่:</span><span>${dateFormatted}</span></div><hr>
     <div class="row"><span>ชื่อ:</span><span>${payment.customer_name}</span></div>
@@ -215,12 +218,12 @@ async function printReceiptSlip(payment) {
     <div class="row" style="align-items:flex-start;"><span>เดือน:</span><span style="text-align:right;">${formatMonthsGroupedByYear(payment.months_paid, true)}</span></div>
     <div class="row"><span>ช่องทาง:</span><span>${payment.method}</span></div><hr>
     <div class="total">฿${formatMoneyDecimal(payment.amount)}</div><hr>
-    <div style="margin-top:20px;text-align:center;">
+    <div style="margin-top:15px;text-align:center;">
         ${staffSignatureHTML}
-        <div style="margin-top:5px;">(${payment.staff || '..........................................'})</div>
-        <div style="font-size:10px;margin-top:3px;">ผู้รับเงิน</div>
+        <div style="margin-top:5px; font-size: 22px;">(${payment.staff || '..........................................'})</div>
+        <div style="font-size:20px;margin-top:0px;">ผู้รับเงิน</div>
     </div>
-    <div class="center" style="margin-top:15px;font-size:10px;color:#999">GOOD GOV System</div>
+    <div class="center" style="margin-top:10px;font-size:18px;color:#999">GOOD GOV System</div>
     </body></html>`);
     w.document.close();
     
