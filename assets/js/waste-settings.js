@@ -65,7 +65,22 @@ async function loadSettings() {
             const preview = document.getElementById('orgLogoPreview');
             preview.src = settings.org_logo;
             preview.style.display = 'block';
-            // We do not set orgLogoBase64 unless they pick a new file
+            
+            const headerLogo = document.getElementById('page-header-logo');
+            const headerIcon = document.getElementById('page-header-icon');
+            if (headerLogo && headerIcon) {
+                headerLogo.src = settings.org_logo;
+                headerLogo.style.display = 'block';
+                headerIcon.style.display = 'none';
+            }
+
+            const cardLogo = document.getElementById('card-header-logo');
+            const cardIcon = document.getElementById('card-header-icon');
+            if (cardLogo && cardIcon) {
+                cardLogo.src = settings.org_logo;
+                cardLogo.style.display = 'block';
+                cardIcon.style.display = 'none';
+            }
         }
 
         if (settings.mayor_signature) {
