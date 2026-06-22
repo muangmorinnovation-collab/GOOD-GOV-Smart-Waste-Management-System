@@ -451,10 +451,10 @@
                                     style="height:65px; margin-bottom:0.5rem; border-radius: 8px; object-fit: contain;">
                                 <script>
                                     try {
-                                        const _ls = JSON.parse(localStorage.getItem('waste_settings'));
-                                        document.getElementById('login-org-logo').src = (_ls && _ls.org_logo) ? _ls.org_logo : 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w500';
+                                        const defaultLogo = 'assets/img/garuda.png';
+                                        document.getElementById('login-org-logo').src = (_ls && _ls.org_logo) ? _ls.org_logo : defaultLogo;
                                     } catch(e) {
-                                        document.getElementById('login-org-logo').src = 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w500';
+                                        document.getElementById('login-org-logo').src = 'assets/img/garuda.png';
                                     }
                                 </script>
                                 <div style="color:#fff; font-size:0.9rem; font-weight:700; letter-spacing:0.02em; margin-bottom: 0.1rem;">GOOD GOV</div>

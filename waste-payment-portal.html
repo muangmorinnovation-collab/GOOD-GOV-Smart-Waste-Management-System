@@ -52,10 +52,10 @@
                 <img id="public-org-logo" src="" alt="Organization Logo" style="max-height: 40px; max-width: 40px; width: auto; object-fit: contain;" class="rounded">
                 <script>
                     try {
-                        const _ls = JSON.parse(localStorage.getItem('waste_settings'));
-                        document.getElementById('public-org-logo').src = (_ls && _ls.org_logo) ? _ls.org_logo : 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w200';
+                        const defaultLogo = 'assets/img/garuda.png';
+                        document.getElementById('public-org-logo').src = (_ls && _ls.org_logo) ? _ls.org_logo : defaultLogo;
                     } catch(e) {
-                        document.getElementById('public-org-logo').src = 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w200';
+                        document.getElementById('public-org-logo').src = 'assets/img/garuda.png';
                     }
                 </script>
                 <div class="d-flex flex-column">
