@@ -194,10 +194,10 @@ async function printReceiptSlip(payment) {
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap');
-    body{font-family:'Prompt',sans-serif;padding:15px 40px;font-size:24px;max-width:800px;margin:0 auto; line-height: 1.3;}
-    .center{text-align:center} h3{margin:10px 0;font-size:36px} hr{border:none;border-top:2px dashed #ccc;margin:10px 0}
-    .row{display:flex;justify-content:space-between;margin:5px 0;font-size:24px;} 
-    .total{font-size:46px;font-weight:700;color:#057a55;text-align:center;margin:15px 0}
+    body{font-family:'Prompt',sans-serif;padding:20px 40px;font-size:22px;max-width:800px;margin:0 auto; line-height: 1.4;}
+    .center{text-align:center} h3{margin:10px 0;font-size:32px} hr{border:none;border-top:2px dashed #ccc;margin:10px 0}
+    .row{display:flex;justify-content:space-between;margin:5px 0;font-size:22px;} 
+    .total{font-size:40px;font-weight:700;color:#057a55;text-align:center;margin:20px 0}
     .no-print { display: flex; gap: 15px; justify-content: center; margin-bottom: 25px; background: #f3f4f6; padding: 15px; border-radius: 8px; }
     .btn { border: none; padding: 12px 24px; border-radius: 6px; font-family: 'Prompt', sans-serif; font-size: 18px; cursor: pointer; color: #fff; font-weight: 600; flex: 1; max-width: 250px;}
     .btn-print { background: #1a56db; }
@@ -218,12 +218,12 @@ async function printReceiptSlip(payment) {
     <div class="row" style="align-items:flex-start;"><span>เดือน:</span><span style="text-align:right;">${formatMonthsGroupedByYear(payment.months_paid, true)}</span></div>
     <div class="row"><span>ช่องทาง:</span><span>${payment.method}</span></div><hr>
     <div class="total">฿${formatMoneyDecimal(payment.amount)}</div><hr>
-    <div style="margin-top:15px;text-align:center;">
+    <div style="margin-top:20px;text-align:center;">
         ${staffSignatureHTML}
-        <div style="margin-top:5px; font-size: 22px;">(${payment.staff || '..........................................'})</div>
-        <div style="font-size:20px;margin-top:0px;">ผู้รับเงิน</div>
+        <div style="margin-top:5px; font-size: 20px;">(${payment.staff || '..........................................'})</div>
+        <div style="font-size:18px;margin-top:0px;">ผู้รับเงิน</div>
     </div>
-    <div class="center" style="margin-top:10px;font-size:18px;color:#999">GOOD GOV System</div>
+    <div class="center" style="margin-top:10px;font-size:16px;color:#999">GOOD GOV System</div>
     </body></html>`);
     w.document.close();
     
