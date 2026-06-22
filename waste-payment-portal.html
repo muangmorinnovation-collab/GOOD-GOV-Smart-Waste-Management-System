@@ -52,6 +52,7 @@
                 <img id="public-org-logo" src="" alt="Organization Logo" style="max-height: 40px; max-width: 40px; width: auto; object-fit: contain;" class="rounded">
                 <script>
                     try {
+                        const _ls = JSON.parse(localStorage.getItem('waste_settings'));
                         const defaultLogo = 'assets/img/garuda.png';
                         document.getElementById('public-org-logo').src = (_ls && _ls.org_logo) ? _ls.org_logo : defaultLogo;
                     } catch(e) {
