@@ -83,6 +83,8 @@
                 <form id="customerForm" onsubmit="saveCustomer(event)">
                     <input type="hidden" id="editId">
                     <div class="row g-3">
+                        <!-- Section 1 -->
+                        <div class="col-12"><h6 class="fw-bold text-primary mb-0 border-bottom pb-2"><i class="fa-solid fa-address-card me-2"></i>ส่วนที่ 1: ข้อมูลลูกค้าขยะ</h6></div>
                         <div class="col-md-3"><label class="form-label fw-semibold text-sm">รหัสลูกค้า</label><input type="text" class="form-control" id="fId" readonly></div>
                         <div class="col-md-3"><label class="form-label fw-semibold text-sm">บ้านเลขที่ <span class="text-danger">*</span></label><input type="text" class="form-control" id="fHouseNo" required></div>
                         <div class="col-md-3"><label class="form-label fw-semibold text-sm">หมู่ <span class="text-danger">*</span></label><select class="form-select" id="fMoo" required></select></div>
@@ -94,12 +96,19 @@
                         </div>
                         <div class="col-md-6"><label class="form-label fw-semibold text-sm">ชื่อเจ้าบ้าน <span class="text-danger">*</span></label><input type="text" class="form-control" id="fName" required></div>
                         <div class="col-md-6"><label class="form-label fw-semibold text-sm">เลขบัตรประชาชน</label><input type="text" class="form-control" id="fIdCard" maxlength="13"></div>
-                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">เบอร์โทร</label><input type="text" class="form-control" id="fPhone"></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold text-sm">เบอร์โทร</label><input type="text" class="form-control" id="fPhone"></div>
+
+                        <!-- Section 2 -->
+                        <div class="col-12 mt-4"><h6 class="fw-bold text-success mb-0 border-bottom pb-2"><i class="fa-solid fa-file-invoice-dollar me-2"></i>ส่วนที่ 2: ค่าธรรมเนียมขยะ</h6></div>
                         <div class="col-md-4"><label class="form-label fw-semibold text-sm">ประเภทบ้าน <span class="text-danger">*</span></label><select class="form-select" id="fType" required onchange="autoFee()"></select></div>
                         <div class="col-md-4"><label class="form-label fw-semibold text-sm">ค่าธรรมเนียม/เดือน</label><input type="number" class="form-control" id="fFee" value="40"></div>
-                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">วันที่เริ่มใช้งาน</label><input type="date" class="form-control" id="fStartDate"></div>
-                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">Latitude</label><input type="text" class="form-control" id="fLat"></div>
-                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">Longitude</label><input type="text" class="form-control" id="fLng"></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold text-sm">วันปรับค่าธรรมเนียม</label><input type="date" class="form-control" id="fFeeChangeDate" title="วันที่มีผลบังคับใช้"></div>
+
+                        <!-- Section 3 -->
+                        <div class="col-12 mt-4"><h6 class="fw-bold text-info mb-0 border-bottom pb-2"><i class="fa-solid fa-map-location-dot me-2"></i>ส่วนที่ 3: วันที่เริ่มใช้งานและตำแหน่งบ้าน</h6></div>
+                        <div class="col-md-12"><label class="form-label fw-semibold text-sm">วันที่เริ่มใช้งาน</label><input type="date" class="form-control" id="fStartDate"></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold text-sm">Latitude</label><input type="text" class="form-control" id="fLat"></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold text-sm">Longitude</label><input type="text" class="form-control" id="fLng"></div>
                         <div class="col-12 mt-2">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label class="form-label fw-semibold text-sm mb-0">ระบุพิกัดบนแผนที่</label>
@@ -456,6 +465,7 @@ function openAddModal() {
     document.getElementById('fId').value = generateCustomerId();
     document.getElementById('customerForm').reset();
     document.getElementById('fId').value = generateCustomerId();
+    document.getElementById('fFeeChangeDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('fStartDate').value = new Date().toISOString().split('T')[0];
     autoFee();
     new bootstrap.Modal(document.getElementById('customerModal')).show();
@@ -477,6 +487,7 @@ function editCustomer(id) {
     document.getElementById('fPhone').value = c.phone||'';
     document.getElementById('fType').value = c.type;
     document.getElementById('fFee').value = c.fee;
+    document.getElementById('fFeeChangeDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('fStartDate').value = c.start_date||'';
     document.getElementById('fLat').value = c.lat||'';
     document.getElementById('fLng').value = c.lng||'';
@@ -498,6 +509,7 @@ async function saveCustomer(e) {
         phone: document.getElementById('fPhone').value || null,
         type: document.getElementById('fType').value || '-',
         fee: parseInt(document.getElementById('fFee').value)||0,
+        fee_change_date: document.getElementById('fFeeChangeDate').value || null,
         start_date: document.getElementById('fStartDate').value || null,
         status: 'active',
         lat: parseFloat(document.getElementById('fLat').value)||null,
