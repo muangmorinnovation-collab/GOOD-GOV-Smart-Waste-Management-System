@@ -443,12 +443,12 @@ function getFeeForMonth(customerId, monthKey, fiscalYear) {
         }
     }
 
-    // If month is before the customer even started, ignore the history (which might be a mistake during creation)
+    // If month is before the customer even started, still use effectiveFee (so past months show the old fee)
     if (customer.start_date) {
         const startDate = new Date(customer.start_date);
         const startMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
         if (monthStart < startMonth) {
-            return customer.fee;
+            return effectiveFee;
         }
     }
 
@@ -456,10 +456,14 @@ function getFeeForMonth(customerId, monthKey, fiscalYear) {
 }
 
 async function saveWasteCustomerDB(data) {
+    // Extract fee_change_date to prevent Supabase errors
+    const feeChangeDate = data.fee_change_date;
+    delete data.fee_change_date;
+
     // Detect fee change and record history
     const existing = getWasteCustomers().find(c => c.id === data.id);
     if (existing && Number(existing.fee) !== Number(data.fee)) {
-        addFeeHistoryEntry(data.id, existing.fee, data.fee);
+        addFeeHistoryEntry(data.id, existing.fee, data.fee, feeChangeDate);
     }
 
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {

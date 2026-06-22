@@ -203,7 +203,7 @@ async function printReceiptSlip(payment) {
     .btn-print { background: #1a56db; }
     .btn-close { background: #dc2626; }
     .staff-sign { height:80px; display:block; margin:15px auto; }
-    .org-logo-img { max-width: 120px; margin-bottom: 15px; }
+    .org-logo-img { max-width: 80px; margin-bottom: 15px; }
     @media print { .no-print { display: none !important; } @page { size: A4 portrait; margin: 15mm; } body { padding: 0; } }
     </style></head><body>
     <div class="no-print">
