@@ -194,10 +194,10 @@ async function printReceiptSlip(payment) {
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap');
-    body{font-family:'Prompt',sans-serif;padding:20px 40px;font-size:22px;max-width:800px;margin:0 auto; line-height: 1.4;}
-    .center{text-align:center} h3{margin:10px 0;font-size:32px} hr{border:none;border-top:2px dashed #ccc;margin:10px 0}
-    .row{display:flex;justify-content:space-between;margin:5px 0;font-size:22px;} 
-    .total{font-size:40px;font-weight:700;color:#057a55;text-align:center;margin:20px 0}
+    body{font-family:'Prompt',sans-serif;padding:20px 40px;font-size:18px;max-width:800px;margin:0 auto; line-height: 1.4;}
+    .center{text-align:center} h3{margin:10px 0;font-size:26px} hr{border:none;border-top:2px dashed #ccc;margin:10px 0}
+    .row{display:flex;justify-content:space-between;margin:5px 0;font-size:18px;} 
+    .total{font-size:32px;font-weight:700;color:#057a55;text-align:center;margin:20px 0}
     .no-print { display: flex; gap: 15px; justify-content: center; margin-bottom: 25px; background: #f3f4f6; padding: 15px; border-radius: 8px; }
     .btn { border: none; padding: 12px 24px; border-radius: 6px; font-family: 'Prompt', sans-serif; font-size: 18px; cursor: pointer; color: #fff; font-weight: 600; flex: 1; max-width: 250px;}
     .btn-print { background: #1a56db; }
@@ -210,7 +210,7 @@ async function printReceiptSlip(payment) {
         <button class="btn btn-close" onclick="window.close()">ปิดหน้านี้</button>
         <button class="btn btn-print" onclick="window.print()">พิมพ์อีกครั้ง</button>
     </div>
-    <div class="center">${orgLogo}<h3>ใบเสร็จค่าขยะมูลฝอย</h3><p style="margin:5px 0;font-size:20px">${orgName}</p></div><hr>
+    <div class="center">${orgLogo}<h3>ใบเสร็จค่าขยะมูลฝอย</h3><p style="margin:5px 0;font-size:16px">${orgName}</p></div><hr>
     <div class="row"><span>เลขที่:</span><span>${payment.receipt_no}</span></div>
     <div class="row"><span>วันที่:</span><span>${dateFormatted}</span></div><hr>
     <div class="row"><span>ชื่อ:</span><span>${payment.customer_name}</span></div>
@@ -220,10 +220,10 @@ async function printReceiptSlip(payment) {
     <div class="total">฿${formatMoneyDecimal(payment.amount)}</div><hr>
     <div style="margin-top:20px;text-align:center;">
         ${staffSignatureHTML}
-        <div style="margin-top:5px; font-size: 20px;">(${payment.staff || '..........................................'})</div>
-        <div style="font-size:18px;margin-top:0px;">ผู้รับเงิน</div>
+        <div style="margin-top:5px; font-size: 16px;">(${payment.staff || '..........................................'})</div>
+        <div style="font-size:14px;margin-top:0px;">ผู้รับเงิน</div>
     </div>
-    <div class="center" style="margin-top:10px;font-size:16px;color:#999">GOOD GOV System</div>
+    <div class="center" style="margin-top:10px;font-size:12px;color:#999">GOOD GOV System</div>
     </body></html>`);
     w.document.close();
     
