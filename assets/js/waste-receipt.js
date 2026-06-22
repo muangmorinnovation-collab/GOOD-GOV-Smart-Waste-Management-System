@@ -40,7 +40,15 @@ function buildReceiptHTML(p) {
         '.info-label{font-size:12px;color:#6b7280;} .info-value{font-size:14px;font-weight:600;margin-top:2px;} ' +
         '.total-box{text-align:right;font-size:24px;font-weight:700;color:#057a55;margin:20px 0;padding:15px;background:#f0fdf4;border-radius:10px;} ' +
         '.footer{text-align:center;margin-top:30px;font-size:12px;color:#9ca3af;border-top:1px dashed #d1d5db;padding-top:15px;} ' +
-        '@media print{body{padding:0;} .receipt{margin:0;padding:20px;}}</style></head><body>' +
+        '@media print{body{padding:0;} .receipt{margin:0;padding:20px;} .no-print{display:none !important;}} ' +
+        '.no-print { display: flex; gap: 10px; justify-content: center; padding: 15px; background: #f3f4f6; margin-bottom: 20px; } ' +
+        '.btn-print-action { border: none; padding: 10px 20px; border-radius: 6px; font-family: Sarabun, sans-serif; font-size: 16px; cursor: pointer; color: #fff; font-weight: 600; } ' +
+        '.btn-print-action.primary { background: #1a56db; } .btn-print-action.danger { background: #dc2626; } ' +
+        '</style></head><body>' +
+        '<div class="no-print">' +
+        '   <button class="btn-print-action danger" onclick="window.close()">ปิดหน้านี้</button>' +
+        '   <button class="btn-print-action primary" onclick="window.print()">พิมพ์ใบเสร็จ</button>' +
+        '</div>' +
         '<div class="receipt">' +
         '<div class="header">' +
         '<img src="' + garudaUrl + '" alt="ครุฑ"><br>' +

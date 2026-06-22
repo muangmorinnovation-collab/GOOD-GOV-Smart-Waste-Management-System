@@ -183,11 +183,21 @@ async function printReceiptSlip(payment) {
 
     const w = window.open('', '_blank', 'width=350,height=500');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap');
     body{font-family:'Prompt',sans-serif;padding:15px;font-size:12px;width:280px;margin:0 auto}
     .center{text-align:center} h3{margin:5px 0;font-size:14px} hr{border:none;border-top:1px dashed #ccc;margin:8px 0}
     .row{display:flex;justify-content:space-between;margin:3px 0} .total{font-size:18px;font-weight:700;color:#057a55;text-align:center;margin:10px 0}
+    .no-print { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; background: #f3f4f6; padding: 10px; border-radius: 6px; }
+    .btn { border: none; padding: 8px 12px; border-radius: 4px; font-family: 'Prompt', sans-serif; font-size: 12px; cursor: pointer; color: #fff; font-weight: 600; flex: 1; }
+    .btn-print { background: #1a56db; }
+    .btn-close { background: #dc2626; }
+    @media print { .no-print { display: none !important; } body { padding: 0; } }
     </style></head><body>
+    <div class="no-print">
+        <button class="btn btn-close" onclick="window.close()">ปิดหน้านี้</button>
+        <button class="btn btn-print" onclick="window.print()">พิมพ์อีกครั้ง</button>
+    </div>
     <div class="center">${orgLogo}<h3>ใบเสร็จค่าขยะมูลฝอย</h3><p style="margin:2px 0;font-size:11px">${orgName}</p></div><hr>
     <div class="row"><span>เลขที่:</span><span>${payment.receipt_no}</span></div>
     <div class="row"><span>วันที่:</span><span>${dateFormatted}</span></div><hr>
