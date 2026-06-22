@@ -346,24 +346,8 @@ function viewOnlineReceipt(id) {
         };
     }
 
-    Swal.fire({
-        title: 'พิมพ์ใบเสร็จรับเงิน',
-        html: `ต้องการพิมพ์ใบเสร็จของ <b>${payment.customer_name}</b> รูปแบบใด?`,
-        icon: 'info',
-        showCancelButton: true,
-        showDenyButton: true,
-        confirmButtonText: '<i class="fa-solid fa-file-lines me-1"></i> A4',
-        cancelButtonText: 'ปิด',
-        denyButtonText: '<i class="fa-solid fa-receipt me-1"></i> Slip',
-        confirmButtonColor: '#057a55',
-        denyButtonColor: '#3b82f6',
-    }).then((result) => {
-        if (result.isConfirmed) {
-            printReceiptA4(payment);
-        } else if (result.isDenied) {
-            printReceiptSlip(payment);
-        }
-    });
+    // ข้ามการถาม A4/Slip แล้วเรียกพิมพ์ A4 ทันที เพื่อให้เหมือนกับปุ่มพิมพ์ใบเสร็จในหน้ารายงาน
+    printReceiptA4(payment);
 }
 
 let pendingOnlineTransactionId = null;
