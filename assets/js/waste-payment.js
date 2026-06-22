@@ -59,7 +59,7 @@ async function printReceiptA4(payment) {
     }
     
     const settings = JSON.parse(localStorage.getItem('waste_settings') || '{}');
-    const logo = settings.org_logo || 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w200';
+    const logo = settings.org_logo || 'assets/img/garuda.png';
     const orgName = settings.org_name || 'เทศบาลตำบล GOOD GOV';
     const orgAddress = settings.org_address || '';
     const orgPhone = settings.org_phone || '';

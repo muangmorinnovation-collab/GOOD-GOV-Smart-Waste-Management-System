@@ -80,10 +80,26 @@
     }
 
     // ---- Dynamic PWA setup ----
-    function setupDynamicPWA() {
+    async function setupDynamicPWA() {
         try {
-            const settings = JSON.parse(localStorage.getItem('waste_settings') || '{}');
-            const defaultLogo = 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w500';
+            let settings = JSON.parse(localStorage.getItem('waste_settings') || '{}');
+            
+            // If local storage doesn't have the logo, try fetching from Supabase
+            if (!settings.org_logo && typeof supabaseClient !== 'undefined' && supabaseClient) {
+                try {
+                    const { data } = await supabaseClient.from('waste_settings').select('org_logo, org_name').limit(1).single();
+                    if (data) {
+                        settings.org_logo = data.org_logo;
+                        settings.org_name = data.org_name;
+                        // Cache it locally so we don't have to fetch again
+                        localStorage.setItem('waste_settings', JSON.stringify({ ...settings, ...data }));
+                    }
+                } catch (err) {
+                    console.warn('Could not fetch PWA settings from Supabase:', err);
+                }
+            }
+
+            const defaultLogo = 'assets/img/garuda.png';
             const orgLogo = settings.org_logo || defaultLogo;
             const orgName = settings.org_name || 'GOOD GOV';
 
