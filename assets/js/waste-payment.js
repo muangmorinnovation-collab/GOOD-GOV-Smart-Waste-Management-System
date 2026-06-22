@@ -155,9 +155,32 @@ async function printReceiptA4(payment) {
     setTimeout(() => w.print(), 800);
 }
 
-function printReceiptSlip(payment) {
+async function printReceiptSlip(payment) {
     const settings = JSON.parse(localStorage.getItem('waste_settings') || '{}');
     const orgName = settings.org_name || 'เทศบาลตำบล GOOD GOV';
+    const orgLogo = settings.org_logo ? `<img src="${settings.org_logo}" style="max-width:50px; margin-bottom:5px;">` : '';
+    
+    let staffSignatureHTML = '<div style="height:25px;"></div><div>(ลายมือชื่อ) ..........................................</div>';
+    if (payment.staff && typeof supabaseClient !== 'undefined') {
+        try {
+            const { data, error } = await supabaseClient.from('waste_staff')
+                .select('signature_image_url')
+                .ilike('name', `%${payment.staff.trim()}%`)
+                .limit(1);
+            
+            if (data && data.length > 0 && data[0].signature_image_url) {
+                staffSignatureHTML = `<img src="${data[0].signature_image_url}" style="height:35px;display:block;margin:0 auto;">`;
+            }
+        } catch (e) {
+            console.error('Failed to load staff signature', e);
+        }
+    }
+
+    // Format Date to "22 มิถุนายน 2569"
+    const thMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    const dObj = new Date(payment.date);
+    const dateFormatted = `${dObj.getDate()} ${thMonths[dObj.getMonth()]} ${dObj.getFullYear() + 543}`;
+
     const w = window.open('', '_blank', 'width=350,height=500');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <style>@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap');
@@ -165,19 +188,25 @@ function printReceiptSlip(payment) {
     .center{text-align:center} h3{margin:5px 0;font-size:14px} hr{border:none;border-top:1px dashed #ccc;margin:8px 0}
     .row{display:flex;justify-content:space-between;margin:3px 0} .total{font-size:18px;font-weight:700;color:#057a55;text-align:center;margin:10px 0}
     </style></head><body>
-    <div class="center"><h3>ใบเสร็จค่าขยะมูลฝอย</h3><p style="margin:2px 0;font-size:11px">${orgName}</p></div><hr>
+    <div class="center">${orgLogo}<h3>ใบเสร็จค่าขยะมูลฝอย</h3><p style="margin:2px 0;font-size:11px">${orgName}</p></div><hr>
     <div class="row"><span>เลขที่:</span><span>${payment.receipt_no}</span></div>
-    <div class="row"><span>วันที่:</span><span>${payment.date}</span></div><hr>
+    <div class="row"><span>วันที่:</span><span>${dateFormatted}</span></div><hr>
     <div class="row"><span>ชื่อ:</span><span>${payment.customer_name}</span></div>
     <div class="row"><span>บ้านเลขที่:</span><span>${payment.house_no}</span></div>
     <div class="row" style="align-items:flex-start;"><span>เดือน:</span><span style="text-align:right;">${formatMonthsGroupedByYear(payment.months_paid, true)}</span></div>
     <div class="row"><span>ช่องทาง:</span><span>${payment.method}</span></div><hr>
     <div class="total">฿${formatMoneyDecimal(payment.amount)}</div><hr>
-    <div class="row"><span>เจ้าหน้าที่:</span><span>${payment.staff||'-'}</span></div>
-    <div class="center" style="margin-top:10px;font-size:10px;color:#999">GOOD GOV System</div>
+    <div style="margin-top:20px;text-align:center;">
+        ${staffSignatureHTML}
+        <div style="margin-top:5px;">(${payment.staff || '..........................................'})</div>
+        <div style="font-size:10px;margin-top:3px;">ผู้รับเงิน</div>
+    </div>
+    <div class="center" style="margin-top:15px;font-size:10px;color:#999">GOOD GOV System</div>
     </body></html>`);
     w.document.close();
-    setTimeout(() => w.print(), 500);
+    
+    // Give images time to load before printing
+    setTimeout(() => w.print(), 800);
 }
 
 // ============================================

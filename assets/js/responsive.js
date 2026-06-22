@@ -79,10 +79,66 @@
         });
     }
 
+    // ---- Dynamic PWA setup ----
+    function setupDynamicPWA() {
+        try {
+            const settings = JSON.parse(localStorage.getItem('waste_settings') || '{}');
+            const defaultLogo = 'https://drive.google.com/thumbnail?id=1cPWRFVoN48eV6lJVS9E7nd2Mi7y5IQj8&sz=w500';
+            const orgLogo = settings.org_logo || defaultLogo;
+            const orgName = settings.org_name || 'GOOD GOV';
+
+            const manifestStr = JSON.stringify({
+                "name": orgName,
+                "short_name": orgName,
+                "start_url": "./index.html",
+                "display": "standalone",
+                "background_color": "#0f1f3d",
+                "theme_color": "#1a56db",
+                "icons": [
+                    {
+                        "src": orgLogo,
+                        "sizes": "192x192 512x512",
+                        "type": "image/png",
+                        "purpose": "any maskable"
+                    }
+                ]
+            });
+            const manifestBlob = new Blob([manifestStr], { type: 'application/json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+
+            let manifestLink = document.querySelector('link[rel="manifest"]');
+            if (!manifestLink) {
+                manifestLink = document.createElement('link');
+                manifestLink.rel = 'manifest';
+                document.head.appendChild(manifestLink);
+            }
+            manifestLink.href = manifestUrl;
+
+            let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+            if (!appleIcon) {
+                appleIcon = document.createElement('link');
+                appleIcon.rel = 'apple-touch-icon';
+                document.head.appendChild(appleIcon);
+            }
+            appleIcon.href = orgLogo;
+
+            let themeMeta = document.querySelector('meta[name="theme-color"]');
+            if (!themeMeta) {
+                themeMeta = document.createElement('meta');
+                themeMeta.name = 'theme-color';
+                document.head.appendChild(themeMeta);
+            }
+            themeMeta.content = '#1a56db';
+        } catch(e) {
+            console.error('Failed to setup dynamic PWA', e);
+        }
+    }
+
     // ---- Init ----
     function init() {
         initMobileSidebar();
         wrapTables();
+        setupDynamicPWA();
         window.addEventListener('resize', handleResize);
     }
 

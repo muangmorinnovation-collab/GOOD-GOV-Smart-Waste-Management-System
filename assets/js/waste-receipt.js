@@ -179,4 +179,9 @@ function viewReceipt(paymentId) {
     var w = window.open('', '_blank', 'width=800,height=700');
     w.document.write(html);
     w.document.close();
+    
+    // Auto-print after a short delay
+    setTimeout(function() {
+        w.print();
+    }, 500);
 }
