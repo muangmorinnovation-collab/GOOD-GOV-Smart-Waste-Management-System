@@ -75,7 +75,7 @@
                 </div>
                 <div class="card"><div class="card-body p-0"><div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead><tr><th class="ps-4">วันที่/เวลา</th><th>ใบเสร็จ</th><th>ผู้ชำระ</th><th>เดือนที่รับชำระ</th><th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เจ้าหน้าที่ผู้รับชำระ</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+                        <thead><tr><th class="ps-4" style="width: 80px;">พิมพ์สลิป</th><th>วันที่/เวลา</th><th>ใบเสร็จ</th><th>ผู้ชำระ</th><th>เดือนที่รับชำระ</th><th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เจ้าหน้าที่ผู้รับชำระ</th><th class="text-center">ใบเสร็จ</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
                         <tbody id="allTableBody"></tbody>
                     </table>
                 </div></div></div>
@@ -99,7 +99,7 @@
                 </div>
                 <div class="card"><div class="card-body p-0"><div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead><tr><th class="ps-4">ใบเสร็จ</th><th>ผู้ชำระ</th><th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เวลา</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+                        <thead><tr><th class="ps-4" style="width: 80px;">พิมพ์สลิป</th><th>ใบเสร็จ</th><th>ผู้ชำระ</th><th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เวลา</th><th class="text-center">ใบเสร็จ</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
                         <tbody id="dailyTableBody"></tbody>
                     </table>
                 </div></div></div>
@@ -233,6 +233,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
+function formatThaiDateShort(dateStr) {
+    if (!dateStr) return '-';
+    var parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return parts[2] + '/' + parts[1] + '/' + (parseInt(parts[0]) + 543);
+}
+
 function renderReports() {
     var payments = getWastePayments();
     var exemptedPayments = typeof getWasteExemptions === 'function' ? getWasteExemptions() : [];
@@ -320,18 +327,21 @@ function renderReports() {
             var monthsStr = Array.isArray(p.months_paid) ? p.months_paid.join(', ') : (p.months_paid || '-');
             var staffName = p.staff || '-';
 
+            var printSlipBtn = '<button class="btn btn-warning btn-sm shadow-sm px-3" style="border-radius: 8px;" onclick="printReceiptSlip(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์สลิป"><i class="fa-solid fa-receipt"></i></button>';
+
             allRows += '<tr' + rowClass + '>' +
-                '<td class="ps-4 text-xs">' + p.date + ' ' + (p.time||'') + '</td>' +
+                '<td class="ps-4">' + printSlipBtn + '</td>' +
+                '<td class="text-xs">' + formatThaiDateShort(p.date) + ' ' + (p.time||'') + '</td>' +
                 '<td class="fw-semibold text-xs">' + p.receipt_no + statusBadge + '</td>' +
                 '<td>' + p.customer_name + '</td>' +
                 '<td class="text-xs">' + monthsStr + '</td>' +
                 '<td class="text-end fw-semibold ' + (isCancelled ? '' : 'text-success') + '">฿' + formatMoneyDecimal(p.amount) + '</td>' +
                 '<td class="text-xs">' + p.method + '</td>' +
                 '<td class="text-xs">' + staffName + '</td>' +
+                '<td class="text-center">' +
+                    '<button class="btn btn-primary btn-sm shadow-sm px-3" style="border-radius: 8px;" onclick="printReceiptA4(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์ A4"><i class="fa-solid fa-print"></i></button>' +
+                '</td>' +
                 '<td class="pe-4 text-center">' +
-                    '<button class="btn btn-xs btn-outline-info me-1" onclick="viewReceipt(\'' + p.id + '\')" title="ดูใบเสร็จ"><i class="fa-solid fa-eye"></i></button>' +
-                    '<button class="btn btn-xs btn-outline-primary me-1" onclick="printReceiptA4(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์ A4"><i class="fa-solid fa-print"></i></button>' +
-                    '<button class="btn btn-xs btn-outline-warning me-1" onclick="printReceiptSlip(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์สลิป"><i class="fa-solid fa-receipt"></i></button>' +
                     cancelBtn +
                     '<button class="btn btn-xs btn-outline-danger" onclick="promptDeletePayment(\'' + p.id + '\')" title="ลบข้อมูล"><i class="fa-solid fa-trash"></i></button>' +
                 '</td></tr>';
@@ -358,16 +368,20 @@ function renderReports() {
             var rowClass = isCancelled ? ' class="text-decoration-line-through text-muted"' : '';
             var statusBadge = isCancelled ? ' <br><span class="badge bg-danger mt-1">ยกเลิกแล้ว</span>' : '';
 
+            var printSlipBtn = '<button class="btn btn-warning btn-sm shadow-sm px-3" style="border-radius: 8px;" onclick="printReceiptSlip(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์สลิป"><i class="fa-solid fa-receipt"></i></button>';
+
             rows += '<tr' + rowClass + '>' +
-                '<td class="ps-4 fw-semibold text-xs">' + p.receipt_no + statusBadge + '</td>' +
+                '<td class="ps-4">' + printSlipBtn + '</td>' +
+                '<td class="fw-semibold text-xs">' + p.receipt_no + statusBadge + '</td>' +
                 '<td>' + p.customer_name + '</td>' +
                 '<td class="text-end fw-semibold">฿' + formatMoneyDecimal(p.amount) + '</td>' +
                 '<td class="text-xs">' + p.method + '</td>' +
                 '<td class="text-xs text-muted">' + (p.time||'') + '</td>' +
+                '<td class="text-center">' +
+                    '<button class="btn btn-info btn-sm text-white shadow-sm px-3 me-1" style="border-radius: 8px;" onclick="viewReceipt(\'' + p.id + '\')" title="ดูใบเสร็จ"><i class="fa-solid fa-eye"></i></button>' +
+                    '<button class="btn btn-primary btn-sm shadow-sm px-3" style="border-radius: 8px;" onclick="printReceiptA4(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์ A4"><i class="fa-solid fa-print"></i></button>' +
+                '</td>' +
                 '<td class="pe-4 text-center">' +
-                    '<button class="btn btn-xs btn-outline-info me-1" onclick="viewReceipt(\'' + p.id + '\')" title="ดูใบเสร็จ"><i class="fa-solid fa-eye"></i></button>' +
-                    '<button class="btn btn-xs btn-outline-primary me-1" onclick="printReceiptA4(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์ A4"><i class="fa-solid fa-print"></i></button>' +
-                    '<button class="btn btn-xs btn-outline-warning me-1" onclick="printReceiptSlip(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์สลิป"><i class="fa-solid fa-receipt"></i></button>' +
                     cancelBtn +
                     '<button class="btn btn-xs btn-outline-danger" onclick="promptDeletePayment(\'' + p.id + '\')" title="ลบข้อมูล"><i class="fa-solid fa-trash"></i></button>' +
                 '</td></tr>';
@@ -465,7 +479,7 @@ function renderReports() {
             var monthsArray = p.months_exempted || p.months_paid || [];
             var monthsStr = Array.isArray(monthsArray) ? monthsArray.join(', ') : monthsArray;
             exRows += '<tr>' +
-                '<td class="ps-4 text-xs">' + p.date + ' ' + (p.time||'') + '</td>' +
+                '<td class="ps-4 text-xs">' + formatThaiDateShort(p.date) + ' ' + (p.time||'') + '</td>' +
                 '<td><div class="fw-semibold">' + p.customer_name + '</div><div class="text-xs text-muted">' + p.house_no + '</div></td>' +
                 '<td>' + monthsStr + '</td>' +
                 '<td class="text-danger">' + (p.reject_reason || '-') + '</td>' +
