@@ -65,6 +65,59 @@ function getPrintStyles() {
 // ============================================
 // DAILY PDF REPORT
 // ============================================
+function calculatePaymentCategories(paymentDate, monthsPaid, feePerMonth, totalAmount) {
+    if (!monthsPaid || monthsPaid.length === 0 || (monthsPaid.length === 1 && monthsPaid[0] === '-')) {
+        return { debt: 0, regular: totalAmount, advance: 0 };
+    }
+
+    var dParts = paymentDate.split('-');
+    if (dParts.length !== 3) {
+        return { debt: 0, regular: totalAmount, advance: 0 };
+    }
+    var pMonth = parseInt(dParts[1], 10);
+    var pYear = parseInt(dParts[0], 10) + 543;
+    var paymentFY = (pMonth >= 10) ? (pYear + 1) : pYear;
+
+    var debt = 0, regular = 0, advance = 0;
+    var monthNames = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+    monthsPaid.forEach(function(mStr) {
+        var parts = mStr.trim().split(' ');
+        var mName = parts[0];
+        var mYearStr = parts[parts.length - 1];
+        var mYear = parseInt(mYearStr, 10);
+        
+        if (isNaN(mYear)) {
+            regular += feePerMonth;
+            return;
+        }
+        if (mYear < 100) mYear += 2500;
+
+        var mIndex = monthNames.indexOf(mName);
+        if (mIndex === -1) {
+            regular += feePerMonth;
+            return;
+        }
+
+        var targetFY = (mIndex >= 9) ? (mYear + 1) : mYear;
+        
+        if (targetFY < paymentFY) {
+            debt += feePerMonth;
+        } else if (targetFY > paymentFY) {
+            advance += feePerMonth;
+        } else {
+            regular += feePerMonth;
+        }
+    });
+
+    var diff = totalAmount - (debt + regular + advance);
+    if (diff !== 0) {
+        regular += diff;
+    }
+
+    return { debt: debt, regular: regular, advance: advance };
+}
+
 function exportDailyPDF() {
     const orgName = getOrgNamePDF();
     var filterDate = document.getElementById('filterDate').value;
@@ -90,10 +143,11 @@ function exportDailyPDF() {
             var monthsPaid = Array.isArray(p.months_paid) ? p.months_paid : [p.months_paid || '-'];
             var feePerMonth = cust ? cust.fee : (monthsPaid.length > 0 ? Math.round(p.amount / monthsPaid.length) : p.amount);
 
-            var debtAmt = 0;
-            var regularAmt = feePerMonth * monthsPaid.length;
-            var advanceAmt = 0;
             var rowTotal = p.amount;
+            var cats = calculatePaymentCategories(p.date, monthsPaid, feePerMonth, rowTotal);
+            var debtAmt = cats.debt;
+            var regularAmt = cats.regular;
+            var advanceAmt = cats.advance;
 
             sumDebt += debtAmt;
             sumRegular += regularAmt;
@@ -260,10 +314,11 @@ function exportAllPDF() {
             var monthsPaid = Array.isArray(p.months_paid) ? p.months_paid : [p.months_paid || '-'];
             var feePerMonth = cust ? cust.fee : (monthsPaid.length > 0 ? Math.round(p.amount / monthsPaid.length) : p.amount);
 
-            var debtAmt = 0;
-            var regularAmt = feePerMonth * monthsPaid.length;
-            var advanceAmt = 0;
             var rowTotal = p.amount;
+            var cats = calculatePaymentCategories(p.date, monthsPaid, feePerMonth, rowTotal);
+            var debtAmt = cats.debt;
+            var regularAmt = cats.regular;
+            var advanceAmt = cats.advance;
 
             sumDebt += debtAmt;
             sumRegular += regularAmt;
