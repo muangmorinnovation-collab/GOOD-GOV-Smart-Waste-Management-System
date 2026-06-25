@@ -250,7 +250,7 @@ function buildDebtLetterPages(d, year) {
         // กล่องแสตมป์ (บนขวา)
         '<div class="stamp-box">' +
             '<div>ชำระค่าฝากส่งเป็นรายเดือน</div>' +
-            '<div>ใบอนุญาตเลขที่</div>' +
+            '<div>ใบอนุญาตเลขที่ ' + (stampNo || '') + '</div>' +
             '<div>' + postOfficeName + '</div>' +
         '</div>' +
 
