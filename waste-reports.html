@@ -75,10 +75,15 @@
                 </div>
                 <div class="card"><div class="card-body p-0"><div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead><tr><th class="ps-4" style="width: 80px;">พิมพ์สลิป</th><th>วันที่/เวลา</th><th>ใบเสร็จ</th><th>ผู้ชำระ</th><th>เดือนที่รับชำระ</th><th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เจ้าหน้าที่ผู้รับชำระ</th><th class="text-center">ใบเสร็จ</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+                        <thead><tr><th class="ps-4" style="width: 80px;">พิมพ์สลิป</th><th>วันที่/เวลา</th><th>ใบเสร็จ</th><th>บ้านเลขที่</th><th>ผู้ชำระ</th><th>เดือนที่รับชำระ</th><th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เจ้าหน้าที่ผู้รับชำระ</th><th class="text-center">ใบเสร็จ</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
                         <tbody id="allTableBody"></tbody>
                     </table>
-                </div></div></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center p-3 border-top bg-light">
+                    <div class="text-muted" style="font-size: 0.85rem;" id="allPaginationInfo"></div>
+                    <ul class="pagination pagination-sm mb-0" id="allPagination"></ul>
+                </div>
+                </div></div>
             </div>
 
             <!-- Daily -->
@@ -99,7 +104,7 @@
                 </div>
                 <div class="card"><div class="card-body p-0"><div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead><tr><th class="ps-4" style="width: 80px;">พิมพ์สลิป</th><th>ใบเสร็จ</th><th>ผู้ชำระ</th><th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เวลา</th><th class="text-center">ใบเสร็จ</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
+                        <thead><tr><th class="ps-4" style="width: 80px;">พิมพ์สลิป</th><th>ใบเสร็จ</th><th>บ้านเลขที่</th><th>ผู้ชำระ</th><th class="text-end">จำนวนเงิน</th><th>ช่องทาง</th><th>เวลา</th><th class="text-center">ใบเสร็จ</th><th class="pe-4 text-center">จัดการ</th></tr></thead>
                         <tbody id="dailyTableBody"></tbody>
                     </table>
                 </div></div></div>
@@ -174,6 +179,13 @@
 var monthlyChartInstance = null;
 var yearlyChartInstance = null;
 var currentAllYearFilter = 'all';
+var allPaymentsPage = 1;
+var allPaymentsItemsPerPage = 20;
+
+function setAllPaymentsPage(page) {
+    allPaymentsPage = page;
+    renderReports('pageChange');
+}
 
 function setAllYearFilter(year, btnEl) {
     currentAllYearFilter = year;
@@ -240,7 +252,10 @@ function formatThaiDateShort(dateStr) {
     return parts[2] + '/' + parts[1] + '/' + (parseInt(parts[0]) + 543);
 }
 
-function renderReports() {
+function renderReports(source) {
+    if (source !== 'pageChange') {
+        allPaymentsPage = 1;
+    }
     var payments = getWastePayments();
     var exemptedPayments = typeof getWasteExemptions === 'function' ? getWasteExemptions() : [];
 
@@ -317,24 +332,80 @@ function renderReports() {
     document.getElementById('allTransfer').textContent = '฿' + formatMoney(activePayments.filter(function(p){return p.method!=='เงินสด';}).reduce(function(s,p){return s+p.amount;},0));
 
     var allRows = '';
-    if (filteredAllPayments.length) {
-        filteredAllPayments.forEach(function(p) {
+    var totalItems = filteredAllPayments.length;
+    var totalPages = Math.ceil(totalItems / allPaymentsItemsPerPage);
+    if (totalPages > 0 && allPaymentsPage > totalPages) allPaymentsPage = totalPages;
+    var startIndex = (allPaymentsPage - 1) * allPaymentsItemsPerPage;
+    var currentPayments = filteredAllPayments.slice(startIndex, startIndex + allPaymentsItemsPerPage);
+
+    if (currentPayments.length) {
+        currentPayments.forEach(function(p) {
             var isCancelled = p.status === 'cancelled';
             var cancelBtn = isCancelled ? '' : '<button class="btn btn-xs btn-outline-warning me-1" onclick="promptCancelPayment(\'' + p.id + '\')" title="ยกเลิกใบเสร็จ"><i class="fa-solid fa-ban"></i></button>';
             var rowClass = isCancelled ? ' class="text-decoration-line-through text-muted"' : '';
             var statusBadge = isCancelled ? ' <span class="badge bg-danger ms-1">ยกเลิกแล้ว</span>' : '';
 
-            var monthsStr = Array.isArray(p.months_paid) ? p.months_paid.join(', ') : (p.months_paid || '-');
+            var mArr = Array.isArray(p.months_paid) ? p.months_paid : (p.months_paid ? p.months_paid.split(',') : []);
+            var mCount = mArr.length;
+            
+            var mGroups = {};
+            mArr.forEach(function(m) {
+                var str = m.trim();
+                var parts = str.split(' ');
+                var yr = parts.length > 1 ? parts[parts.length - 1] : '';
+                if(yr.length === 2 && !isNaN(yr)) yr = '25' + yr;
+                var mName = parts.length > 1 ? parts.slice(0, -1).join(' ') : str;
+                
+                var fiscalYr = yr;
+                if(fiscalYr && !isNaN(fiscalYr)) {
+                    if (mName.indexOf('ต.ค.') > -1 || mName.indexOf('พ.ย.') > -1 || mName.indexOf('ธ.ค.') > -1) {
+                        fiscalYr = (parseInt(fiscalYr) + 1).toString();
+                    }
+                } else {
+                    fiscalYr = 'ไม่ระบุปี';
+                }
+                
+                if(!mGroups[fiscalYr]) mGroups[fiscalYr] = [];
+                mGroups[fiscalYr].push(str);
+            });
+            var mTextEscaped = '';
+            var groupKeys = Object.keys(mGroups).sort();
+            if(groupKeys.length > 0) {
+                var htmlGroups = groupKeys.map(function(k) {
+                    var yearTitle = k === 'ไม่ระบุปี' ? k : 'ปีงบประมาณ ' + k;
+                    var badgeHTML = '';
+                    if (k !== 'ไม่ระบุปี' && typeof getCurrentFiscalYear === 'function') {
+                        var kNum = parseInt(k);
+                        var cyNum = parseInt(getCurrentFiscalYear());
+                        if (kNum < cyNum) {
+                            badgeHTML = '<span class="badge bg-danger ms-2 px-2 py-1"><i class="fa-solid fa-circle-exclamation me-1"></i>ชำระย้อนหลัง</span>';
+                        } else if (kNum === cyNum) {
+                            badgeHTML = '<span class="badge bg-primary ms-2 px-2 py-1">ชำระปกติ</span>';
+                        } else if (kNum > cyNum) {
+                            badgeHTML = '<span class="badge bg-info ms-2 px-2 py-1">ชำระล่วงหน้า</span>';
+                        }
+                    }
+                    return '<div class="mb-3 text-start"><strong class="text-primary mb-1 d-flex align-items-center">' + yearTitle + badgeHTML + '</strong><span class="text-dark" style="line-height: 1.5; font-size: 0.95rem;">' + mGroups[k].join(', ') + '</span></div>';
+                });
+                mTextEscaped = htmlGroups.join('');
+            }
+            mTextEscaped = mTextEscaped.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            
+            var monthsDisplay = mCount > 0 ? '<span class="fw-medium">' + mCount + ' เดือน</span> <button class="btn btn-sm btn-info text-white shadow-sm px-2 ms-2" style="border-radius: 6px; font-size: 0.75rem;" onclick="Swal.fire({title:\'เดือนที่รับชำระ\', html:\'' + mTextEscaped + '\', confirmButtonText:\'ปิด\'})" title="ดูรายละเอียดเดือน"><i class="fa-solid fa-eye"></i> ดู</button>' : '-';
             var staffName = p.staff || '-';
 
             var printSlipBtn = '<button class="btn btn-warning btn-sm shadow-sm px-3" style="border-radius: 8px;" onclick="printReceiptSlip(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์สลิป"><i class="fa-solid fa-receipt"></i></button>';
+
+            var c = customers.find(function(x){ return x.id === p.customer_id; });
+            var hNo = c && c.house_no ? c.house_no : '-';
 
             allRows += '<tr' + rowClass + '>' +
                 '<td class="ps-4">' + printSlipBtn + '</td>' +
                 '<td class="text-xs">' + formatThaiDateShort(p.date) + ' ' + (p.time||'') + '</td>' +
                 '<td class="fw-semibold text-xs">' + p.receipt_no + statusBadge + '</td>' +
+                '<td class="text-xs">' + hNo + '</td>' +
                 '<td>' + p.customer_name + '</td>' +
-                '<td class="text-xs">' + monthsStr + '</td>' +
+                '<td class="text-xs">' + monthsDisplay + '</td>' +
                 '<td class="text-end fw-semibold ' + (isCancelled ? '' : 'text-success') + '">฿' + formatMoneyDecimal(p.amount) + '</td>' +
                 '<td class="text-xs">' + p.method + '</td>' +
                 '<td class="text-xs">' + staffName + '</td>' +
@@ -347,9 +418,28 @@ function renderReports() {
                 '</td></tr>';
         });
     } else {
-        allRows = '<tr><td colspan="6" class="text-center py-4 text-muted">ยังไม่มีรายการชำระเงินในระบบ</td></tr>';
+        allRows = '<tr><td colspan="11" class="text-center py-4 text-muted">ยังไม่มีรายการชำระเงินในระบบ</td></tr>';
     }
     document.getElementById('allTableBody').innerHTML = allRows;
+
+    var pInfo = document.getElementById('allPaginationInfo');
+    var pUl = document.getElementById('allPagination');
+    if (pInfo && pUl) {
+        if (totalItems > 0) {
+            pInfo.innerHTML = 'แสดง ' + (startIndex + 1) + ' ถึง ' + Math.min(startIndex + allPaymentsItemsPerPage, totalItems) + ' จากทั้งหมด ' + totalItems + ' รายการ';
+            var pHTML = '<li class="page-item ' + (allPaymentsPage === 1 ? 'disabled' : '') + '"><a class="page-link" href="javascript:void(0)" onclick="setAllPaymentsPage(' + (allPaymentsPage - 1) + ')">ก่อนหน้า</a></li>';
+            var startP = Math.max(1, allPaymentsPage - 2);
+            var endP = Math.min(totalPages, startP + 4);
+            if (endP - startP < 4) startP = Math.max(1, endP - 4);
+            for (var i = startP; i <= endP; i++) {
+                pHTML += '<li class="page-item ' + (allPaymentsPage === i ? 'active' : '') + '"><a class="page-link" href="javascript:void(0)" onclick="setAllPaymentsPage(' + i + ')">' + i + '</a></li>';
+            }
+            pHTML += '<li class="page-item ' + (allPaymentsPage === totalPages ? 'disabled' : '') + '"><a class="page-link" href="javascript:void(0)" onclick="setAllPaymentsPage(' + (allPaymentsPage + 1) + ')">ถัดไป</a></li>';
+            pUl.innerHTML = pHTML;
+        } else {
+            pInfo.innerHTML = ''; pUl.innerHTML = '';
+        }
+    }
 
     // 1. Daily Report
     var filterDate = document.getElementById('filterDate').value;
@@ -370,9 +460,13 @@ function renderReports() {
 
             var printSlipBtn = '<button class="btn btn-warning btn-sm shadow-sm px-3" style="border-radius: 8px;" onclick="printReceiptSlip(getWastePayments().find(function(x){return x.id===\'' + p.id + '\'}))" title="พิมพ์สลิป"><i class="fa-solid fa-receipt"></i></button>';
 
+            var c = customers.find(function(x){ return x.id === p.customer_id; });
+            var hNo = c && c.house_no ? c.house_no : '-';
+
             rows += '<tr' + rowClass + '>' +
                 '<td class="ps-4">' + printSlipBtn + '</td>' +
                 '<td class="fw-semibold text-xs">' + p.receipt_no + statusBadge + '</td>' +
+                '<td class="text-xs">' + hNo + '</td>' +
                 '<td>' + p.customer_name + '</td>' +
                 '<td class="text-end fw-semibold">฿' + formatMoneyDecimal(p.amount) + '</td>' +
                 '<td class="text-xs">' + p.method + '</td>' +
