@@ -72,16 +72,13 @@ function buildDebtLetterCSS() {
         "  box-shadow: 0 2px 8px rgba(0,0,0,0.15);",
         "  overflow: hidden;",
         "}",
-        ".envelope-header { position: absolute; top: 25mm; left: 25mm; display: flex; align-items: flex-start; gap: 6mm; max-width: 100mm; }",
+        ".envelope-header { position: absolute; top: 25mm; left: 15mm; display: flex; align-items: flex-start; gap: 5mm; max-width: 95mm; }",
         ".envelope-header img { height: 25mm; flex-shrink: 0; }",
-        ".envelope-org { font-size: 12pt; line-height: 1.4; margin-top: 3mm; word-wrap: break-word; }",
-        ".stamp-box { position: absolute; top: 25mm; right: 25mm; width: 50mm; border: 1pt solid #000; padding: 3mm; text-align: center; line-height: 1.4; }",
-        ".stamp-box .stamp-title { font-size: 11pt; }",
-        ".stamp-box .stamp-no { font-size: 11pt; }",
-        ".stamp-box .stamp-post { font-size: 11pt; }",
-        ".send-to { position: absolute; top: 80mm; left: 75mm; font-size: 12pt; line-height: 1.5; }",
-        ".send-to .label { font-size: 12pt; margin-bottom: 2mm; }",
-        ".send-to .addr { margin-left: 10mm; }",
+        ".envelope-org { font-size: 13pt; line-height: 1.4; margin-top: 16mm; word-wrap: break-word; }",
+        ".stamp-box { position: absolute; top: 25mm; right: 15mm; width: 65mm; border: 1px solid #000; padding: 6mm 2mm; text-align: center; }",
+        ".stamp-box div { font-size: 14pt; margin-bottom: 8px; }",
+        ".stamp-box div:last-child { margin-bottom: 0; }",
+        ".send-to { position: absolute; top: 95mm; left: 70mm; font-size: 15pt; line-height: 1.6; }",
 
         // === PRINT ===
         "@media print {",
@@ -153,16 +150,6 @@ function buildDebtLetterPages(d, year) {
             qrCodeHTML = '<div class="qr-code-img" style="display:flex;align-items:center;justify-content:center;font-size:8pt;color:#999;text-align:center;">ยังไม่ได้ตั้งค่า<br>QR Code</div>';
         }
 
-        var bankAccountInfo = '';
-        if (settings.bank_account || settings.bank_name || settings.bank_branch) {
-            var acc = settings.bank_account ? settings.bank_account : '-';
-            var bank = settings.bank_name ? settings.bank_name : '-';
-            var branch = settings.bank_branch ? settings.bank_branch : '-';
-            bankAccountInfo = '<div style="margin-top: 5px; font-size: 11pt;">' +
-                'หรือโอนเข้าบัญชีเลขที่ <b>' + acc + '</b> ธนาคาร<b>' + bank + '</b> สาขา<b>' + branch + '</b>' +
-                '</div>';
-        }
-
     // ============ PAGE 1: หนังสือราชการภายนอก ============
     var page1 =
         '<div class="page">' +
@@ -227,7 +214,6 @@ function buildDebtLetterPages(d, year) {
                 '<div class="qr-text" style="margin-bottom: 2px;">' +
                     '<span class="qr-text-icon">&larr;</span> สแกน QR CODE เพื่อตรวจสอบยอด / ชำระเงิน' +
                 '</div>' +
-                bankAccountInfo +
             '</div>' +
         '</div>' +
 
@@ -239,6 +225,14 @@ function buildDebtLetterPages(d, year) {
 
         '</div>'; // end page
 
+    var orgAddrLine1 = orgAddr;
+    var orgAddrLine2 = orgTel ? 'โทร.' + orgTel.replace(/^โทร\./, '') : '';
+    var provMatch = orgAddr.match(/(จ\..+)/);
+    if (provMatch) {
+        orgAddrLine1 = orgAddr.substring(0, provMatch.index).trim();
+        orgAddrLine2 = provMatch[1].trim() + (orgTel ? ' โทร.' + orgTel.replace(/^โทร\./, '') : '');
+    }
+
     // ============ PAGE 2: หน้าซองจดหมาย ============
     var page2 =
         '<div class="page2">' +
@@ -248,27 +242,25 @@ function buildDebtLetterPages(d, year) {
             '<img src="' + garudaUrl + '" alt="ครุฑ">' +
             '<div class="envelope-org">' +
                 '<div>' + orgName + '</div>' +
-                '<div>' + orgAddr + '</div>' +
-                (orgTel ? '<div>' + orgTel + '</div>' : '') +
+                '<div>' + orgAddrLine1 + '</div>' +
+                '<div>' + orgAddrLine2 + '</div>' +
             '</div>' +
         '</div>' +
 
         // กล่องแสตมป์ (บนขวา)
         '<div class="stamp-box">' +
-            '<div class="stamp-title">ชำระค่าฝากส่งเป็นรายเดือน</div>' +
-            '<div class="stamp-no">ใบอนุญาตเลขที่<br>' + stampNo + '</div>' +
-            '<div class="stamp-post">' + postOfficeName + '</div>' +
+            '<div>ชำระค่าฝากส่งเป็นรายเดือน</div>' +
+            '<div>ใบอนุญาตเลขที่</div>' +
+            '<div>' + postOfficeName + '</div>' +
         '</div>' +
 
         // ที่อยู่ผู้รับ (ตรงกลางค่อนไปทางขวา)
         '<div class="send-to">' +
-            '<div class="label">กรุณาส่ง</div>' +
-            '<div class="addr">' +
-                'เรียน ' + d.name + '<br>' +
-                'ที่อยู่ ' + d.house_no + ' หมู่ที่ ' + d.moo + '<br>' +
-                parsedTambon + ' ' + parsedAmphoe + '<br>' +
-                parsedProvince + ' รหัสไปรษณีย์ ' + parsedPostCode +
-            '</div>' +
+            '<div>' + d.name + '</div>' +
+            '<div>' + d.house_no + ' หมู่ ' + d.moo + ' ซอย - ถนน -</div>' +
+            '<div>ตำบล/แขวง ' + parsedTambon.replace('ตำบล', '') + ' อำเภอ/เขต ' + parsedAmphoe.replace('อำเภอ', '') + '</div>' +
+            '<div>จังหวัด ' + parsedProvince.replace('จังหวัด', '') + '</div>' +
+            '<div>' + parsedPostCode + '</div>' +
         '</div>' +
 
         '</div>'; // end page2
