@@ -765,8 +765,14 @@ async function submitWalkIn() {
     const staffName = document.getElementById('payStaff').value;
     if (!staffName) { Swal.fire('กรุณาเลือกเจ้าหน้าที่','เลือกเจ้าหน้าที่รับชำระก่อนดำเนินการ','warning'); return; }
     
-    // สร้างเลขที่ใบเสร็จล่วงหน้าเพื่อแสดงใน popup ให้แก้ไขได้
-    const autoReceiptNo = generateReceiptNumber();
+    // โชว์ Loading ระหว่างดึงเลขล่าสุด
+    Swal.fire({
+        title: 'กำลังดึงเลขใบเสร็จ...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+    const autoReceiptNo = typeof generateReceiptNumberAsync === 'function' ? await generateReceiptNumberAsync() : generateReceiptNumber();
+    Swal.close();
 
     const r = await Swal.fire({
         title:'ตรวจสอบและสร้างใบเสร็จ',
@@ -779,8 +785,22 @@ async function submitWalkIn() {
             </div>
             <div style="text-align: left;">
                 <label class="form-label fw-bold">เลขที่ใบเสร็จ <span class="text-danger">*</span></label>
-                <input type="text" id="swalReceiptNo" class="form-control" value="${autoReceiptNo}">
-                <small class="text-muted">คุณสามารถแก้ไขเลขที่ใบเสร็จได้ที่นี่</small>
+                <div class="input-group">
+                    <input type="text" id="swalReceiptNo" class="form-control" value="${autoReceiptNo}">
+                    <button class="btn btn-outline-secondary" type="button" onclick="
+                        const btn = this;
+                        btn.disabled = true;
+                        btn.innerHTML = '<span class=\\'spinner-border spinner-border-sm\\'></span>';
+                        if(typeof generateReceiptNumberAsync === 'function') {
+                            generateReceiptNumberAsync().then(num => {
+                                document.getElementById('swalReceiptNo').value = num;
+                                btn.innerHTML = '<i class=\\'bi bi-arrow-clockwise\\'></i> ดึงเลขใหม่';
+                                btn.disabled = false;
+                            });
+                        }
+                    "><i class="bi bi-arrow-clockwise"></i> ดึงเลขใหม่</button>
+                </div>
+                <small class="text-muted">ระบบจะอัปเดตเลขใบเสร็จล่าสุดให้อัตโนมัติ ป้องกันการซ้ำซ้อน</small>
             </div>
         `,
         icon:'info',
@@ -788,27 +808,63 @@ async function submitWalkIn() {
         confirmButtonText:'ออกใบเสร็จ',
         cancelButtonText:'ยกเลิก',
         confirmButtonColor:'#057a55',
-        preConfirm: () => {
+        preConfirm: async () => {
             const inputNo = document.getElementById('swalReceiptNo').value.trim();
             if (!inputNo) {
                 Swal.showValidationMessage('กรุณาระบุเลขที่ใบเสร็จ');
                 return false;
             }
-            // ตรวจสอบใบเสร็จซ้ำ
-            const payments = getWastePayments();
-            const isDuplicate = payments.some(p => p.receipt_no === inputNo && p.status !== 'cancelled');
+            
+            // ตรวจสอบใบเสร็จซ้ำจาก Server เป็นหลัก
+            let isDuplicate = false;
+            if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                const { data } = await supabaseClient
+                    .from('waste_payments')
+                    .select('id')
+                    .eq('receipt_no', inputNo)
+                    .neq('status', 'cancelled');
+                if (data && data.length > 0) isDuplicate = true;
+            } else {
+                const payments = getWastePayments();
+                isDuplicate = payments.some(p => p.receipt_no === inputNo && p.status !== 'cancelled');
+            }
+
             if (isDuplicate) {
-                Swal.showValidationMessage('เลขที่ใบเสร็จนี้ถูกใช้ไปแล้ว!');
+                if (typeof generateReceiptNumberAsync === 'function') {
+                    const newNo = await generateReceiptNumberAsync();
+                    document.getElementById('swalReceiptNo').value = newNo;
+                    Swal.showValidationMessage(`เลขใบเสร็จถูกใช้ไปแล้วโดยผู้ใช้อื่น ระบบดึงเลขใหม่เป็น ${newNo} กรุณากด "ออกใบเสร็จ" อีกครั้ง`);
+                } else {
+                    Swal.showValidationMessage('เลขที่ใบเสร็จนี้ถูกใช้ไปแล้ว!');
+                }
                 return false;
             }
-            return inputNo;
+            // 2. ลองบันทึกข้อมูลจริงที่นี่เลย เพื่อจับ Error เสี้ยววินาที (Race condition)
+            Swal.showLoading();
+            const paymentResult = await processWalkInPayment(selectedCustomer.id, selectedVals, method, staffName, inputNo);
+            
+            if (paymentResult && paymentResult.error === 'DUPLICATE_RECEIPT') {
+                Swal.hideLoading();
+                if (typeof generateReceiptNumberAsync === 'function') {
+                    const newNo = await generateReceiptNumberAsync();
+                    document.getElementById('swalReceiptNo').value = newNo;
+                    Swal.showValidationMessage(`มีการบันทึกเลขใบเสร็จนี้ในเสี้ยววินาทีที่ผ่านมา! ระบบดึงเลขใหม่เป็น ${newNo} กรุณากดยืนยันอีกครั้ง`);
+                } else {
+                    Swal.showValidationMessage('เลขที่ใบเสร็จนี้เพิ่งถูกใช้ไปเมื่อสักครู่ กรุณากดดึงเลขใหม่');
+                }
+                return false; // ห้ามปิด popup
+            } else if (paymentResult && paymentResult.error) {
+                Swal.hideLoading();
+                Swal.showValidationMessage('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                return false;
+            }
+            
+            return paymentResult;
         }
     });
 
     if (r.isConfirmed) {
-        const finalReceiptNo = r.value;
-        Swal.fire({title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
-        const payment = await processWalkInPayment(selectedCustomer.id, selectedVals, method, staffName, finalReceiptNo);
+        const payment = r.value;
         
         if (payment) {
             Swal.fire({title: 'กำลังสร้างและบันทึกใบเสร็จ...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
