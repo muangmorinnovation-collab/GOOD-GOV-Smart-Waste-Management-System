@@ -243,7 +243,7 @@ async function processWalkInPayment(customerId, selectedMonths, method, staffNam
     const selectedLabels = selectedMonths.map(m => m.label);
     const primaryYear = selectedMonths[0]?.year || new Date().getFullYear().toString();
     const now = new Date();
-    const receiptNo = customReceiptNo || generateReceiptNumber();
+    const receiptNo = customReceiptNo || (typeof generateReceiptNumberAsync === 'function' ? await generateReceiptNumberAsync() : generateReceiptNumber());
     
     // If payDate is provided, use it, otherwise fallback to today's date
     const actualPayDate = payDate ? payDate : now.toISOString().split('T')[0];
@@ -266,7 +266,15 @@ async function processWalkInPayment(customerId, selectedMonths, method, staffNam
     };
 
     // Save payment to Supabase + localStorage
-    await saveWastePaymentDB(payment);
+    try {
+        await saveWastePaymentDB(payment);
+    } catch (err) {
+        if (err.message === 'DUPLICATE_RECEIPT') {
+            return { error: 'DUPLICATE_RECEIPT' };
+        }
+        console.error(err);
+        return { error: 'UNKNOWN_ERROR' };
+    }
 
     // Update monthly status to 'exempted' in Supabase + localStorage
     for (const m of selectedMonths) {
@@ -388,7 +396,7 @@ async function approveCitizenPayment(paymentId) {
     const p = payments.find(x => x.id === paymentId);
     if (!p) return null;
     p.status = 'completed';
-    p.receipt_no = p.receipt_no || generateReceiptNumber();
+    p.receipt_no = p.receipt_no || (typeof generateReceiptNumberAsync === 'function' ? await generateReceiptNumberAsync() : generateReceiptNumber());
 
     // Save updated payment to Supabase
     await saveWastePaymentDB(p);
@@ -422,7 +430,7 @@ async function rejectCitizenPayment(paymentId, reason) {
 // ============================================
 async function processOnlineApproval(transaction) {
     const now = new Date();
-    const receiptNo = generateReceiptNumber();
+    const receiptNo = typeof generateReceiptNumberAsync === 'function' ? await generateReceiptNumberAsync() : generateReceiptNumber();
     
     let pm = transaction.paid_months;
     if (typeof pm === 'string') {

@@ -556,7 +556,13 @@ async function saveWastePaymentDB(payment) {
         const { error } = await supabaseClient
             .from('waste_payments')
             .upsert(record, { onConflict: 'id' });
-        if (error) console.error('Error saving payment to Supabase:', error);
+        if (error) {
+            console.error('Error saving payment to Supabase:', error);
+            if (error.code === '23505' || error.message.includes('unique constraint')) {
+                throw new Error('DUPLICATE_RECEIPT');
+            }
+            throw error;
+        }
     }
     // Backup to localStorage
     const payments = getWasteData('payments');
@@ -958,6 +964,56 @@ function generateReceiptNumber() {
     }
     
     // อัปเดตลง localStorage เผื่อการอ้างอิง
+    localStorage.setItem(counterKey, String(counter));
+    
+    return `REC-${String(counter).padStart(5,'0')}/${fiscalYear}`;
+}
+
+async function generateReceiptNumberAsync() {
+    const now = new Date();
+    // คำนวณปีงบประมาณ: ต.ค.-ก.ย. → ถ้าเดือน >= 10 ถือเป็นปีงบประมาณถัดไป
+    const fiscalYear = String(now.getMonth() >= 9 ? now.getFullYear() + 543 + 1 : now.getFullYear() + 543);
+    
+    let maxNumber = 0;
+    
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        try {
+            // ดึงข้อมูลใบเสร็จล่าสุดของปีงบประมาณนี้จากเซิร์ฟเวอร์โดยตรง
+            const { data, error } = await supabaseClient
+                .from('waste_payments')
+                .select('receipt_no')
+                .like('receipt_no', '%/' + fiscalYear);
+                
+            if (!error && data && data.length > 0) {
+                data.forEach(p => {
+                    if (p.receipt_no) {
+                        const match = p.receipt_no.match(/REC-(\d+)\/\d{4}/);
+                        if (match && match[1]) {
+                            const num = parseInt(match[1], 10);
+                            if (num > maxNumber) maxNumber = num;
+                        }
+                    }
+                });
+            }
+        } catch (err) {
+            console.error('Error fetching latest receipt from server', err);
+        }
+    } else {
+        // Fallback to local
+        const payments = getWastePayments();
+        payments.forEach(p => {
+            if (p.receipt_no && p.receipt_no.endsWith('/' + fiscalYear)) {
+                const match = p.receipt_no.match(/REC-(\d+)\/\d{4}/);
+                if (match && match[1]) {
+                    const num = parseInt(match[1], 10);
+                    if (num > maxNumber) maxNumber = num;
+                }
+            }
+        });
+    }
+
+    let counter = maxNumber + 1;
+    const counterKey = STORAGE_KEYS.receiptCounter + '_' + fiscalYear;
     localStorage.setItem(counterKey, String(counter));
     
     return `REC-${String(counter).padStart(5,'0')}/${fiscalYear}`;
