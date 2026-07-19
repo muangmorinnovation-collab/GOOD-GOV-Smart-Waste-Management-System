@@ -191,11 +191,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     initWasteData();
     
-    // 1. Initial Render immediately using local storage data for speed
-    onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
-    renderOnlinePayments();
-    
-    // 2. Fetch fresh data from Supabase in background
+    // 1. Fetch fresh data from Supabase directly
     try {
         const fetchTasks = [
             fetchWasteFeeTypes(),
@@ -203,14 +199,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             fetchWastePayments(),
             fetchMonthlyStatus(),
             fetchWasteStaff(),
-            refreshOnlinePayments(true) // Pass true to avoid re-rendering immediately if we just want to sync
+            refreshOnlinePayments()
         ];
         
         await Promise.allSettled(fetchTasks);
-        
-        // 3. Re-render once fresh data arrives
-        onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
-        renderOnlinePayments();
         
         // Update walk-in search results if already searching
         if (document.getElementById('walkInSearch').value) {
@@ -231,7 +223,12 @@ function getStaffOptions() {
 
 let onlineTransactions = [];
 
-async function refreshOnlinePayments(silent = false) {
+async function refreshOnlinePayments() {
+    const tbody = document.getElementById('onlinePaymentsBody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div> กำลังโหลด...</td></tr>';
+    }
+
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
         const { data, error } = await supabaseClient
             .from('garbage_payment_transactions')
@@ -244,16 +241,14 @@ async function refreshOnlinePayments(silent = false) {
                 return dB - dA;
             });
             onlineTransactions = data;
-            localStorage.setItem('garbage_payment_transactions', JSON.stringify(data));
         } else if (error) {
             console.error('Supabase fetch error for garbage_payment_transactions:', error);
-            // Fallback to local storage if table doesn't exist or RLS blocks
-            onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
+            onlineTransactions = [];
         }
     } else {
-        onlineTransactions = JSON.parse(localStorage.getItem('garbage_payment_transactions') || '[]');
+        onlineTransactions = [];
     }
-    if (!silent) renderOnlinePayments();
+    renderOnlinePayments();
 }
 
 function renderOnlinePayments() {
