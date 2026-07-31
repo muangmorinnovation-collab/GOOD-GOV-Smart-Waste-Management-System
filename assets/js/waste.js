@@ -671,10 +671,87 @@ function getMonthlyStatusLocal() {
     } catch(e) { return {}; } 
 }
 
+function reconcileMonthlyStatusFromPayments(ms) {
+    const payments = typeof getWastePayments === 'function' ? getWastePayments() : [];
+    if (!payments || !Array.isArray(payments)) return ms;
+    
+    // Create a fallback mapping for orphaned payments (e.g. after Excel import changes IDs)
+    const activeCustomers = typeof getWasteCustomers === 'function' ? getWasteCustomers().filter(c => c.status === 'active') : [];
+    const activeIds = new Set();
+    const normalizedNameToId = {};
+    activeCustomers.forEach(c => {
+        activeIds.add(c.id);
+        const norm = c.name ? c.name.replace(/\s+/g, ' ').trim() : '';
+        if (norm) normalizedNameToId[norm] = c.id;
+    });
+    
+    payments.forEach(p => {
+        if (p.status === 'cancelled') return;
+        
+        let pm = p.months_paid;
+        if (typeof pm === 'string') {
+            try { pm = JSON.parse(pm); } catch(e) { pm = pm.split(','); }
+        }
+        if (!Array.isArray(pm)) return;
+        
+        pm.forEach(m => {
+            if (!m) return;
+            let str = m.trim();
+            let parts = str.split(' ');
+            let yrStr = parts.length > 1 ? parts[parts.length - 1] : '';
+            if(yrStr.length === 2 && !isNaN(yrStr)) yrStr = '25' + yrStr;
+            let monthName = parts.length > 1 ? parts.slice(0, -1).join(' ') : str;
+            
+            let targetId = p.customer_id;
+            if (targetId && !activeIds.has(targetId) && p.customer_name) {
+                const normPaymentName = p.customer_name.replace(/\s+/g, ' ').trim();
+                if (normalizedNameToId[normPaymentName]) {
+                    targetId = normalizedNameToId[normPaymentName];
+                }
+            }
+            if (!targetId) return;
+
+            if (WASTE_MONTH_KEYS.includes(str)) {
+                let fyToUse = p.fiscal_year;
+                if (!fyToUse) fyToUse = new Date().getMonth() >= 9 ? (new Date().getFullYear() + 544).toString() : (new Date().getFullYear() + 543).toString();
+                fyToUse = fyToUse.toString();
+                if (!ms[targetId]) ms[targetId] = {};
+                if (!ms[targetId][fyToUse]) ms[targetId][fyToUse] = {};
+                ms[targetId][fyToUse][str] = 'paid';
+                return;
+            }
+            
+            const mIdx = WASTE_MONTHS.indexOf(monthName);
+            if (mIdx >= 0) {
+                const mk = WASTE_MONTH_KEYS[mIdx];
+                let derivedFy = yrStr;
+                if(derivedFy && !isNaN(derivedFy)) {
+                    if (monthName.indexOf('ต.ค.') > -1 || monthName.indexOf('พ.ย.') > -1 || monthName.indexOf('ธ.ค.') > -1) {
+                        derivedFy = (parseInt(derivedFy) + 1).toString();
+                    }
+                } else {
+                    derivedFy = p.fiscal_year;
+                }
+                if (!derivedFy) derivedFy = new Date().getMonth() >= 9 ? (new Date().getFullYear() + 544).toString() : (new Date().getFullYear() + 543).toString();
+                derivedFy = derivedFy.toString();
+                
+                if (!ms[targetId]) ms[targetId] = {};
+                if (!ms[targetId][derivedFy]) ms[targetId][derivedFy] = {};
+                ms[targetId][derivedFy][mk] = 'paid';
+            }
+        });
+    });
+    
+    return ms;
+}
+
 function getMonthlyStatus() { 
-    if (stateMonthlyStatus) return stateMonthlyStatus;
-    if (typeof supabaseClient !== 'undefined' && supabaseClient) return {};
-    return getMonthlyStatusLocal();
+    let ms;
+    if (stateMonthlyStatus) ms = stateMonthlyStatus;
+    else if (typeof supabaseClient !== 'undefined' && supabaseClient) ms = {};
+    else ms = getMonthlyStatusLocal();
+    
+    return reconcileMonthlyStatusFromPayments(ms);
 }
 
 async function saveMonthlyStatusDB(customerId, fiscalYear, monthKey, status, paymentId) {
