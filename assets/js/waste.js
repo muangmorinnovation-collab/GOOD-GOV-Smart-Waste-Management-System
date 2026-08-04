@@ -558,18 +558,24 @@ async function saveWastePaymentDB(payment) {
             .upsert(record, { onConflict: 'id' });
         if (error) {
             console.error('Error saving payment to Supabase:', error);
-            if (error.code === '23505' || error.message.includes('unique constraint')) {
+            if (error.code === '23505' || (error.message && error.message.toLowerCase().includes('unique constraint')) || (error.message && error.message.toLowerCase().includes('duplicate key'))) {
                 throw new Error('DUPLICATE_RECEIPT');
             }
             throw error;
         }
     }
-    // Backup to localStorage
-    const payments = getWasteData('payments');
-    const idx = payments.findIndex(p => p.id === payment.id);
-    if (idx >= 0) payments[idx] = payment; else payments.unshift(payment);
-    saveWasteData('payments', payments);
-    statePayments = payments;
+    // Backup to localStorage safely (Prevent QuotaExceededError from breaking flow)
+    try {
+        const payments = getWasteData('payments');
+        if (Array.isArray(payments)) {
+            const idx = payments.findIndex(p => p.id === payment.id);
+            if (idx >= 0) payments[idx] = payment; else payments.unshift(payment);
+            saveWasteData('payments', payments);
+            statePayments = payments;
+        }
+    } catch (err) {
+        console.warn('Failed to backup payment to local storage (Storage may be full)', err);
+    }
 }
 
 function saveWastePayments(d) { saveWasteData('payments', d); statePayments = d; }
@@ -768,13 +774,17 @@ async function saveMonthlyStatusDB(customerId, fiscalYear, monthKey, status, pay
             }, { onConflict: 'customer_id,fiscal_year,month_key' });
         if (error) console.error('Error saving monthly status to Supabase:', error);
     }
-    // Also update local cache
-    const ms = getMonthlyStatus();
-    if (!ms[customerId]) ms[customerId] = {};
-    if (!ms[customerId][fiscalYear]) ms[customerId][fiscalYear] = {};
-    ms[customerId][fiscalYear][monthKey] = status;
-    stateMonthlyStatus = ms;
-    saveMonthlyStatus(ms);
+    // Also update local cache safely
+    try {
+        const ms = getMonthlyStatus();
+        if (!ms[customerId]) ms[customerId] = {};
+        if (!ms[customerId][fiscalYear]) ms[customerId][fiscalYear] = {};
+        ms[customerId][fiscalYear][monthKey] = status;
+        stateMonthlyStatus = ms;
+        saveMonthlyStatus(ms);
+    } catch (err) {
+        console.warn('Failed to backup monthly status to local storage', err);
+    }
 }
 
 function saveMonthlyStatus(d) { 
@@ -1055,7 +1065,7 @@ async function generateReceiptNumberAsync() {
     
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
         try {
-            // ดึงข้อมูลใบเสร็จล่าสุดของปีงบประมาณนี้จากเซิร์ฟเวอร์โดยตรง
+            // ดึงข้อมูลใบเสร็จล่าสุดของปีงบประมาณนี้จากเซิร์ฟเวอร์โดยตรง เพื่อความถูกต้องและไม่ให้ซ้ำ
             const { data, error } = await supabaseClient
                 .from('waste_payments')
                 .select('receipt_no')
@@ -1075,6 +1085,10 @@ async function generateReceiptNumberAsync() {
         } catch (err) {
             console.error('Error fetching latest receipt from server', err);
         }
+        
+        let counter = maxNumber + 1;
+        // ไม่ต้องบันทึกลง localStorage เมื่อใช้ฐานข้อมูล เพื่อให้อ่านจากฐานข้อมูลเสมอ ป้องกันเลขซ้ำจาก cache (Race condition / Quota)
+        return `REC-${String(counter).padStart(5,'0')}/${fiscalYear}`;
     } else {
         // Fallback to local
         const payments = getWastePayments();
@@ -1087,13 +1101,13 @@ async function generateReceiptNumberAsync() {
                 }
             }
         });
+        
+        let counter = maxNumber + 1;
+        const counterKey = STORAGE_KEYS.receiptCounter + '_' + fiscalYear;
+        try { localStorage.setItem(counterKey, String(counter)); } catch(e) {}
+        
+        return `REC-${String(counter).padStart(5,'0')}/${fiscalYear}`;
     }
-
-    let counter = maxNumber + 1;
-    const counterKey = STORAGE_KEYS.receiptCounter + '_' + fiscalYear;
-    localStorage.setItem(counterKey, String(counter));
-    
-    return `REC-${String(counter).padStart(5,'0')}/${fiscalYear}`;
 }
 
 function generateCustomerId() {
