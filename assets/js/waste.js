@@ -231,7 +231,11 @@ function getWasteData(key) {
 }
 
 function saveWasteData(key, data) {
-    localStorage.setItem(STORAGE_KEYS[key], JSON.stringify(data));
+    try {
+        localStorage.setItem(STORAGE_KEYS[key], JSON.stringify(data));
+    } catch (e) {
+        console.warn(`Local storage quota exceeded for ${key}. Skipping local cache.`);
+    }
 }
 
 // Global state for caching when using Supabase
@@ -788,8 +792,12 @@ async function saveMonthlyStatusDB(customerId, fiscalYear, monthKey, status, pay
 }
 
 function saveMonthlyStatus(d) { 
-    localStorage.setItem(STORAGE_KEYS.monthlyStatus, JSON.stringify(d)); 
-    stateMonthlyStatus = d;
+    try {
+        localStorage.setItem(STORAGE_KEYS.monthlyStatus, JSON.stringify(d)); 
+        stateMonthlyStatus = d;
+    } catch (e) {
+        console.warn('Local storage quota exceeded for monthly status. Skipping local cache.');
+    }
 }
 
 // ============================================
@@ -1009,7 +1017,11 @@ async function cancelWasteExemptionDB(id) {
                 ms[ex.customer_id][ex.fiscal_year][k] = 'unpaid';
             }
         });
-        localStorage.setItem(STORAGE_KEYS.monthlyStatus, JSON.stringify(ms));
+        try {
+            localStorage.setItem(STORAGE_KEYS.monthlyStatus, JSON.stringify(ms));
+        } catch (e) {
+            console.warn('Local storage quota exceeded for monthly status. Skipping local cache.');
+        }
     }
 }
 
