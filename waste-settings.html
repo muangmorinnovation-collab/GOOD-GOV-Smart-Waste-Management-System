@@ -206,6 +206,36 @@
                         </div>
                     </div>
 
+                    <!-- Backup & Restore Settings -->
+                    <div class="settings-card">
+                        <div class="settings-header">
+                            <div class="bg-danger bg-opacity-10 text-danger p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <i class="fa-solid fa-database"></i>
+                            </div>
+                            <h6>สำรองและเรียกคืนข้อมูล</h6>
+                        </div>
+                        <div class="settings-body">
+                            <div class="d-flex flex-column gap-3">
+                                <div>
+                                    <label class="form-label fw-semibold">สำรองข้อมูลทั้งหมด (Backup)</label>
+                                    <p class="text-muted small mb-2">ดาวน์โหลดข้อมูลทั้งหมดในระบบขยะลงเครื่องคอมพิวเตอร์ของคุณเป็นไฟล์ JSON</p>
+                                    <button type="button" class="btn btn-outline-primary" onclick="backupData()">
+                                        <i class="fa-solid fa-download me-2"></i>สำรองข้อมูล
+                                    </button>
+                                </div>
+                                <hr class="my-2">
+                                <div>
+                                    <label class="form-label fw-semibold">เรียกคืนข้อมูล (Restore)</label>
+                                    <p class="text-muted small mb-2">อัปโหลดไฟล์ที่เคยสำรองไว้ เพื่อนำข้อมูลกลับมา <span class="text-danger fw-bold">ระบบจะแทนที่ข้อมูลปัจจุบันด้วยข้อมูลจากไฟล์!</span></p>
+                                    <input type="file" id="restoreFileInput" accept=".json" style="display: none;" onchange="restoreData(event)">
+                                    <button type="button" class="btn btn-outline-danger" onclick="triggerRestore()">
+                                        <i class="fa-solid fa-upload me-2"></i>เรียกคืนข้อมูล
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Technical Settings (Optional/Hidden unless needed) -->
                     <div class="settings-card">
                         <div class="settings-header">

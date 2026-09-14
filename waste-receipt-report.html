@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานใบเสร็จ - GOOD GOV</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<nav id="sidebar"></nav>
+<div id="content">
+    <div id="top-navbar" class="top-navbar" data-title="รายงานใบเสร็จ"></div>
+    <div class="page-content">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-receipt text-info me-2"></i>รายงานใบเสร็จ</h4>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    <li class="breadcrumb-item"><a href="dashboard.html" class="text-decoration-none">แดชบอร์ด</a></li>
+                    <li class="breadcrumb-item"><a href="finance.html" class="text-decoration-none">กองคลัง</a></li>
+                    <li class="breadcrumb-item"><a href="waste-dashboard.html" class="text-decoration-none">ค่าธรรมเนียมขยะ</a></li>
+                    <li class="breadcrumb-item active">รายงานใบเสร็จ</li>
+                </ol></nav>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-success" onclick="exportReceiptReportExcel()"><i class="fa-solid fa-file-excel me-1"></i>Excel</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="exportReceiptReportPDF()"><i class="fa-solid fa-file-pdf me-1"></i>PDF</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <!-- Filters -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label mb-1 text-muted small">ค้นหาเลขที่ใบเสร็จ</label>
+                        <input type="text" id="searchReceiptNo" class="form-control form-control-sm" placeholder="เช่น REC-001..." onkeyup="renderReceiptReport()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1 text-muted small">สถานะใบเสร็จ</label>
+                        <select id="filterStatus" class="form-select form-select-sm" onchange="renderReceiptReport()">
+                            <option value="all">ทั้งหมด</option>
+                            <option value="active">ใช้งาน</option>
+                            <option value="cancelled">ยกเลิก</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1 text-muted small">รูปแบบการกรองเวลา</label>
+                        <select id="filterTimeMode" class="form-select form-select-sm" onchange="toggleTimeFilterInputs()">
+                            <option value="all">ดูทั้งหมด</option>
+                            <option value="daily">รายวัน</option>
+                            <option value="monthly">รายเดือน</option>
+                            <option value="yearly">รายปี</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Dynamic Time Inputs -->
+                    <div class="col-md-3" id="timeInputContainer">
+                        <!-- Will be populated by JS -->
+                    </div>
+
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-sm btn-secondary w-100" onclick="resetFilters()">ล้างตัวกรอง</button>
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-lg-3">
+                        <div class="kpi-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="kpi-label mb-1">สรุปจำนวนใบเสร็จ</div>
+                                    <div class="kpi-value text-primary" id="summaryCount">-</div>
+                                </div>
+                                <div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-file-invoice"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="kpi-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="kpi-label mb-1">ยอดเงินรวม</div>
+                                    <div class="kpi-value text-success" id="summaryTotal">-</div>
+                                </div>
+                                <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-coins"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-responsive border rounded">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">วันที่ออกใบเสร็จ</th>
+                                <th>เลขที่ใบเสร็จ</th>
+                                <th>ชื่อลูกค้า</th>
+                                <th class="text-end">ยอดเงิน</th>
+                                <th class="text-center">สถานะ</th>
+                                <th class="pe-3">หมายเหตุ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receiptTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">กำลังโหลดข้อมูล...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted small" id="paginationInfo"></div>
+                    <ul class="pagination pagination-sm mb-0" id="paginationControls"></ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/waste.js"></script>
+<!-- Scripts for PDF/Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="assets/js/waste-receipt-report.js"></script>
+</body>
+</html>
