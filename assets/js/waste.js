@@ -1081,7 +1081,9 @@ async function generateReceiptNumberAsync() {
             const { data, error } = await supabaseClient
                 .from('waste_payments')
                 .select('receipt_no')
-                .like('receipt_no', '%/' + fiscalYear);
+                .like('receipt_no', '%/' + fiscalYear)
+                .order('receipt_no', { ascending: false })
+                .limit(50);
                 
             if (!error && data && data.length > 0) {
                 data.forEach(p => {
@@ -1099,8 +1101,32 @@ async function generateReceiptNumberAsync() {
         }
         
         let counter = maxNumber + 1;
+        let generatedNo = `REC-${String(counter).padStart(5,'0')}/${fiscalYear}`;
+
+        // ตรวจสอบกับฐานข้อมูลซ้ำอีกครั้ง ว่าเลขที่ได้มีอยู่จริงหรือไม่ ถ้ามีให้รันเลขถัดไป
+        let isExist = true;
+        while(isExist) {
+            try {
+                const { data: existData } = await supabaseClient
+                    .from('waste_payments')
+                    .select('id')
+                    .eq('receipt_no', generatedNo)
+                    .limit(1);
+                    
+                if (existData && existData.length > 0) {
+                    counter++;
+                    generatedNo = `REC-${String(counter).padStart(5,'0')}/${fiscalYear}`;
+                } else {
+                    isExist = false;
+                }
+            } catch (err) {
+                console.error('Error checking duplicate receipt no', err);
+                isExist = false; // break loop on error to avoid infinite loop
+            }
+        }
+        
         // ไม่ต้องบันทึกลง localStorage เมื่อใช้ฐานข้อมูล เพื่อให้อ่านจากฐานข้อมูลเสมอ ป้องกันเลขซ้ำจาก cache (Race condition / Quota)
-        return `REC-${String(counter).padStart(5,'0')}/${fiscalYear}`;
+        return generatedNo;
     } else {
         // Fallback to local
         const payments = getWastePayments();

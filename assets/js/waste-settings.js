@@ -266,3 +266,195 @@ async function saveSettings() {
         btn.innerHTML = originalBtnHtml;
     }
 }
+
+// --- Backup & Restore Logic ---
+
+const BACKUP_TABLES = [
+    'waste_settings',
+    'waste_staff',
+    'waste_monthly_status',
+    'waste_payments',
+    'waste_chats',
+    'waste_fee_types',
+    'waste_fee_history',
+    'waste_customers',
+    'waste_register_requests',
+    'waste_cancel_requests',
+    'waste_exemptions',
+    'garbage_payment_transactions',
+    'waste_import_history',
+    'Staff',
+    'User_population'
+];
+
+async function backupData() {
+    if (!supabaseClient) {
+        Swal.fire('ข้อผิดพลาด', 'ระบบยังไม่ได้เชื่อมต่อกับ Supabase', 'error');
+        return;
+    }
+
+    try {
+        Swal.fire({
+            title: 'กำลังดึงข้อมูลเพื่อสำรอง...',
+            text: 'กรุณารอสักครู่ (อาจใช้เวลาหลายวินาที)',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        const backupData = {
+            metadata: {
+                timestamp: new Date().toISOString(),
+                version: '1.0'
+            },
+            data: {}
+        };
+
+        for (const table of BACKUP_TABLES) {
+            let allRows = [];
+            let from = 0;
+            const step = 1000;
+            
+            while (true) {
+                const { data, error } = await supabaseClient
+                    .from(table)
+                    .select('*')
+                    .range(from, from + step - 1);
+                
+                if (error) {
+                    if (error.code !== '42P01') { // 42P01 is undefined_table
+                        console.warn(`Error backing up table ${table}:`, error);
+                    }
+                    break;
+                }
+                
+                if (data && data.length > 0) {
+                    allRows.push(...data);
+                    from += step;
+                }
+                
+                if (!data || data.length < step) {
+                    break;
+                }
+            }
+            
+            if (allRows.length > 0) {
+                backupData.data[table] = allRows;
+            }
+        }
+
+        const jsonString = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
+        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '');
+        const filename = `waste_backup_${dateStr}_${timeStr}.json`;
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        Swal.fire('สำเร็จ', 'สำรองข้อมูลเรียบร้อยแล้ว ไฟล์ถูกดาวน์โหลดลงเครื่อง', 'success');
+    } catch (error) {
+        console.error('Backup failed:', error);
+        Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการสำรองข้อมูล', 'error');
+    }
+}
+
+function triggerRestore() {
+    document.getElementById('restoreFileInput').click();
+}
+
+async function restoreData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    event.target.value = '';
+
+    if (!supabaseClient) {
+        Swal.fire('ข้อผิดพลาด', 'ระบบยังไม่ได้เชื่อมต่อกับ Supabase', 'error');
+        return;
+    }
+
+    try {
+        const text = await file.text();
+        const backupFile = JSON.parse(text);
+
+        if (!backupFile.data || !backupFile.metadata) {
+            Swal.fire('ข้อผิดพลาด', 'ไฟล์ไม่ถูกต้อง หรือไม่ใช่ไฟล์สำรองข้อมูล', 'error');
+            return;
+        }
+
+        const tablesInBackup = Object.keys(backupFile.data);
+        if (tablesInBackup.length === 0) {
+            Swal.fire('คำเตือน', 'ไม่มีข้อมูลในไฟล์สำรองนี้', 'warning');
+            return;
+        }
+
+        const confirm = await Swal.fire({
+            title: 'ยืนยันการเรียกคืนข้อมูล?',
+            html: `คุณกำลังจะเรียกคืนข้อมูลจากวันที่ <b>${new Date(backupFile.metadata.timestamp).toLocaleString('th-TH')}</b><br><br><span class="text-danger fw-bold">ข้อมูลปัจจุบันในระบบจะถูกลบทิ้งและแทนที่ด้วยข้อมูลจากไฟล์นี้ทั้งหมด!</span><br>คุณแน่ใจหรือไม่?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ยืนยันการเรียกคืน',
+            cancelButtonText: 'ยกเลิก'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        Swal.fire({
+            title: 'กำลังเรียกคืนข้อมูล...',
+            text: 'ห้ามปิดหน้านี้จนกว่าจะเสร็จสิ้น',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        // Delete all rows in current tables to ensure exact state mapping
+        for (const table of tablesInBackup) {
+            try {
+                // Delete everything where ID is not null (applies to almost all tables with primary key)
+                await supabaseClient.from(table).delete().not('id', 'is', null);
+            } catch (err) {
+                console.warn(`Could not clear table ${table}, will try to upsert instead:`, err);
+            }
+        }
+
+        // Insert chunks
+        for (const table of tablesInBackup) {
+            const rows = backupFile.data[table];
+            if (!rows || rows.length === 0) continue;
+
+            const chunkSize = 500;
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                const chunk = rows.slice(i, i + chunkSize);
+                const { error } = await supabaseClient.from(table).upsert(chunk);
+                if (error) {
+                    console.error(`Error inserting into ${table}:`, error);
+                    throw new Error(`Failed to restore table ${table}: ${error.message}`);
+                }
+            }
+        }
+
+        Swal.fire({
+            icon: 'success',
+            title: 'เรียกคืนข้อมูลสำเร็จ!',
+            text: 'ระบบจะทำการรีเฟรชหน้าเว็บ',
+            timer: 2000,
+            showConfirmButton: false
+        }).then(() => {
+            window.location.reload();
+        });
+
+    } catch (error) {
+        console.error('Restore failed:', error);
+        Swal.fire('ข้อผิดพลาดในการเรียกคืนข้อมูล', error.message || 'เกิดข้อผิดพลาด', 'error');
+    }
+}
+
