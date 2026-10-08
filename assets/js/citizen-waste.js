@@ -702,7 +702,11 @@ function goToPayment() {
 
     // Bank
     if (settings.bank_name) document.getElementById('bankNameDisplay').textContent = settings.bank_name;
-    if (settings.bank_account_name) document.getElementById('bankAccNameDisplay').textContent = settings.bank_account_name;
+    if (settings.bank_account_name) {
+        document.getElementById('bankAccNameDisplay').textContent = settings.bank_account_name;
+        const qrAccEl = document.getElementById('qrAccountNameDisplay');
+        if (qrAccEl) qrAccEl.textContent = settings.bank_account_name;
+    }
     if (settings.bank_account) document.getElementById('bankAccNoDisplay').textContent = settings.bank_account;
 
     slipBase64 = null;
@@ -713,16 +717,8 @@ function goToPayment() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function togglePayMethod() {
-    const val = document.querySelector('input[name="payMethod"]:checked').value;
-    document.getElementById('qrArea').style.display = val === 'QR PromptPay' ? '' : 'none';
-    document.getElementById('bankArea').style.display = val === 'Bank Transfer' ? '' : 'none';
-}
-
 function copyAccount() {
-    const settings = JSON.parse(localStorage.getItem('waste_settings') || '{}');
-    const accNo = settings.bank_account_no || '1234567890';
-    // Remove dashes for easier copying if preferred, or keep them.
+    const accNo = document.getElementById('bankAccNoDisplay').textContent.trim();
     navigator.clipboard.writeText(accNo).then(() => cwToast('คัดลอกเลขบัญชีแล้ว', 'success'));
 }
 
