@@ -609,9 +609,15 @@ function selectCustomer(id, year = null) {
         const isExempted = status[mk] === 'exempted';
         // oct(0), nov(1), dec(2) belong to the previous calendar year
         const calYear = i < 3 ? String(fyNum - 1) : selectedYear;
-        let monthFee = typeof getFeeForMonth === 'function' ? getFeeForMonth(selectedCustomer.id, mk, selectedYear) : selectedCustomer.fee;
+        const detail = typeof getMonthFeeDetails === 'function'
+            ? getMonthFeeDetails(selectedCustomer.id, mk, selectedYear, status[mk] || 'unpaid')
+            : { scheduledFee: (typeof getFeeForMonth === 'function' ? getFeeForMonth(selectedCustomer.id, mk, selectedYear) : selectedCustomer.fee), paidFee: selectedCustomer.fee, diffFee: 0, hasDiff: false };
+        let monthFee = detail.scheduledFee;
         if (isExempted) monthFee = 0;
-        allMonths.push({key:mk, label:WASTE_MONTHS[i], yearSuffix: calYear.substring(2), isPaid: isPaid, isExempted: isExempted, fee: monthFee});
+        const displayFeeText = isExempted
+            ? '฿0'
+            : (isPaid && detail.hasDiff ? `฿${detail.paidFee}<span style="color:#b45309;font-weight:700;">+${detail.diffFee}</span>` : `฿${isPaid ? detail.paidFee : monthFee}`);
+        allMonths.push({key:mk, label:WASTE_MONTHS[i], yearSuffix: calYear.substring(2), isPaid: isPaid, isExempted: isExempted, fee: monthFee, displayFeeText: displayFeeText});
     });
 
     const cyNum = parseInt(cyStr);
@@ -700,7 +706,7 @@ function selectCustomer(id, year = null) {
                     <input class="form-check-input m-0 flex-shrink-0" style="width: 1.4em; height: 1.4em; ${m.isPaid||m.isExempted ? '' : 'cursor: pointer;'}" type="checkbox" value="${m.label} ${m.yearSuffix}" data-key="${m.key}" data-fee="${m.fee}" data-year="${selectedYear}" id="chk_${m.key}" onchange="toggleWalkInMonth(this)" ${disabledAttr} ${isChecked ? 'checked' : ''}>
                     <div class="d-flex flex-column lh-sm">
                         <span class="${labelStyle}" ${titleAttr} ${!m.isPaid && !m.isExempted ? 'style="color: #991b1b; font-size: 1rem;"' : 'style="font-size: 1rem;"'}>${m.label} ${m.yearSuffix}</span>
-                        <span class="${!m.isPaid && !m.isExempted ? 'text-danger' : 'text-muted'}" style="font-size: 0.85rem;">฿${m.fee}</span>
+                        <span class="${!m.isPaid && !m.isExempted ? 'text-danger' : 'text-muted'}" style="font-size: 0.85rem;">${m.displayFeeText}</span>
                     </div>
                 </label>
             </div>`}).join('')}

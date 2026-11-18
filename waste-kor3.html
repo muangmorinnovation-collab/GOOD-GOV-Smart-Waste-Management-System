@@ -226,8 +226,8 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/supabase-client.js"></script>
-    <script src="assets/js/app.js?v=1000"></script>
-    <script src="assets/js/waste.js?v=1000"></script>
+    <script src="assets/js/app.js?v=1001"></script>
+    <script src="assets/js/waste.js?v=1001"></script>
     <script src="assets/js/responsive.js"></script>
     <script>
         let kor3SelectedYear = '';
@@ -267,6 +267,7 @@
                 await Promise.all([
                     fetchWasteFeeTypes(),
                     fetchWasteCustomers(),
+                    fetchWastePayments(),
                     fetchMonthlyStatus()
                 ]);
                 initYearSelector();
@@ -351,9 +352,12 @@
                 const yearData = (ms[c.id] || {})[year] || {};
                 let customerAllPaid = true;
                 WASTE_MONTH_KEYS.forEach(mk => {
-                    const monthFee = getFeeForMonth(c.id, mk, year);
-                    if (yearData[mk] === 'paid') { totalPaid++; totalRevenue += monthFee; }
-                    else if (yearData[mk] === 'pending') { totalPending++; customerAllPaid = false; }
+                    const val = yearData[mk] || 'unpaid';
+                    const detail = typeof getMonthFeeDetails === 'function'
+                        ? getMonthFeeDetails(c.id, mk, year, val)
+                        : { scheduledFee: getFeeForMonth(c.id, mk, year), paidFee: getFeeForMonth(c.id, mk, year) };
+                    if (val === 'paid') { totalPaid++; totalRevenue += detail.paidFee; }
+                    else if (val === 'pending') { totalPending++; customerAllPaid = false; }
                     else { totalUnpaid++; customerAllPaid = false; }
                 });
                 if (customerAllPaid) householdsAllPaid++;
@@ -397,15 +401,15 @@
             const monthTotalCounts = new Array(12).fill(0);
             const monthRevenue = new Array(12).fill(0);
 
-            // Note: We use paginatedCustomers for the table view, but the footer can show summary for the current page OR all.
-            // Usually footer in enterprise shows summary for ALL filtered data. We will compute footer based on ALL filtered customers.
             customers.forEach(c => {
                 const yearData = (ms[c.id] || {})[year] || {};
-                const monthFees = WASTE_MONTH_KEYS.map(mk => getFeeForMonth(c.id, mk, year));
                 WASTE_MONTH_KEYS.forEach((mk, mi) => {
                     const val = yearData[mk] || 'unpaid';
+                    const detail = typeof getMonthFeeDetails === 'function'
+                        ? getMonthFeeDetails(c.id, mk, year, val)
+                        : { paidFee: getFeeForMonth(c.id, mk, year) };
                     monthTotalCounts[mi]++;
-                    if (val === 'paid') { monthPaidCounts[mi]++; monthRevenue[mi] += monthFees[mi]; }
+                    if (val === 'paid') { monthPaidCounts[mi]++; monthRevenue[mi] += detail.paidFee; }
                 });
             });
 
@@ -414,8 +418,14 @@
                 const customerHistory = getFeeHistory(c.id);
                 const hasHistory = customerHistory && customerHistory.length > 0;
 
-                // Calculate fee for each month
-                const monthFees = WASTE_MONTH_KEYS.map(mk => getFeeForMonth(c.id, mk, year));
+                // Calculate fee details for each month
+                const monthDetails = WASTE_MONTH_KEYS.map(mk => {
+                    const val = yearData[mk] || 'unpaid';
+                    return typeof getMonthFeeDetails === 'function'
+                        ? getMonthFeeDetails(c.id, mk, year, val)
+                        : { scheduledFee: getFeeForMonth(c.id, mk, year), paidFee: getFeeForMonth(c.id, mk, year), diffFee: 0, hasDiff: false };
+                });
+                const monthFees = monthDetails.map(d => d.scheduledFee);
                 // Find where fee changes happen
                 const feeChangeMonths = [];
                 for (let i = 1; i < monthFees.length; i++) {
@@ -424,15 +434,32 @@
 
                 const monthCells = WASTE_MONTH_KEYS.map((mk, mi) => {
                     const val = yearData[mk] || 'unpaid';
+                    const detail = monthDetails[mi];
                     const cls = val === 'paid' ? 'month-paid' : val === 'pending' ? 'month-pending' : val === 'exempted' ? 'month-exempted' : 'month-unpaid';
                     const icon = val === 'paid' ? '✓' : val === 'pending' ? '◷' : val === 'exempted' ? '-' : '✗';
                     const calYear = mi < 3 ? String(fyNum - 1) : year;
                     const titleText = val === 'paid' ? 'ชำระแล้ว' : val === 'pending' ? 'รออนุมัติ' : val === 'exempted' ? 'ยกเว้นชำระ' : 'ค้างชำระ';
-                    const feeText = val === 'exempted' ? '฿0' : `฿${monthFees[mi]}`;
+
+                    let feeHtml = '';
+                    let tooltipFee = '';
+                    if (val === 'exempted') {
+                        feeHtml = '฿0';
+                        tooltipFee = '฿0';
+                    } else if (val === 'paid' && detail.hasDiff) {
+                        feeHtml = `฿${detail.paidFee}<span style="color:#b45309;font-weight:700;">+${detail.diffFee}</span>`;
+                        tooltipFee = `฿${detail.paidFee}+${detail.diffFee} (ชำระแล้ว ฿${detail.paidFee} | ส่วนต่างเรทใหม่ +฿${detail.diffFee})`;
+                    } else if (val === 'paid') {
+                        feeHtml = `฿${detail.paidFee}`;
+                        tooltipFee = `฿${detail.paidFee}`;
+                    } else {
+                        feeHtml = `฿${detail.scheduledFee}`;
+                        tooltipFee = `฿${detail.scheduledFee}`;
+                    }
+
                     // Highlight fee change month
                     const isChangeMonth = feeChangeMonths.includes(mi);
                     const changeStyle = isChangeMonth ? 'border-left: 3px solid #f59e0b !important;' : '';
-                    return `<td class="month-cell ${cls}" style="${changeStyle}" onclick="showMonthDetail('${c.id}','${mk}','${WASTE_MONTHS[mi]}','${val}','${year}','${calYear}')" title="${WASTE_MONTHS[mi]} ${calYear.substring(2)} - ${titleText} | ค่าธรรมเนียม: ${feeText}">${icon}<br><span style="font-size:0.55rem;opacity:0.7;">${feeText}</span></td>`;
+                    return `<td class="month-cell ${cls}" style="${changeStyle}" onclick="showMonthDetail('${c.id}','${mk}','${WASTE_MONTHS[mi]}','${val}','${year}','${calYear}')" title="${WASTE_MONTHS[mi]} ${calYear.substring(2)} - ${titleText} | ค่าธรรมเนียม: ${tooltipFee}">${icon}<br><span style="font-size:0.55rem;opacity:0.85;">${feeHtml}</span></td>`;
                 }).join('');
 
                 // Fee display: show current fee, or show change indicator
@@ -524,16 +551,27 @@
             const c = getWasteCustomers().find(x => x.id === customerId);
             if (!c) return;
 
-            const monthFee = getFeeForMonth(customerId, monthKey, fiscalYear);
+            const detail = typeof getMonthFeeDetails === 'function'
+                ? getMonthFeeDetails(customerId, monthKey, fiscalYear, status)
+                : { scheduledFee: getFeeForMonth(customerId, monthKey, fiscalYear), paidFee: getFeeForMonth(customerId, monthKey, fiscalYear), diffFee: 0, hasDiff: false };
+            const monthFee = detail.scheduledFee;
             const statusText = status === 'paid' ? '✅ ชำระแล้ว' : status === 'pending' ? '⏳ รออนุมัติ' : status === 'exempted' ? '➖ ยกเว้นชำระ' : '❌ ค้างชำระ';
 
             // Fee history info
             let feeHistoryHtml = '';
             const history = getFeeHistory(customerId);
-            if (history && history.length > 0) {
+            if (status === 'paid' && detail.hasDiff) {
+                feeHistoryHtml = `
+                    <div class="p-2 mb-2 rounded" style="background:#fffbeb;border:1px solid #fde68a;font-size:13px;color:#92400e;">
+                        <div><i class="fa-solid fa-circle-info me-1"></i><b>ชำระล่วงหน้าไว้ที่เรทเดิม:</b> ฿${formatMoney(detail.paidFee)}</div>
+                        <div><b>อัตราค่าธรรมเนียมเรทใหม่:</b> ฿${formatMoney(detail.scheduledFee)}</div>
+                        <div><b>ส่วนต่างที่ต้องชำระเพิ่ม:</b> <span class="fw-bold text-danger">+฿${formatMoney(detail.diffFee)}</span> (฿${detail.paidFee}+${detail.diffFee})</div>
+                    </div>
+                `;
+            } else if (history && history.length > 0) {
                 const currentFee = c.fee;
                 if (monthFee !== currentFee) {
-                    feeHistoryHtml = `<p style="font-size:12px;color:#b45309;"><i class="fa-solid fa-info-circle"></i> ค่าธรรมเนียมปัจจุบัน: ฿${formatMoney(currentFee)} (เดือนนี้ใช้ค่าเดิม ฿${formatMoney(monthFee)})</p>`;
+                    feeHistoryHtml = `<p style="font-size:12px;color:#b45309;"><i class="fa-solid fa-info-circle"></i> ค่าธรรมเนียมปัจจุบัน: ฿${formatMoney(currentFee)} (เดือนนี้ใช้อัตราเดิม ฿${formatMoney(monthFee)})</p>`;
                 }
             }
 
@@ -580,12 +618,16 @@
                 }
             }
 
+            const feeSummaryLine = (status === 'paid' && detail.hasDiff)
+                ? `฿${formatMoney(detail.paidFee)}+${formatMoney(detail.diffFee)} <span class="text-muted" style="font-size:12px;">(เรทใหม่ ฿${formatMoney(detail.scheduledFee)})</span>`
+                : `฿${formatMoney(status === 'paid' ? detail.paidFee : monthFee)}`;
+
             Swal.fire({
                 title: `${c.name}`,
                 html: `<div style="text-align:left;font-size:14px;">
             <p><b>บ้านเลขที่:</b> ${c.house_no} ม.${c.moo}</p>
             <p><b>เดือน:</b> ${monthLabel} ${calYear.substring(2)} (ปีงบฯ ${fiscalYear})</p>
-            <p><b>ค่าธรรมเนียมเดือนนี้:</b> ฿${formatMoney(monthFee)}</p>
+            <p><b>ค่าธรรมเนียมเดือนนี้:</b> ${feeSummaryLine}</p>
             ${feeHistoryHtml}
             <p><b>สถานะ:</b> ${statusText}</p>
             ${paymentInfo}
@@ -635,15 +677,19 @@
                     <td style="text-align:center;">${c.house_no}</td>`;
                     
                 WASTE_MONTH_KEYS.forEach((mk, i) => {
-                    const monthFee = getFeeForMonth(c.id, mk, year);
                     const val = yearData[mk] || 'unpaid';
+                    const detail = typeof getMonthFeeDetails === 'function'
+                        ? getMonthFeeDetails(c.id, mk, year, val)
+                        : { scheduledFee: getFeeForMonth(c.id, mk, year), paidFee: getFeeForMonth(c.id, mk, year), diffFee: 0, hasDiff: false };
+                    const monthFee = detail.scheduledFee;
                     let paidAmt = 0;
-                    if (val === 'paid') paidAmt = monthFee;
+                    if (val === 'paid') paidAmt = detail.paidFee;
                     
                     monthSumsFee[i] += monthFee;
                     monthSumsPaid[i] += paidAmt;
                     
-                    rowHtml += `<td style="text-align:center;">${monthFee}</td>
+                    const feeDisplay = (val === 'paid' && detail.hasDiff) ? `${detail.paidFee}+${detail.diffFee}` : `${monthFee}`;
+                    rowHtml += `<td style="text-align:center;">${feeDisplay}</td>
                                 <td style="text-align:center;">${paidAmt}</td>`;
                 });
                 rowHtml += '</tr>';
@@ -767,15 +813,19 @@
                 const rowData = [idx + 1, c.name, c.house_no];
                 
                 WASTE_MONTH_KEYS.forEach((mk, i) => {
-                    const monthFee = getFeeForMonth(c.id, mk, year);
                     const val = yearData[mk] || 'unpaid';
+                    const detail = typeof getMonthFeeDetails === 'function'
+                        ? getMonthFeeDetails(c.id, mk, year, val)
+                        : { scheduledFee: getFeeForMonth(c.id, mk, year), paidFee: getFeeForMonth(c.id, mk, year), diffFee: 0, hasDiff: false };
+                    const monthFee = detail.scheduledFee;
                     let paidAmt = 0;
-                    if (val === 'paid') paidAmt = monthFee;
+                    if (val === 'paid') paidAmt = detail.paidFee;
                     
                     monthSumsFee[i] += monthFee;
                     monthSumsPaid[i] += paidAmt;
                     
-                    rowData.push(monthFee);
+                    const feeCell = (val === 'paid' && detail.hasDiff) ? `${detail.paidFee}+${detail.diffFee}` : monthFee;
+                    rowData.push(feeCell);
                     rowData.push(paidAmt);
                 });
                 dataArray.push(rowData);

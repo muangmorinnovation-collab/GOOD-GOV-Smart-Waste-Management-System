@@ -146,11 +146,18 @@
                     <div class="col-4"><label class="form-label text-xs">ราคา</label><input type="number" class="form-control form-control-sm" id="newFeePrice" required></div>
                     <div class="col-2"><button type="submit" class="btn btn-sm btn-primary w-100" id="feeSubmitBtn"><i class="fa-solid fa-plus"></i></button></div>
                 </form>
-                <div class="mt-3 pt-3 border-top text-center">
+                <div class="mt-3 pt-3 border-top">
+                    <div class="mb-2 text-start">
+                        <label class="form-label fw-semibold text-xs mb-1" for="bulkFeeChangeDate">
+                            <i class="fa-solid fa-calendar-day text-warning me-1"></i>เลือกวันที่ปรับปรุงค่าธรรมเนียมขยะ (อิงตามเดือนและปีที่เลือก) <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" class="form-control form-control-sm" id="bulkFeeChangeDate" onchange="updateBulkFeeEffectiveHint()" required>
+                        <small class="text-primary fw-semibold d-block mt-1" id="bulkFeeEffectiveHint" style="font-size:0.75rem;"></small>
+                    </div>
                     <button type="button" class="btn btn-sm btn-outline-warning w-100 fw-semibold" onclick="syncAllCustomersFees()">
                         <i class="fa-solid fa-rotate me-1"></i> ปรับปรุงราคาลูกค้าทั้งหมดตามค่าปัจจุบัน
                     </button>
-                    <small class="text-muted d-block mt-1" style="font-size:0.7rem;">* จะปรับราคาเฉพาะในตารางทะเบียนลูกค้าให้ตรงกับที่ตั้งค่าไว้ ไม่มีผลกับใบเสร็จย้อนหลัง</small>
+                    <small class="text-muted d-block mt-1 text-center" style="font-size:0.7rem;">* เริ่มปรับปรุงตั้งแต่เดือนที่เลือกเป็นต้นไป เดือนก่อนหน้ายังคงเป็นราคาเดิม และรายการที่ชำระแล้วจะแสดงยอดเดิมพร้อมส่วนต่างใน กค.3</small>
                 </div>
             </div>
         </div>
@@ -459,14 +466,23 @@ function getCurrentLocation() {
     }
 }
 
+function getTodayLocalDateStr() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 function openAddModal() {
     document.getElementById('editId').value = '';
     document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-user-plus text-primary me-2"></i>เพิ่มลูกค้าใหม่';
     document.getElementById('fId').value = generateCustomerId();
     document.getElementById('customerForm').reset();
     document.getElementById('fId').value = generateCustomerId();
-    document.getElementById('fFeeChangeDate').value = new Date().toISOString().split('T')[0];
-    document.getElementById('fStartDate').value = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayLocalDateStr();
+    document.getElementById('fFeeChangeDate').value = todayStr;
+    document.getElementById('fStartDate').value = todayStr;
     autoFee();
     new bootstrap.Modal(document.getElementById('customerModal')).show();
     initModalMap();
@@ -487,7 +503,7 @@ function editCustomer(id) {
     document.getElementById('fPhone').value = c.phone||'';
     document.getElementById('fType').value = c.type;
     document.getElementById('fFee').value = c.fee;
-    document.getElementById('fFeeChangeDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('fFeeChangeDate').value = getTodayLocalDateStr();
     document.getElementById('fStartDate').value = c.start_date||'';
     document.getElementById('fLat').value = c.lat||'';
     document.getElementById('fLng').value = c.lng||'';
@@ -547,7 +563,28 @@ function deleteCustomer(id) {
 function openFeeModal() {
     resetFeeForm();
     renderFeeTable();
+    const dateInput = document.getElementById('bulkFeeChangeDate');
+    if (dateInput) {
+        dateInput.value = getTodayLocalDateStr();
+        updateBulkFeeEffectiveHint();
+    }
     new bootstrap.Modal(document.getElementById('feeConfigModal')).show();
+}
+
+function updateBulkFeeEffectiveHint() {
+    const dateInput = document.getElementById('bulkFeeChangeDate');
+    const hintEl = document.getElementById('bulkFeeEffectiveHint');
+    if (!dateInput || !hintEl) return;
+    if (!dateInput.value) {
+        hintEl.textContent = 'กรุณาเลือกวันที่ที่ต้องการให้เริ่มมีผล';
+        return;
+    }
+    const info = typeof parseFeeChangeDateInfo === 'function'
+        ? parseFeeChangeDateInfo(dateInput.value)
+        : null;
+    if (info) {
+        hintEl.innerHTML = `<i class="fa-solid fa-circle-check me-1"></i>เริ่มปรับราคาตั้งแต่เดือน <b>${info.effectiveMonthLabel} ${info.calYearBE}</b> (ปีงบประมาณ <b>${info.fiscalYear}</b>) เป็นต้นไป`;
+    }
 }
 
 function renderFeeTable() {
@@ -635,9 +672,25 @@ function editFeeType(id) {
 }
 
 function syncAllCustomersFees() {
+    const dateInput = document.getElementById('bulkFeeChangeDate');
+    const changeDate = dateInput ? dateInput.value : '';
+    if (!changeDate) {
+        Swal.fire('กรุณาเลือกวันที่', 'กรุณาเลือกวันที่ที่ปรับปรุงค่าธรรมเนียมขยะก่อนดำเนินการ', 'warning');
+        return;
+    }
+
+    const info = typeof parseFeeChangeDateInfo === 'function'
+        ? parseFeeChangeDateInfo(changeDate)
+        : { effectiveMonthLabel: '', calYearBE: '', fiscalYear: '' };
+
     Swal.fire({
         title: 'ยืนยันการปรับปรุงราคา?',
-        text: 'ระบบจะอัปเดตราคาค่าธรรมเนียมของลูกค้าทั้งหมด (เฉพาะหน้าทะเบียนลูกค้า) ให้ตรงกับการตั้งค่าปัจจุบัน',
+        html: `ระบบจะปรับปรุงราคาค่าธรรมเนียมของลูกค้าทั้งหมดตามค่าปัจจุบัน<br>
+               <div class="mt-2 p-2 rounded bg-light text-start" style="font-size:0.85rem;">
+                   <div>• <b>เริ่มมีผลตั้งแต่:</b> เดือน <b>${info.effectiveMonthLabel} ${info.calYearBE}</b> (ปีงบฯ <b>${info.fiscalYear}</b>) เป็นต้นไป</div>
+                   <div>• <b>เดือนก่อนหน้า:</b> ยังคงเป็นราคาเดิม</div>
+                   <div>• <b>รายการที่ชำระแล้ว:</b> คงยอดเงินเดิมและแสดงส่วนต่างกับเรทใหม่ใน กค.3</div>
+               </div>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#057a55',
@@ -646,25 +699,16 @@ function syncAllCustomersFees() {
     }).then(async r => {
         if (r.isConfirmed) {
             Swal.fire({title: 'กำลังปรับปรุงราคา...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
-            const customers = getWasteCustomers();
-            const fees = getWasteFeeTypes();
-            let count = 0;
-            const promises = [];
-            
-            customers.forEach(c => {
-                const feeConfig = fees.find(f => f.type === c.type);
-                if (feeConfig && c.fee !== feeConfig.fee) {
-                    c.fee = feeConfig.fee;
-                    promises.push(saveWasteCustomerDB(c));
-                    count++;
-                }
-            });
-            
-            await Promise.all(promises);
-            await fetchWasteCustomers(); // re-sync
+            const result = await bulkSyncCustomersFeesDB(changeDate);
             renderTable();
             Swal.close();
-            showToast(`อัปเดตราคาสำเร็จ ${count} รายการ`, 'success');
+            if (result.updatedCount > 0) {
+                showToast(`อัปเดตราคาสำเร็จ ${result.updatedCount} รายการ (เริ่มมีผล ${result.effectiveMonthLabel} ${result.calYearBE})`, 'success');
+            } else if (result.dateUpdatedCount > 0) {
+                showToast(`อัปเดตเดือนที่มีผลเป็น ${result.effectiveMonthLabel} ${result.calYearBE} สำเร็จ (${result.dateUpdatedCount} รายการ)`, 'success');
+            } else {
+                showToast('ข้อมูลราคาลูกค้าทั้งหมดตรงกับค่าปัจจุบันอยู่แล้ว', 'info');
+            }
         }
     });
 }
