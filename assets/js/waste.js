@@ -347,6 +347,7 @@ async function fetchWasteFeeHistory() {
         const { data, error } = await fetchAllFromSupabase('waste_fee_history', 'change_date', false);
         if (!error && data) {
             stateFeeHistory = data;
+            saveWasteData('feeHistory', data);
             return;
         }
     }
@@ -359,24 +360,68 @@ function getFeeHistory(customerId) {
     return all.filter(h => h.customer_id === customerId);
 }
 
-function addFeeHistoryEntry(customerId, oldFee, newFee, changeDate) {
+function parseFeeChangeDateInfo(changeDate) {
     if (!changeDate) changeDate = new Date().toISOString().split('T')[0];
-    const d = new Date(changeDate);
-    const calMonth = d.getMonth(); // 0-indexed: 0=Jan
-    const calYear = d.getFullYear();
-    // Convert calendar month to fiscal month key
+    const cleanDate = String(changeDate).split('T')[0];
+    const parts = cleanDate.split('-');
+    let calYear, calMonth;
+    if (parts.length >= 2) {
+        calYear = parseInt(parts[0], 10);
+        if (calYear > 2400) calYear -= 543;
+        calMonth = parseInt(parts[1], 10) - 1;
+    } else {
+        const d = new Date(changeDate);
+        calYear = d.getFullYear();
+        if (calYear > 2400) calYear -= 543;
+        calMonth = d.getMonth();
+    }
     const monthKeyMap = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-    const effectiveMonth = monthKeyMap[calMonth];
-    // Fiscal year: Oct-Dec = next year, Jan-Sep = same year
+    const thaiMonthMap = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const effectiveMonth = monthKeyMap[calMonth] || 'oct';
+    const effectiveMonthLabel = thaiMonthMap[calMonth] || '';
     const fiscalYear = calMonth >= 9 ? String(calYear + 543 + 1) : String(calYear + 543);
+    const calYearBE = String(calYear + 543);
+    return {
+        changeDate: cleanDate,
+        calYear,
+        calMonth,
+        calYearBE,
+        effectiveMonth,
+        effectiveMonthLabel,
+        fiscalYear,
+        effectiveDate: new Date(calYear, calMonth, 1)
+    };
+}
+
+function getEntryEffectiveDate(entry) {
+    if (!entry) return new Date(2000, 0, 1);
+    return parseFeeChangeDateInfo(entry.change_date).effectiveDate;
+}
+
+function getSortedFeeHistory(customerId) {
+    const history = getFeeHistory(customerId);
+    if (!history || history.length === 0) return [];
+    return [...history].sort((a, b) => {
+        const effA = getEntryEffectiveDate(a).getTime();
+        const effB = getEntryEffectiveDate(b).getTime();
+        if (effA !== effB) return effA - effB;
+        const ca = new Date(a.created_at || a.change_date || 0).getTime();
+        const cb = new Date(b.created_at || b.change_date || 0).getTime();
+        if (ca !== cb) return ca - cb;
+        return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+}
+
+function addFeeHistoryEntry(customerId, oldFee, newFee, changeDate) {
+    const info = parseFeeChangeDateInfo(changeDate);
 
     const entry = {
         customer_id: customerId,
         old_fee: Number(oldFee),
         new_fee: Number(newFee),
-        change_date: changeDate,
-        effective_month: effectiveMonth,
-        effective_fiscal_year: fiscalYear
+        change_date: info.changeDate,
+        effective_month: info.effectiveMonth,
+        effective_fiscal_year: info.fiscalYear
     };
 
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
@@ -397,66 +442,283 @@ function addFeeHistoryEntry(customerId, oldFee, newFee, changeDate) {
 }
 
 /**
- * คำนวณค่าธรรมเนียมที่ถูกต้องสำหรับเดือนและปีงบประมาณที่ระบุ
- * Logic: เรียง fee_history ตาม change_date แล้วหาว่าเดือนนี้ตกอยู่ก่อนหรือหลัง effective date
- * - ถ้าไม่มี history → ใช้ค่าปัจจุบันจาก customer.fee
- * - ถ้ามี history → คำนวณจาก chain ของการเปลี่ยนแปลง
+ * คำนวณรายละเอียดค่าธรรมเนียมสำหรับเดือนและปีงบประมาณที่ระบุ
+ * คืนค่า { scheduledFee, paidFee, diffFee, hasDiff, oldFee }
+ * - เดือนก่อน effectiveDate → ใช้ราคาเดิม (old_fee)
+ * - เดือนตั้งแต่ effectiveDate เป็นต้นไป:
+ *   - ถ้ายังไม่ชำระ → แสดงราคาเรทใหม่ (scheduledFee = new_fee)
+ *   - ถ้าชำระมาแล้วก่อนการปรับราคา (หรือชำระในเรทเดิม) → คงยอดที่ชำระแล้ว (paidFee = old_fee) และคำนวณส่วนต่าง (diffFee = new_fee - old_fee) เพื่อแสดง เช่น 25+15
  */
-function getFeeForMonth(customerId, monthKey, fiscalYear) {
+function getMonthFeeDetails(customerId, monthKey, fiscalYear, monthStatus = null) {
     const customer = getWasteCustomers().find(c => c.id === customerId);
-    if (!customer) return 0;
+    if (!customer) return { scheduledFee: 0, paidFee: 0, diffFee: 0, hasDiff: false, oldFee: 0 };
 
-    const history = getFeeHistory(customerId);
-    if (!history || history.length === 0) return customer.fee;
+    const currentCustFee = Number(customer.fee) || 0;
+    const sorted = getSortedFeeHistory(customerId);
+    if (!sorted || sorted.length === 0) {
+        return {
+            scheduledFee: currentCustFee,
+            paidFee: currentCustFee,
+            diffFee: 0,
+            hasDiff: false,
+            oldFee: currentCustFee
+        };
+    }
 
-    // Convert fiscal month+year to a comparable date
-    // Fiscal year: oct-dec belong to prev calendar year, jan-sep belong to fiscal year
-    const fyNum = parseInt(fiscalYear);
+    const fyNum = parseInt(fiscalYear, 10);
     const monthIndexInFiscal = WASTE_MONTH_KEYS.indexOf(monthKey);
-    if (monthIndexInFiscal < 0) return customer.fee;
+    if (monthIndexInFiscal < 0 || isNaN(fyNum)) {
+        return {
+            scheduledFee: currentCustFee,
+            paidFee: currentCustFee,
+            diffFee: 0,
+            hasDiff: false,
+            oldFee: currentCustFee
+        };
+    }
 
-    // Get calendar year and month number for this fiscal month
     let calYear, calMonth;
     if (monthIndexInFiscal < 3) {
-        // oct(0), nov(1), dec(2) → calendar year = fiscalYear - 543 - 1
         calYear = fyNum - 543 - 1;
         calMonth = monthIndexInFiscal + 9; // oct=9, nov=10, dec=11
     } else {
-        // jan(3)..sep(11) → calendar year = fiscalYear - 543
         calYear = fyNum - 543;
-        calMonth = monthIndexInFiscal - 3; // jan=0, feb=1, ..., sep=8
+        calMonth = monthIndexInFiscal - 3; // jan=0..sep=8
     }
-    // First day of this month (for comparison)
     const monthStart = new Date(calYear, calMonth, 1);
 
-    // Sort history by change_date ascending
-    const sorted = [...history].sort((a, b) => new Date(a.change_date) - new Date(b.change_date));
-
-    // Walk through history: find what fee was active at the start of this month
-    // Before any change, the fee is the old_fee of the first change
-    let effectiveFee = sorted[0].old_fee; // original fee before any changes
+    // 1. คำนวณ scheduledFee (อัตราค่าธรรมเนียมตามประกาศสำหรับเดือนนี้)
+    let scheduledFee = Number(sorted[0].old_fee);
+    const baseOldFee = Number(sorted[0].old_fee);
 
     for (const entry of sorted) {
-        const changeDate = new Date(entry.change_date);
-        // The change takes effect from the 1st of the change's month
-        const effectiveDate = new Date(changeDate.getFullYear(), changeDate.getMonth(), 1);
+        const effectiveDate = getEntryEffectiveDate(entry);
         if (monthStart >= effectiveDate) {
-            effectiveFee = entry.new_fee;
+            scheduledFee = Number(entry.new_fee);
         } else {
-            break; // No need to check further
+            break;
         }
     }
 
-    // If month is before the customer even started, still use effectiveFee (so past months show the old fee)
-    if (customer.start_date) {
-        const startDate = new Date(customer.start_date);
-        const startMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-        if (monthStart < startMonth) {
-            return effectiveFee;
+    // ตรวจสอบสถานะการชำระของเดือนนี้
+    let status = monthStatus;
+    if (!status) {
+        const ms = typeof stateMonthlyStatus === 'object' && stateMonthlyStatus !== null ? stateMonthlyStatus : {};
+        status = ((ms[customerId] || {})[fiscalYear] || {})[monthKey] || 'unpaid';
+    }
+
+    if (status !== 'paid') {
+        return {
+            scheduledFee,
+            paidFee: 0,
+            diffFee: 0,
+            hasDiff: false,
+            oldFee: baseOldFee
+        };
+    }
+
+    // 2. กรณีเดือนนี้ชำระแล้ว (status === 'paid')
+    // ถ้าเดือนนี้อยู่ก่อนเดือนที่มีผลปรับราคาครั้งแรก ยอดที่จ่ายคือราคาเดิมแน่นอน
+    const firstEffectiveDate = getEntryEffectiveDate(sorted[0]);
+    if (monthStart < firstEffectiveDate) {
+        return {
+            scheduledFee,
+            paidFee: scheduledFee,
+            diffFee: 0,
+            hasDiff: false,
+            oldFee: baseOldFee
+        };
+    }
+
+    // ตรวจสอบว่าเดือนที่ชำระแล้วนี้ ชำระในเรทเดิม (ก่อนปรับราคา) หรือชำระในเรทใหม่ (หลังปรับราคา)
+    let paidFee = null;
+    const meta = ((stateMonthlyStatusMeta || {})[customerId] || {})[fiscalYear]?.[monthKey] || null;
+
+    if (meta && typeof meta.paid_fee === 'number' && !isNaN(meta.paid_fee) && meta.paid_fee > 0) {
+        paidFee = Number(meta.paid_fee);
+    }
+
+    if (paidFee === null) {
+        // ค้นหาจากประวัติใบเสร็จ (waste_payments) ถ้ามี
+        const payments = typeof getWastePayments === 'function' ? getWastePayments() : [];
+        const monthLabel = WASTE_MONTHS[monthIndexInFiscal];
+        const matchedPayment = payments.find(p => {
+            if (!p || p.status === 'cancelled' || p.status === 'rejected') return false;
+            if (p.customer_id !== customerId) return false;
+            if (meta && meta.payment_id && p.id === meta.payment_id) return true;
+            if (String(p.fiscal_year || '') !== String(fiscalYear)) return false;
+            if (Array.isArray(p.month_keys) && p.month_keys.includes(monthKey)) return true;
+            if (Array.isArray(p.months_paid)) {
+                return p.months_paid.some(m => String(m).trim() === monthKey || String(m).includes(monthLabel));
+            }
+            return false;
+        });
+
+        let paidTimestamp = (meta && meta.updated_at) || (matchedPayment && (matchedPayment.created_at || matchedPayment.date)) || null;
+
+        if (matchedPayment && Array.isArray(matchedPayment.months_paid) && matchedPayment.months_paid.length > 0 && Number(matchedPayment.amount) > 0) {
+            const perMonthAmt = Math.round(Number(matchedPayment.amount) / matchedPayment.months_paid.length);
+            if (perMonthAmt === scheduledFee || perMonthAmt === baseOldFee) {
+                paidFee = perMonthAmt;
+            }
+        }
+
+        if (paidFee === null) {
+            // ตรวจสอบเทียบเวลาที่ชำระ (paidTimestamp) กับเวลาที่บันทึกการปรับราคา (entry.created_at)
+            // หากชำระไว้ก่อนที่จะกดปรับราคา (หรือไม่มี timestamp ของใบเสร็จใหม่หลังปรับราคา) ให้ถือว่าชำระในอัตราเดิมก่อนปรับ
+            let feeAtPayTime = baseOldFee;
+            const paidTimeMs = paidTimestamp ? new Date(paidTimestamp).getTime() : null;
+
+            for (const entry of sorted) {
+                const effectiveDate = getEntryEffectiveDate(entry);
+                if (monthStart >= effectiveDate) {
+                    const entryCreatedMs = entry.created_at ? new Date(entry.created_at).getTime() : null;
+                    if (paidTimeMs && entryCreatedMs && paidTimeMs > entryCreatedMs + 1000) {
+                        feeAtPayTime = Number(entry.new_fee);
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            paidFee = feeAtPayTime;
         }
     }
 
-    return effectiveFee;
+    const diffFee = Math.max(0, scheduledFee - paidFee);
+    return {
+        scheduledFee,
+        paidFee,
+        diffFee,
+        hasDiff: diffFee > 0,
+        oldFee: baseOldFee
+    };
+}
+
+/**
+ * คำนวณค่าธรรมเนียมที่ถูกต้องสำหรับเดือนและปีงบประมาณที่ระบุ
+ */
+function getFeeForMonth(customerId, monthKey, fiscalYear) {
+    return getMonthFeeDetails(customerId, monthKey, fiscalYear).scheduledFee;
+}
+
+/**
+ * ปรับปรุงราคาลูกค้าทั้งหมดแบบ Batch ตามประเภทค่าธรรมเนียมปัจจุบัน โดยเริ่มมีผลตั้งแต่เดือนและปีที่เลือกเป็นต้นไป
+ */
+async function bulkSyncCustomersFeesDB(changeDate) {
+    const info = parseFeeChangeDateInfo(changeDate);
+    const customers = getWasteCustomers();
+    const fees = getWasteFeeTypes();
+    const allHistory = getFeeHistory();
+    const nowIso = new Date().toISOString();
+
+    const customersToUpdate = [];
+    const historyToInsert = [];
+    const historyIdsToUpdateDate = [];
+
+    customers.forEach(c => {
+        const feeConfig = fees.find(f => f.type === c.type);
+        if (!feeConfig) return;
+
+        const targetFee = Number(feeConfig.fee);
+        const currentFee = Number(c.fee);
+
+        if (currentFee !== targetFee) {
+            const updatedCustomer = { ...c, fee: targetFee };
+            delete updatedCustomer.fee_change_date;
+            customersToUpdate.push(updatedCustomer);
+
+            historyToInsert.push({
+                customer_id: c.id,
+                old_fee: currentFee,
+                new_fee: targetFee,
+                change_date: info.changeDate,
+                effective_month: info.effectiveMonth,
+                effective_fiscal_year: info.fiscalYear
+            });
+        } else {
+            // กรณีราคาเท่ากับค่าปัจจุบันอยู่แล้ว แต่ผู้ใช้อาจเลือกเปลี่ยนวันที่มีผลของการปรับราคาล่าสุด
+            const custHist = allHistory.filter(h => h.customer_id === c.id && Number(h.new_fee) === targetFee);
+            if (custHist.length > 0) {
+                const latest = custHist[custHist.length - 1];
+                if (latest.change_date !== info.changeDate || latest.effective_month !== info.effectiveMonth || String(latest.effective_fiscal_year) !== String(info.fiscalYear)) {
+                    latest.change_date = info.changeDate;
+                    latest.effective_month = info.effectiveMonth;
+                    latest.effective_fiscal_year = info.fiscalYear;
+                    if (latest.id) historyIdsToUpdateDate.push(latest.id);
+                }
+            }
+        }
+    });
+
+    const chunkSize = 500;
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        for (let i = 0; i < customersToUpdate.length; i += chunkSize) {
+            const chunk = customersToUpdate.slice(i, i + chunkSize);
+            const { error } = await supabaseClient.from('waste_customers').upsert(chunk, { onConflict: 'id' });
+            if (error) console.error('Error bulk updating customers:', error);
+        }
+
+        for (let i = 0; i < historyToInsert.length; i += chunkSize) {
+            const chunk = historyToInsert.slice(i, i + chunkSize);
+            const { error } = await supabaseClient.from('waste_fee_history').insert(chunk);
+            if (error) console.error('Error bulk inserting fee history:', error);
+        }
+
+        for (let i = 0; i < historyIdsToUpdateDate.length; i += chunkSize) {
+            const chunkIds = historyIdsToUpdateDate.slice(i, i + chunkSize).filter(id => !String(id).startsWith('FH'));
+            if (chunkIds.length > 0) {
+                const { error } = await supabaseClient
+                    .from('waste_fee_history')
+                    .update({
+                        change_date: info.changeDate,
+                        effective_month: info.effectiveMonth,
+                        effective_fiscal_year: info.fiscalYear
+                    })
+                    .in('id', chunkIds);
+                if (error) console.error('Error updating fee history effective dates:', error);
+            }
+        }
+    }
+
+    // Update local cache
+    if (customersToUpdate.length > 0) {
+        const updateMap = {};
+        customersToUpdate.forEach(u => { updateMap[u.id] = u; });
+        const updatedAllCustomers = customers.map(c => updateMap[c.id] ? updateMap[c.id] : c);
+        saveWasteData('customers', updatedAllCustomers);
+        stateCustomers = updatedAllCustomers;
+    }
+
+    if (historyToInsert.length > 0 || historyIdsToUpdateDate.length > 0) {
+        const localHistory = getWasteData('feeHistory');
+        historyToInsert.forEach((h, idx) => {
+            const withMeta = {
+                ...h,
+                id: 'FH' + Date.now() + '_' + idx,
+                created_at: nowIso
+            };
+            localHistory.push(withMeta);
+            if (stateFeeHistory) stateFeeHistory.push(withMeta);
+        });
+        saveWasteData('feeHistory', localHistory);
+    }
+
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        await Promise.all([
+            fetchWasteCustomers(),
+            fetchWasteFeeHistory()
+        ]);
+    }
+
+    return {
+        updatedCount: customersToUpdate.length,
+        dateUpdatedCount: historyIdsToUpdateDate.length,
+        effectiveMonthLabel: info.effectiveMonthLabel,
+        calYearBE: info.calYearBE,
+        fiscalYear: info.fiscalYear
+    };
 }
 
 async function saveWasteCustomerDB(data) {
@@ -468,6 +730,26 @@ async function saveWasteCustomerDB(data) {
     const existing = getWasteCustomers().find(c => c.id === data.id);
     if (existing && Number(existing.fee) !== Number(data.fee)) {
         addFeeHistoryEntry(data.id, existing.fee, data.fee, feeChangeDate);
+    } else if (existing && feeChangeDate) {
+        // หากราคาเท่าเดิมแต่มีการแก้ไขวันที่มีผลปรับค่าธรรมเนียมของลูกค้ารายนี้
+        const custHist = getFeeHistory(data.id);
+        if (custHist && custHist.length > 0) {
+            const latest = custHist[custHist.length - 1];
+            const info = parseFeeChangeDateInfo(feeChangeDate);
+            if (Number(latest.new_fee) === Number(data.fee) && latest.change_date !== info.changeDate) {
+                latest.change_date = info.changeDate;
+                latest.effective_month = info.effectiveMonth;
+                latest.effective_fiscal_year = info.fiscalYear;
+                if (typeof supabaseClient !== 'undefined' && supabaseClient && latest.id && !String(latest.id).startsWith('FH')) {
+                    await supabaseClient.from('waste_fee_history').update({
+                        change_date: info.changeDate,
+                        effective_month: info.effectiveMonth,
+                        effective_fiscal_year: info.fiscalYear
+                    }).eq('id', latest.id);
+                }
+                saveWasteData('feeHistory', stateFeeHistory || getWasteData('feeHistory'));
+            }
+        }
     }
 
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
@@ -587,8 +869,11 @@ function saveWastePayments(d) { saveWasteData('payments', d); statePayments = d;
 // ============================================
 // MONTHLY STATUS — Supabase CRUD
 // ============================================
+let stateMonthlyStatusMeta = {};
+
 async function fetchMonthlyStatus() {
     let ms = {};
+    let msMeta = {};
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
         const fetchStatusPromise = fetchAllFromSupabase('waste_monthly_status', 'id', true);
         const fetchExemptionsPromise = typeof fetchWasteExemptions === 'function' ? fetchWasteExemptions() : Promise.resolve(getWasteExemptions());
@@ -603,6 +888,13 @@ async function fetchMonthlyStatus() {
                 if (!ms[row.customer_id]) ms[row.customer_id] = {};
                 if (!ms[row.customer_id][row.fiscal_year]) ms[row.customer_id][row.fiscal_year] = {};
                 ms[row.customer_id][row.fiscal_year][row.month_key] = row.status;
+
+                if (!msMeta[row.customer_id]) msMeta[row.customer_id] = {};
+                if (!msMeta[row.customer_id][row.fiscal_year]) msMeta[row.customer_id][row.fiscal_year] = {};
+                msMeta[row.customer_id][row.fiscal_year][row.month_key] = {
+                    updated_at: row.updated_at || null,
+                    payment_id: row.payment_id || null
+                };
             });
         } else if (error) {
             console.warn('Supabase fetch monthly status error, falling back to localStorage', error);
@@ -639,6 +931,7 @@ async function fetchMonthlyStatus() {
     
     ms = applyStartDateExemptions(ms);
 
+    stateMonthlyStatusMeta = msMeta;
     stateMonthlyStatus = ms;
     saveMonthlyStatus(ms); // backup
     return ms;
@@ -703,6 +996,7 @@ function reconcileMonthlyStatusFromPayments(ms) {
             try { pm = JSON.parse(pm); } catch(e) { pm = pm.split(','); }
         }
         if (!Array.isArray(pm)) return;
+        const perMonthPaid = (pm.length > 0 && Number(p.amount) > 0) ? Math.round(Number(p.amount) / pm.length) : null;
         
         pm.forEach(m => {
             if (!m) return;
@@ -728,6 +1022,14 @@ function reconcileMonthlyStatusFromPayments(ms) {
                 if (!ms[targetId]) ms[targetId] = {};
                 if (!ms[targetId][fyToUse]) ms[targetId][fyToUse] = {};
                 ms[targetId][fyToUse][str] = 'paid';
+
+                if (!stateMonthlyStatusMeta[targetId]) stateMonthlyStatusMeta[targetId] = {};
+                if (!stateMonthlyStatusMeta[targetId][fyToUse]) stateMonthlyStatusMeta[targetId][fyToUse] = {};
+                stateMonthlyStatusMeta[targetId][fyToUse][str] = {
+                    updated_at: p.created_at || p.date || null,
+                    payment_id: p.id || null,
+                    paid_fee: perMonthPaid
+                };
                 return;
             }
             
@@ -748,6 +1050,14 @@ function reconcileMonthlyStatusFromPayments(ms) {
                 if (!ms[targetId]) ms[targetId] = {};
                 if (!ms[targetId][derivedFy]) ms[targetId][derivedFy] = {};
                 ms[targetId][derivedFy][mk] = 'paid';
+
+                if (!stateMonthlyStatusMeta[targetId]) stateMonthlyStatusMeta[targetId] = {};
+                if (!stateMonthlyStatusMeta[targetId][derivedFy]) stateMonthlyStatusMeta[targetId][derivedFy] = {};
+                stateMonthlyStatusMeta[targetId][derivedFy][mk] = {
+                    updated_at: p.created_at || p.date || null,
+                    payment_id: p.id || null,
+                    paid_fee: perMonthPaid
+                };
             }
         });
     });
@@ -765,6 +1075,7 @@ function getMonthlyStatus() {
 }
 
 async function saveMonthlyStatusDB(customerId, fiscalYear, monthKey, status, paymentId) {
+    const nowIso = new Date().toISOString();
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
         const { error } = await supabaseClient
             .from('waste_monthly_status')
@@ -774,7 +1085,7 @@ async function saveMonthlyStatusDB(customerId, fiscalYear, monthKey, status, pay
                 month_key: monthKey,
                 status: status,
                 payment_id: paymentId || null,
-                updated_at: new Date().toISOString()
+                updated_at: nowIso
             }, { onConflict: 'customer_id,fiscal_year,month_key' });
         if (error) console.error('Error saving monthly status to Supabase:', error);
     }
@@ -784,6 +1095,14 @@ async function saveMonthlyStatusDB(customerId, fiscalYear, monthKey, status, pay
         if (!ms[customerId]) ms[customerId] = {};
         if (!ms[customerId][fiscalYear]) ms[customerId][fiscalYear] = {};
         ms[customerId][fiscalYear][monthKey] = status;
+
+        if (!stateMonthlyStatusMeta[customerId]) stateMonthlyStatusMeta[customerId] = {};
+        if (!stateMonthlyStatusMeta[customerId][fiscalYear]) stateMonthlyStatusMeta[customerId][fiscalYear] = {};
+        stateMonthlyStatusMeta[customerId][fiscalYear][monthKey] = {
+            updated_at: nowIso,
+            payment_id: paymentId || null
+        };
+
         stateMonthlyStatus = ms;
         saveMonthlyStatus(ms);
     } catch (err) {
@@ -1176,10 +1495,10 @@ function calculateDebtors(year = null, startMonthIdx = 0, endMonthIdx = 11) {
 
         WASTE_MONTH_KEYS.forEach((mk, i) => {
             if (i >= startMonthIdx && i <= endMonthIdx) {
-                if (yearData[mk] !== 'paid') {
+                if (yearData[mk] !== 'paid' && yearData[mk] !== 'exempted') {
                     const calYear = i < 3 ? String(fyNum - 1) : targetYear;
                     unpaidMonths.push(`${WASTE_MONTHS[i]} ${calYear.substring(2)}`);
-                    totalDebt += c.fee;
+                    totalDebt += getFeeForMonth(c.id, mk, targetYear);
                 }
             }
         });
@@ -1239,18 +1558,18 @@ function getWasteDashboardStats() {
         
         const s = customerStatus[currentYear] || {};
         
-        const fee = Number(c.fee) || 0;
-        
         if (s[currentMonthKey] === 'paid') {
             paidCount++;
-            revenueThisMonth += fee;
+            revenueThisMonth += getMonthFeeDetails(c.id, currentMonthKey, currentYear, 'paid').paidFee;
         } else {
             unpaidCount++;
         }
         
         // Calculate total revenue for this fiscal year for this customer
         Object.keys(s).forEach(mk => {
-            if (s[mk] === 'paid') revenueThisYear += fee;
+            if (s[mk] === 'paid') {
+                revenueThisYear += getMonthFeeDetails(c.id, mk, currentYear, 'paid').paidFee;
+            }
         });
     });
 
@@ -1284,17 +1603,16 @@ function getDebtBadgeLabel(count) {
 // Chart helper for monthly revenue
 function getMonthlyRevenueData() {
     const ms = typeof getMonthlyStatus === 'function' ? getMonthlyStatus() : {};
-    const customers = typeof getWasteCustomers === 'function' ? getWasteCustomers() : [];
     const data = new Array(12).fill(0);
     const currentYear = getCurrentFiscalYear();
 
     Object.keys(ms).forEach(cid => {
-        const cust = customers.find(c => c.id === cid);
-        const fee = cust ? (Number(cust.fee) || 0) : 0;
         const yearData = ms[cid][currentYear];
         if (yearData) {
             WASTE_MONTH_KEYS.forEach((mk, i) => {
-                if (yearData[mk] === 'paid') data[i] += fee;
+                if (yearData[mk] === 'paid') {
+                    data[i] += getMonthFeeDetails(cid, mk, currentYear, 'paid').paidFee;
+                }
             });
         }
     });
