@@ -226,8 +226,8 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/supabase-client.js"></script>
-    <script src="assets/js/app.js?v=1001"></script>
-    <script src="assets/js/waste.js?v=1001"></script>
+    <script src="assets/js/app.js?v=1002"></script>
+    <script src="assets/js/waste.js?v=1002"></script>
     <script src="assets/js/responsive.js"></script>
     <script>
         let kor3SelectedYear = '';
@@ -415,7 +415,7 @@
 
             tbody.innerHTML = paginatedCustomers.map((c, idx) => {
                 const yearData = (ms[c.id] || {})[year] || {};
-                const customerHistory = getFeeHistory(c.id);
+                const customerHistory = typeof getSortedFeeHistory === 'function' ? getSortedFeeHistory(c.id) : getFeeHistory(c.id);
                 const hasHistory = customerHistory && customerHistory.length > 0;
 
                 // Calculate fee details for each month
@@ -559,7 +559,7 @@
 
             // Fee history info
             let feeHistoryHtml = '';
-            const history = getFeeHistory(customerId);
+            const history = typeof getSortedFeeHistory === 'function' ? getSortedFeeHistory(customerId) : getFeeHistory(customerId);
             if (status === 'paid' && detail.hasDiff) {
                 feeHistoryHtml = `
                     <div class="p-2 mb-2 rounded" style="background:#fffbeb;border:1px solid #fde68a;font-size:13px;color:#92400e;">
