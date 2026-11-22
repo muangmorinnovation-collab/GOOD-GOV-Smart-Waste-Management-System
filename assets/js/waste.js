@@ -260,9 +260,13 @@ async function fetchAllFromSupabase(table, orderCol = 'id', ascending = true) {
     const limit = 1000;
     const promises = [];
     for (let from = 0; from < count; from += limit) {
-        promises.push(
-            supabaseClient.from(table).select('*').order(orderCol, { ascending: ascending }).range(from, from + limit - 1)
-        );
+        let query = supabaseClient.from(table).select('*').order(orderCol, { ascending: ascending });
+        // Always add unique 'id' tie-breaker when ordering by non-unique columns (e.g. change_date, created_at)
+        // to prevent Postgres pagination from skipping or duplicating rows across 1000-row chunks
+        if (orderCol !== 'id') {
+            query = query.order('id', { ascending: true });
+        }
+        promises.push(query.range(from, from + limit - 1));
     }
     
     const results = await Promise.all(promises);
@@ -344,7 +348,7 @@ function getWasteCustomers() {
 let stateFeeHistory = null;
 async function fetchWasteFeeHistory() {
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-        const { data, error } = await fetchAllFromSupabase('waste_fee_history', 'change_date', false);
+        const { data, error } = await fetchAllFromSupabase('waste_fee_history', 'id', true);
         if (!error && data) {
             stateFeeHistory = data;
             saveWasteData('feeHistory', data);
@@ -398,7 +402,7 @@ function getEntryEffectiveDate(entry) {
     return parseFeeChangeDateInfo(entry.change_date).effectiveDate;
 }
 
-function getSortedFeeHistory(customerId) {
+function getRawSortedFeeHistory(customerId) {
     const history = getFeeHistory(customerId);
     if (!history || history.length === 0) return [];
     return [...history].sort((a, b) => {
@@ -410,6 +414,64 @@ function getSortedFeeHistory(customerId) {
         if (ca !== cb) return ca - cb;
         return String(a.id || '').localeCompare(String(b.id || ''));
     });
+}
+
+function getSortedFeeHistory(customerId) {
+    const rawSorted = getRawSortedFeeHistory(customerId);
+    if (rawSorted.length === 0) return [];
+
+    // 1. ยุบรวมการเปลี่ยนราคาที่อยู่ในเดือนและปีที่มีผลเดียวกัน (เช่น เปลี่ยน 25->40 แล้วเปลี่ยนกลับ 40->25 ในเดือนเดียวกัน)
+    const byMonth = [];
+    for (const entry of rawSorted) {
+        const effTime = getEntryEffectiveDate(entry).getTime();
+        const prev = byMonth.length > 0 ? byMonth[byMonth.length - 1] : null;
+        if (prev && prev._effTime === effTime) {
+            prev.new_fee = Number(entry.new_fee);
+            prev.change_date = entry.change_date;
+            prev.created_at = entry.created_at || prev.created_at;
+            prev.id = entry.id || prev.id;
+        } else {
+            byMonth.push({
+                ...entry,
+                old_fee: Number(entry.old_fee),
+                new_fee: Number(entry.new_fee),
+                _effTime: effTime
+            });
+        }
+    }
+
+    // 2. ตัดรายการที่ราคาไม่เปลี่ยนแปลง (old_fee === new_fee เช่น เปลี่ยนไปแล้วเปลี่ยนกลับมายอดเดิมในเดือนเดียวกัน)
+    const collapsed = [];
+    for (const item of byMonth) {
+        const effectiveOldFee = collapsed.length > 0 ? Number(collapsed[collapsed.length - 1].new_fee) : Number(item.old_fee);
+        if (effectiveOldFee === Number(item.new_fee)) {
+            continue;
+        }
+        collapsed.push({
+            ...item,
+            old_fee: effectiveOldFee
+        });
+    }
+
+    // 3. ตรวจสอบให้สอดคล้องกับราคาปัจจุบันของลูกค้าในทะเบียน (customer.fee)
+    // หากในทะเบียนลูกค้าถูกปรับกลับเป็นราคาเดิมแล้ว แต่ประวัติล่าสุดในตารางยังค้างค่าเก่าอยู่ ให้ยึดตามราคาปัจจุบันของลูกค้า
+    const customer = getWasteCustomers().find(c => c.id === customerId);
+    if (customer && collapsed.length > 0) {
+        const currentFee = Number(customer.fee);
+        while (collapsed.length > 0) {
+            const last = collapsed[collapsed.length - 1];
+            if (Number(last.new_fee) === currentFee) break;
+            if (Number(last.old_fee) === currentFee) {
+                // ราคาล่าสุดถูกเปลี่ยนกลับเป็นยอดเดิมก่อนการปรับราคารอบนี้แล้ว
+                collapsed.pop();
+            } else {
+                last.new_fee = currentFee;
+                break;
+            }
+        }
+    }
+
+    return collapsed;
 }
 
 function addFeeHistoryEntry(customerId, oldFee, newFee, changeDate) {
@@ -610,12 +672,12 @@ async function bulkSyncCustomersFeesDB(changeDate) {
     const info = parseFeeChangeDateInfo(changeDate);
     const customers = getWasteCustomers();
     const fees = getWasteFeeTypes();
-    const allHistory = getFeeHistory();
     const nowIso = new Date().toISOString();
 
     const customersToUpdate = [];
     const historyToInsert = [];
-    const historyIdsToUpdateDate = [];
+    const historyToUpdate = [];
+    const historyIdsToDelete = [];
 
     customers.forEach(c => {
         const feeConfig = fees.find(f => f.type === c.type);
@@ -628,7 +690,68 @@ async function bulkSyncCustomersFeesDB(changeDate) {
             const updatedCustomer = { ...c, fee: targetFee };
             delete updatedCustomer.fee_change_date;
             customersToUpdate.push(updatedCustomer);
+        }
 
+        const rawHist = getRawSortedFeeHistory(c.id);
+        const targetEffTime = info.effectiveDate.getTime();
+        const earlierEntries = rawHist.filter(h => getEntryEffectiveDate(h).getTime() < targetEffTime);
+        const sameAndLaterEntries = rawHist.filter(h => getEntryEffectiveDate(h).getTime() >= targetEffTime);
+
+        if (sameAndLaterEntries.length > 0) {
+            // ราคาเดิมก่อนที่จะมีการปรับในเดือนที่เลือก (หรือหลังจากนั้น)
+            const feeBeforeTargetMonth = earlierEntries.length > 0
+                ? Number(earlierEntries[earlierEntries.length - 1].new_fee)
+                : Number(sameAndLaterEntries[0].old_fee);
+
+            if (feeBeforeTargetMonth === targetFee) {
+                // กรณีเปลี่ยนราคากลับมายอดเดิม: ลบประวัติการเปลี่ยนราคาของเดือนนั้นทิ้งเพื่อไม่ให้ค้างยอดเก่า
+                sameAndLaterEntries.forEach(h => {
+                    if (h.id) historyIdsToDelete.push(h.id);
+                });
+            } else {
+                // กรณีเปลี่ยนเป็นราคาใหม่ในเดือนเดียวกัน: อัปเดตแถวแรกและลบแถวซ้ำซ้อนที่เกินมา
+                const primary = sameAndLaterEntries[0];
+                if (
+                    Number(primary.old_fee) !== feeBeforeTargetMonth ||
+                    Number(primary.new_fee) !== targetFee ||
+                    primary.change_date !== info.changeDate ||
+                    primary.effective_month !== info.effectiveMonth ||
+                    String(primary.effective_fiscal_year) !== String(info.fiscalYear)
+                ) {
+                    primary.old_fee = feeBeforeTargetMonth;
+                    primary.new_fee = targetFee;
+                    primary.change_date = info.changeDate;
+                    primary.effective_month = info.effectiveMonth;
+                    primary.effective_fiscal_year = info.fiscalYear;
+                    historyToUpdate.push(primary);
+                }
+                for (let i = 1; i < sameAndLaterEntries.length; i++) {
+                    if (sameAndLaterEntries[i].id) historyIdsToDelete.push(sameAndLaterEntries[i].id);
+                }
+            }
+        } else if (rawHist.length > 0) {
+            // มีประวัติในเดือนก่อนหน้า
+            const lastEntry = rawHist[rawHist.length - 1];
+            if (currentFee !== targetFee) {
+                if (Number(lastEntry.old_fee) === targetFee) {
+                    // เปลี่ยนกลับมายอดเดิมของรายการล่าสุด
+                    if (lastEntry.id) historyIdsToDelete.push(lastEntry.id);
+                } else {
+                    historyToInsert.push({
+                        customer_id: c.id,
+                        old_fee: currentFee,
+                        new_fee: targetFee,
+                        change_date: info.changeDate,
+                        effective_month: info.effectiveMonth,
+                        effective_fiscal_year: info.fiscalYear
+                    });
+                }
+            } else if (Number(lastEntry.new_fee) !== targetFee && Number(lastEntry.old_fee) === targetFee) {
+                // ล้างประวัติที่ค้างอยู่หากราคาปัจจุบันตรงกับราคาเดิมแล้ว
+                if (lastEntry.id) historyIdsToDelete.push(lastEntry.id);
+            }
+        } else if (currentFee !== targetFee) {
+            // ยังไม่เคยมีประวัติเลย และมีการปรับราคา
             historyToInsert.push({
                 customer_id: c.id,
                 old_fee: currentFee,
@@ -637,18 +760,6 @@ async function bulkSyncCustomersFeesDB(changeDate) {
                 effective_month: info.effectiveMonth,
                 effective_fiscal_year: info.fiscalYear
             });
-        } else {
-            // กรณีราคาเท่ากับค่าปัจจุบันอยู่แล้ว แต่ผู้ใช้อาจเลือกเปลี่ยนวันที่มีผลของการปรับราคาล่าสุด
-            const custHist = allHistory.filter(h => h.customer_id === c.id && Number(h.new_fee) === targetFee);
-            if (custHist.length > 0) {
-                const latest = custHist[custHist.length - 1];
-                if (latest.change_date !== info.changeDate || latest.effective_month !== info.effectiveMonth || String(latest.effective_fiscal_year) !== String(info.fiscalYear)) {
-                    latest.change_date = info.changeDate;
-                    latest.effective_month = info.effectiveMonth;
-                    latest.effective_fiscal_year = info.fiscalYear;
-                    if (latest.id) historyIdsToUpdateDate.push(latest.id);
-                }
-            }
         }
     });
 
@@ -660,24 +771,39 @@ async function bulkSyncCustomersFeesDB(changeDate) {
             if (error) console.error('Error bulk updating customers:', error);
         }
 
+        if (historyIdsToDelete.length > 0) {
+            const dbIdsToDelete = historyIdsToDelete.filter(id => !String(id).startsWith('FH'));
+            for (let i = 0; i < dbIdsToDelete.length; i += chunkSize) {
+                const chunkIds = dbIdsToDelete.slice(i, i + chunkSize);
+                if (chunkIds.length > 0) {
+                    const { error } = await supabaseClient.from('waste_fee_history').delete().in('id', chunkIds);
+                    if (error) console.error('Error deleting reverted fee history:', error);
+                }
+            }
+        }
+
         for (let i = 0; i < historyToInsert.length; i += chunkSize) {
             const chunk = historyToInsert.slice(i, i + chunkSize);
             const { error } = await supabaseClient.from('waste_fee_history').insert(chunk);
             if (error) console.error('Error bulk inserting fee history:', error);
         }
 
-        for (let i = 0; i < historyIdsToUpdateDate.length; i += chunkSize) {
-            const chunkIds = historyIdsToUpdateDate.slice(i, i + chunkSize).filter(id => !String(id).startsWith('FH'));
-            if (chunkIds.length > 0) {
-                const { error } = await supabaseClient
-                    .from('waste_fee_history')
-                    .update({
-                        change_date: info.changeDate,
-                        effective_month: info.effectiveMonth,
-                        effective_fiscal_year: info.fiscalYear
-                    })
-                    .in('id', chunkIds);
-                if (error) console.error('Error updating fee history effective dates:', error);
+        if (historyToUpdate.length > 0) {
+            const dbToUpdate = historyToUpdate
+                .filter(h => h.id && !String(h.id).startsWith('FH'))
+                .map(h => ({
+                    id: h.id,
+                    customer_id: h.customer_id,
+                    old_fee: Number(h.old_fee),
+                    new_fee: Number(h.new_fee),
+                    change_date: h.change_date,
+                    effective_month: h.effective_month,
+                    effective_fiscal_year: h.effective_fiscal_year
+                }));
+            for (let i = 0; i < dbToUpdate.length; i += chunkSize) {
+                const chunk = dbToUpdate.slice(i, i + chunkSize);
+                const { error } = await supabaseClient.from('waste_fee_history').upsert(chunk, { onConflict: 'id' });
+                if (error) console.error('Error updating fee history:', error);
             }
         }
     }
@@ -691,18 +817,18 @@ async function bulkSyncCustomersFeesDB(changeDate) {
         stateCustomers = updatedAllCustomers;
     }
 
-    if (historyToInsert.length > 0 || historyIdsToUpdateDate.length > 0) {
-        const localHistory = getWasteData('feeHistory');
+    if (historyIdsToDelete.length > 0 || historyToInsert.length > 0 || historyToUpdate.length > 0) {
+        const deleteSet = new Set(historyIdsToDelete);
+        let localHistory = (stateFeeHistory || getWasteData('feeHistory')).filter(h => !deleteSet.has(h.id));
         historyToInsert.forEach((h, idx) => {
-            const withMeta = {
+            localHistory.push({
                 ...h,
                 id: 'FH' + Date.now() + '_' + idx,
                 created_at: nowIso
-            };
-            localHistory.push(withMeta);
-            if (stateFeeHistory) stateFeeHistory.push(withMeta);
+            });
         });
         saveWasteData('feeHistory', localHistory);
+        stateFeeHistory = localHistory;
     }
 
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
@@ -714,7 +840,7 @@ async function bulkSyncCustomersFeesDB(changeDate) {
 
     return {
         updatedCount: customersToUpdate.length,
-        dateUpdatedCount: historyIdsToUpdateDate.length,
+        dateUpdatedCount: historyToUpdate.length + historyIdsToDelete.length,
         effectiveMonthLabel: info.effectiveMonthLabel,
         calYearBE: info.calYearBE,
         fiscalYear: info.fiscalYear
@@ -726,13 +852,38 @@ async function saveWasteCustomerDB(data) {
     const feeChangeDate = data.fee_change_date;
     delete data.fee_change_date;
 
-    // Detect fee change and record history
+    // Detect fee change and record/clean history
     const existing = getWasteCustomers().find(c => c.id === data.id);
     if (existing && Number(existing.fee) !== Number(data.fee)) {
-        addFeeHistoryEntry(data.id, existing.fee, data.fee, feeChangeDate);
+        const info = parseFeeChangeDateInfo(feeChangeDate);
+        const rawHist = getRawSortedFeeHistory(data.id);
+        const targetEffTime = info.effectiveDate.getTime();
+        const earlierEntries = rawHist.filter(h => getEntryEffectiveDate(h).getTime() < targetEffTime);
+        const sameAndLaterEntries = rawHist.filter(h => getEntryEffectiveDate(h).getTime() >= targetEffTime);
+
+        if (sameAndLaterEntries.length > 0) {
+            const feeBeforeTargetMonth = earlierEntries.length > 0
+                ? Number(earlierEntries[earlierEntries.length - 1].new_fee)
+                : Number(sameAndLaterEntries[0].old_fee);
+
+            if (feeBeforeTargetMonth === Number(data.fee)) {
+                const idsToDel = sameAndLaterEntries.map(h => h.id).filter(Boolean);
+                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+                    const dbIds = idsToDel.filter(id => !String(id).startsWith('FH'));
+                    if (dbIds.length > 0) await supabaseClient.from('waste_fee_history').delete().in('id', dbIds);
+                }
+                const delSet = new Set(idsToDel);
+                stateFeeHistory = (stateFeeHistory || getWasteData('feeHistory')).filter(h => !delSet.has(h.id));
+                saveWasteData('feeHistory', stateFeeHistory);
+            } else {
+                addFeeHistoryEntry(data.id, feeBeforeTargetMonth, data.fee, feeChangeDate);
+            }
+        } else {
+            addFeeHistoryEntry(data.id, existing.fee, data.fee, feeChangeDate);
+        }
     } else if (existing && feeChangeDate) {
         // หากราคาเท่าเดิมแต่มีการแก้ไขวันที่มีผลปรับค่าธรรมเนียมของลูกค้ารายนี้
-        const custHist = getFeeHistory(data.id);
+        const custHist = getRawSortedFeeHistory(data.id);
         if (custHist && custHist.length > 0) {
             const latest = custHist[custHist.length - 1];
             const info = parseFeeChangeDateInfo(feeChangeDate);
